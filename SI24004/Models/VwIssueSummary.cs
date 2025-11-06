@@ -1,0 +1,35 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace SI24004.Models;
+
+public partial class VwIssueSummary
+{
+    public string IssueId { get; set; }
+
+    public string CurrentStatus { get; set; }
+
+    public DateTime? IssuedDate { get; set; }
+
+    public DateTime? ReceivedDate { get; set; }
+
+    public string SectionId { get; set; }
+
+    public int? TotalItems { get; set; }
+
+    public int? ReceivedItems { get; set; }
+
+    public long? TotalItemCodes { get; set; }
+
+    public long? CompletedItems { get; set; }
+
+    public decimal? TotalQuantityIssued { get; set; }
+
+    public decimal? TotalQuantityReceived { get; set; }
+
+    public long? ActiveHolds { get; set; }
+
+    public DateTime? UpdatedAt { get; set; }
+
+    public string UpdatedBy { get; set; }
+}
