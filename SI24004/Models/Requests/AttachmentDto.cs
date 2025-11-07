@@ -10,7 +10,7 @@
         public Guid? RequestId { get; set; }
         public byte[]? AttachementFileData { get; set; }
         public bool? IsDeleted { get; set; }
-        public string Category { get; set; }
+        public string? Category { get; set; }
         public string? AttachmentSize { get; set; }
 
         public string? AttachmentFileLocation { get; set; }
