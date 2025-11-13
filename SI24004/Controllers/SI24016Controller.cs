@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SI24004.Models;
-using SI24004.ModelsMySql;
+using SI24004.ModelsMysql;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
@@ -12,10 +12,10 @@ namespace SI24004.Controllers
     [ApiController]
     public class SI24016Controller : ControllerBase
     {
-        private readonly SqlConnect _context;
+        private readonly SqlServerContext _context;
         private readonly PostgrestContext _postcontext;
 
-        public SI24016Controller(SqlConnect context, PostgrestContext PostgrestContext)
+        public SI24016Controller(SqlServerContext context, PostgrestContext PostgrestContext)
         {
             _context = context;
             _postcontext = PostgrestContext;

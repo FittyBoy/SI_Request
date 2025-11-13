@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace SI24004.ModelsMysql;
 
-public partial class ItemBalance
+public partial class ItemBalance1
 {
     public int BlId { get; set; }
 

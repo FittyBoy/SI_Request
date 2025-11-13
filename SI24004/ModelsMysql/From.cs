@@ -3,7 +3,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace SI24004.ModelsMySql;
+namespace SI24004.ModelsMysql;
 
 public partial class From
 {

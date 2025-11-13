@@ -20,7 +20,7 @@ using SI24004.Repositories;
 using SI24004.Repositories.Interfaces;
 using SI24004.Service.Interfaces;
 using SI24004.Services;
-using SI24004.ModelsMySql;
+using SI24004.ModelsMysql;
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
 
@@ -58,7 +58,7 @@ builder.Services.AddDbContext<PostgrestContext>(options =>
             errorCodesToAdd: null);
     })
 );
-builder.Services.AddDbContext<SqlConnect>(options =>
+builder.Services.AddDbContext<SqlServerContext>(options =>
     options.UseMySql(config.GetConnectionString("WhServer"),
         ServerVersion.AutoDetect(config.GetConnectionString("WhServer")),
         mySqlOptions =>
@@ -70,7 +70,6 @@ builder.Services.AddDbContext<SqlConnect>(options =>
                 errorNumbersToAdd: null); // ✅ MySQL (Pomelo) ใช้ errorNumbersToAdd
         })
 );
-
 
 builder.Services.AddDbContext<sqlServerContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer"), sqlOptions =>
@@ -96,24 +95,6 @@ builder.Services.Configure<SmtpSettings>(options =>
     options.FromName = smtpSection["FromName"] ?? "Polishing Alert System";
 });
 
-// Configure Schedule Settings 
-//builder.Services.Configure<ScheduleSettings>(options =>
-//{
-//    var scheduleSection = builder.Configuration.GetSection("ScheduleSettings");
-
-//    options.EnableSchedule = bool.Parse(scheduleSection["EnableSchedule"] ?? "true");
-
-//    var hoursArray = scheduleSection.GetSection("ScheduleHours").Get<int[]>();
-//    options.ScheduleHours = hoursArray?.ToList() ?? new List<int> { 0, 6, 12, 18 };
-
-//    options.CheckIntervalSeconds = int.Parse(scheduleSection["CheckIntervalSeconds"] ?? "30");
-//    options.DelayAfterSendSeconds = int.Parse(scheduleSection["DelayAfterSendSeconds"] ?? "65");
-//    options.DataLookbackHours = int.Parse(scheduleSection["DataLookbackHours"] ?? "6");
-//    options.SendEmptyReports = bool.Parse(scheduleSection["SendEmptyReports"] ?? "true");
-//    options.SendErrorNotifications = bool.Parse(scheduleSection["SendErrorNotifications"] ?? "true");
-//    options.MaxRetryAttempts = int.Parse(scheduleSection["MaxRetryAttempts"] ?? "3");
-//    options.RetryDelaySeconds = int.Parse(scheduleSection["RetryDelaySeconds"] ?? "30");
-//});
 
 builder.Services.Configure<SI24004.Service.EmailRecipients>(options =>
 {

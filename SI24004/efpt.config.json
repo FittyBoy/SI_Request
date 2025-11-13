@@ -1,12 +1,12 @@
 ﻿{
    "CodeGenerationMode": 4,
-   "ContextClassName": "PostgrestContext",
+   "ContextClassName": "SqlServerContext",
    "ContextNamespace": null,
    "FilterSchemas": false,
    "IncludeConnectionString": false,
    "ModelNamespace": null,
    "OutputContextPath": null,
-   "OutputPath": "Models",
+   "OutputPath": "ModelsMysql",
    "PreserveCasingWithRegex": true,
    "ProjectRootNamespace": "SI24004",
    "Schemas": null,
@@ -15,128 +15,168 @@
    "T4TemplatePath": null,
    "Tables": [
       {
-         "Name": "AVI.avi_request",
+         "Name": "by1_confirm",
          "ObjectType": 0
       },
       {
-         "Name": "INA.ina_request",
+         "Name": "contact_info",
          "ObjectType": 0
       },
       {
-         "Name": "INA.lot_request",
+         "Name": "currency_rate",
          "ObjectType": 0
       },
       {
-         "Name": "LP.employeemaster",
+         "Name": "department_info",
          "ObjectType": 0
       },
       {
-         "Name": "LP.locationmaster",
+         "Name": "froms",
          "ObjectType": 0
       },
       {
-         "Name": "LP.MateralInventories",
+         "Name": "issue_confirm",
          "ObjectType": 0
       },
       {
-         "Name": "LP.MaterialReceiveRecords",
+         "Name": "issue_item",
          "ObjectType": 0
       },
       {
-         "Name": "LP.MaterialTypes",
+         "Name": "issue_slip",
          "ObjectType": 0
       },
       {
-         "Name": "master.attachment",
+         "Name": "item_balance",
          "ObjectType": 0
       },
       {
-         "Name": "master.drawing",
+         "Name": "item_balance1",
          "ObjectType": 0
       },
       {
-         "Name": "master.list_item",
+         "Name": "item_bom",
          "ObjectType": 0
       },
       {
-         "Name": "master.objective",
+         "Name": "item_bom_list",
          "ObjectType": 0
       },
       {
-         "Name": "master.request_machine",
+         "Name": "item_bom_out",
          "ObjectType": 0
       },
       {
-         "Name": "master.role",
+         "Name": "item_bom_stock",
          "ObjectType": 0
       },
       {
-         "Name": "master.section",
+         "Name": "item_bom_usage",
          "ObjectType": 0
       },
       {
-         "Name": "master.shift",
+         "Name": "item_bom_usage_month",
          "ObjectType": 0
       },
       {
-         "Name": "master.status",
+         "Name": "item_info",
          "ObjectType": 0
       },
       {
-         "Name": "master.users",
+         "Name": "item_life",
          "ObjectType": 0
       },
       {
-         "Name": "QA.qa_substance",
+         "Name": "po_freight",
          "ObjectType": 0
       },
       {
-         "Name": "QA.regular_substand",
+         "Name": "po_receive",
          "ObjectType": 0
       },
       {
-         "Name": "SSCH.dw_request",
+         "Name": "po_receive1",
          "ObjectType": 0
       },
       {
-         "Name": "WH.inventory_transactions",
+         "Name": "section_info",
          "ObjectType": 0
       },
       {
-         "Name": "WH.issue_status",
+         "Name": "shelf_info",
          "ObjectType": 0
       },
       {
-         "Name": "WH.item_hold_details",
+         "Name": "stock_card",
          "ObjectType": 0
       },
       {
-         "Name": "WH.item_inventory_stats",
+         "Name": "stock_shelf",
          "ObjectType": 0
       },
       {
-         "Name": "WH.item_receive_details",
+         "Name": "user_group",
          "ObjectType": 0
       },
       {
-         "Name": "WH.vw_issue_summary",
+         "Name": "user_groups",
+         "ObjectType": 0
+      },
+      {
+         "Name": "user_info",
+         "ObjectType": 0
+      },
+      {
+         "Name": "wh_area",
+         "ObjectType": 0
+      },
+      {
+         "Name": "wh_path",
+         "ObjectType": 0
+      },
+      {
+         "Name": "wh_product",
+         "ObjectType": 0
+      },
+      {
+         "Name": "wh_purpose",
+         "ObjectType": 0
+      },
+      {
+         "Name": "wh_status",
+         "ObjectType": 0
+      },
+      {
+         "Name": "wh_type",
+         "ObjectType": 0
+      },
+      {
+         "Name": "wh_update",
+         "ObjectType": 0
+      },
+      {
+         "Name": "z_vendor",
+         "ObjectType": 0
+      },
+      {
+         "Name": "issue_month",
          "ObjectType": 3
       },
       {
-         "Name": "WH.vw_item_current_status",
+         "Name": "receive_month",
          "ObjectType": 3
       },
       {
-         "Name": "WH.vw_item_daily_minmax",
+         "Name": "remain_shelf",
          "ObjectType": 3
       },
       {
-         "Name": "LP.get_inventory_summary",
-         "ObjectType": 1
+         "Name": "shelf_life",
+         "ObjectType": 3
       },
       {
-         "Name": "LP.update_updated_at_column",
-         "ObjectType": 1
+         "Name": "update_out",
+         "ObjectType": 3
       }
    ],
    "UiHint": null,

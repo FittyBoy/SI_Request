@@ -11,7 +11,6 @@ using System.Net.Mail;
 using System.Net;
 using System.Text;
 using Microsoft.Extensions.Options;
-using SI24004.ModelsMySql;
 
 namespace SI24004.Controllers
 {

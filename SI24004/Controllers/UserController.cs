@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SI24004.Models;
 using SI24004.Models.Requests;
-using SI24004.ModelsMySql;
+using SI24004.ModelsMysql;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -18,9 +18,9 @@ namespace SI24004.Controllers
     public class UserController : ControllerBase
     {
         private readonly PostgrestContext _context;
-        private readonly SqlConnect _mySqlContext;
+        private readonly SqlServerContext _mySqlContext;
         private readonly IConfiguration _config;
-        public UserController(PostgrestContext context, IConfiguration config, SqlConnect mysqlContext)
+        public UserController(PostgrestContext context, IConfiguration config, SqlServerContext mysqlContext)
         {
             _context = context;
             _config = config;

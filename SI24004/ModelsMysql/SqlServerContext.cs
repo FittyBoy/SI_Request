@@ -4,11 +4,11 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
-namespace SI24004.ModelsMySql;
+namespace SI24004.ModelsMysql;
 
-public partial class SqlConnect : DbContext
+public partial class SqlServerContext : DbContext
 {
-    public SqlConnect(DbContextOptions<SqlConnect> options)
+    public SqlServerContext(DbContextOptions<SqlServerContext> options)
         : base(options)
     {
     }
@@ -32,6 +32,8 @@ public partial class SqlConnect : DbContext
     public virtual DbSet<IssueSlip> IssueSlips { get; set; }
 
     public virtual DbSet<ItemBalance> ItemBalances { get; set; }
+
+    public virtual DbSet<ItemBalance1> ItemBalance1s { get; set; }
 
     public virtual DbSet<ItemBom> ItemBoms { get; set; }
 
@@ -90,6 +92,8 @@ public partial class SqlConnect : DbContext
     public virtual DbSet<WhType> WhTypes { get; set; }
 
     public virtual DbSet<WhUpdate> WhUpdates { get; set; }
+
+    public virtual DbSet<ZVendor> ZVendors { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -491,6 +495,35 @@ public partial class SqlConnect : DbContext
             entity.HasKey(e => e.BlId).HasName("PRIMARY");
 
             entity.ToTable("item_balance");
+
+            entity.Property(e => e.BlId)
+                .HasColumnType("int(11)")
+                .HasColumnName("bl_id");
+            entity.Property(e => e.BlAmount)
+                .HasPrecision(20, 2)
+                .HasColumnName("bl_amount");
+            entity.Property(e => e.BlItemCode)
+                .HasMaxLength(20)
+                .HasColumnName("bl_item_code");
+            entity.Property(e => e.BlItemId)
+                .HasColumnType("int(11)")
+                .HasColumnName("bl_item_id");
+            entity.Property(e => e.BlMonth)
+                .HasMaxLength(10)
+                .HasColumnName("bl_month");
+            entity.Property(e => e.BlPrice)
+                .HasPrecision(20, 2)
+                .HasColumnName("bl_price");
+            entity.Property(e => e.BlQty)
+                .HasPrecision(20, 2)
+                .HasColumnName("bl_qty");
+        });
+
+        modelBuilder.Entity<ItemBalance1>(entity =>
+        {
+            entity.HasKey(e => e.BlId).HasName("PRIMARY");
+
+            entity.ToTable("item_balance1");
 
             entity.Property(e => e.BlId)
                 .HasColumnType("int(11)")
@@ -1844,6 +1877,78 @@ public partial class SqlConnect : DbContext
             entity.Property(e => e.ProStatus)
                 .HasColumnType("int(11)")
                 .HasColumnName("pro_status");
+        });
+
+        modelBuilder.Entity<ZVendor>(entity =>
+        {
+            entity.HasKey(e => e.VId).HasName("PRIMARY");
+
+            entity.ToTable("z_vendor");
+
+            entity.Property(e => e.VId)
+                .ValueGeneratedNever()
+                .HasColumnType("int(11)")
+                .HasColumnName("V_id");
+            entity.Property(e => e.VDateInsp)
+                .HasMaxLength(10)
+                .HasColumnName("V_date_insp");
+            entity.Property(e => e.VDateShip)
+                .HasMaxLength(10)
+                .HasColumnName("V_date_ship");
+            entity.Property(e => e.VInput)
+                .HasColumnType("int(11)")
+                .HasColumnName("V_input");
+            entity.Property(e => e.VOutput)
+                .HasColumnType("int(11)")
+                .HasColumnName("V_output");
+            entity.Property(e => e.VPackLot1)
+                .HasMaxLength(50)
+                .HasColumnName("V_pack_lot1");
+            entity.Property(e => e.VPackLot2)
+                .HasMaxLength(50)
+                .HasColumnName("V_pack_lot2");
+            entity.Property(e => e.VPackLot3)
+                .HasMaxLength(50)
+                .HasColumnName("V_pack_lot3");
+            entity.Property(e => e.VPackLot4)
+                .HasMaxLength(50)
+                .HasColumnName("V_pack_lot4");
+            entity.Property(e => e.VPackLot5)
+                .HasMaxLength(50)
+                .HasColumnName("V_pack_lot5");
+            entity.Property(e => e.VPackLot6)
+                .HasMaxLength(50)
+                .HasColumnName("V_pack_lot6");
+            entity.Property(e => e.VProduct)
+                .HasMaxLength(5)
+                .HasColumnName("V_product");
+            entity.Property(e => e.VShipLot)
+                .HasMaxLength(10)
+                .HasColumnName("V_ship_lot");
+            entity.Property(e => e.VSt1)
+                .HasColumnType("int(11)")
+                .HasColumnName("V_st1");
+            entity.Property(e => e.VSt2)
+                .HasColumnType("int(11)")
+                .HasColumnName("V_st2");
+            entity.Property(e => e.VSt3)
+                .HasColumnType("int(11)")
+                .HasColumnName("V_st3");
+            entity.Property(e => e.VSt4)
+                .HasColumnType("int(11)")
+                .HasColumnName("V_st4");
+            entity.Property(e => e.VSt5)
+                .HasColumnType("int(11)")
+                .HasColumnName("V_st5");
+            entity.Property(e => e.VSt6)
+                .HasColumnType("int(11)")
+                .HasColumnName("V_st6");
+            entity.Property(e => e.VSt7)
+                .HasColumnType("int(11)")
+                .HasColumnName("V_st7");
+            entity.Property(e => e.VUvirLot)
+                .HasMaxLength(20)
+                .HasColumnName("V_uvir_lot");
         });
 
         OnModelCreatingPartial(modelBuilder);
