@@ -5,15 +5,17 @@ using System.Collections.Generic;
 
 namespace SI24004.Models;
 
-public partial class MaterialType
+public partial class PoCheckFlow
 {
     public Guid Id { get; set; }
 
-    public string TypeName { get; set; }
+    public string PoLot { get; set; }
 
-    public string Description { get; set; }
+    public string StatusTn { get; set; }
 
-    public DateTime? CreatedAt { get; set; }
+    public bool CheckSt { get; set; }
 
-    public DateTime? UpdatedAt { get; set; }
+    public DateTime? CheckDate { get; set; }
+
+    public string McNo { get; set; }
 }
