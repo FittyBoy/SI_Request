@@ -261,7 +261,7 @@ namespace SI24004.Controllers
     // Request Model
     public class CheckFlowRequest
     {
-        public string McPo { get; set; }
+        public string? McPo { get; set; }
         public DateTime? DateProcess { get; set; }
     }
 }
