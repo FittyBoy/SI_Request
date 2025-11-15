@@ -983,6 +983,10 @@ public partial class PostgrestContext : DbContext
                 .HasColumnName("id");
             entity.Property(e => e.CheckDate).HasColumnName("check_date");
             entity.Property(e => e.CheckSt).HasColumnName("check_st");
+            entity.Property(e => e.Imobilelot)
+                .HasColumnType("character varying")
+                .HasColumnName("imobilelot");
+            entity.Property(e => e.LotQty).HasColumnName("lot_qty");
             entity.Property(e => e.McNo)
                 .HasColumnType("character varying")
                 .HasColumnName("mc_no");

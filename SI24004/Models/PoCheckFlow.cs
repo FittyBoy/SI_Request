@@ -18,4 +18,8 @@ public partial class PoCheckFlow
     public DateTime? CheckDate { get; set; }
 
     public string McNo { get; set; }
+
+    public string Imobilelot { get; set; }
+
+    public int? LotQty { get; set; }
 }
