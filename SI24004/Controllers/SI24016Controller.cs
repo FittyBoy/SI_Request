@@ -165,6 +165,11 @@ namespace SI24004.Controllers
                 return BadRequest(new { error = ex.Message, stackTrace = ex.StackTrace });
             }
         }
+        [HttpGet("testRepor")]
+        public async Task<IActionResult> TestApi()
+        {
+            return Ok();
+        }
         [HttpPost("barcode/scan")]
         public async Task<IActionResult> ScanBarcode([FromBody] BarcodeRequest request)
         {
