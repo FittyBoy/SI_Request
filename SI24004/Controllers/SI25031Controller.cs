@@ -1,11 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SI24004.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace SI24004.Controllers
 {
@@ -24,10 +19,6 @@ namespace SI24004.Controllers
 
         /// <summary>
         /// ค้นหา LOT จาก ThRecord โดยใช้ ImobileLot (ไม่บันทึกทันที รอ confirm จาก Modal)
-        /// Logic:
-        /// 1. ค้นหาจาก ThRecord โดยใช้ ImobileLot
-        /// 2. ถ้า status = "rescreen" ให้เช็คใน Th100Record
-        /// 3. ส่งข้อมูลกลับไปให้ Frontend แสดงใน Modal
         /// </summary>
         [HttpPost("search-lot")]
         public async Task<IActionResult> SearchLot([FromBody] SearchLotRequest request)
@@ -65,7 +56,9 @@ namespace SI24004.Controllers
                 if (thRecord.Status?.ToLower() == "rescreen")
                 {
                     var th100Record = await _sqlServerContext.Th100Records
-                        .FirstOrDefaultAsync(t => t.LotPo == thRecord.LotPo || t.McPo == thRecord.McPo || t.NoPo == thRecord.NoPo);
+                        .FirstOrDefaultAsync(t =>
+                            t.ImobileLot == thRecord.ImobileLot ||
+                            (t.LotPo == thRecord.LotPo && t.McPo == thRecord.McPo && t.NoPo == thRecord.NoPo));
 
                     if (th100Record != null)
                     {
@@ -80,11 +73,10 @@ namespace SI24004.Controllers
                 }
                 else if (!string.IsNullOrEmpty(thRecord.Status))
                 {
-                    // Status อื่นๆ ที่ไม่ใช่ rescreen
                     checkSt = thRecord.Status.ToUpper() == "OK";
                 }
 
-                // สร้าง PO LOT จาก LotPo + McPo + NoPo
+                // สร้าง PO LOT
                 string poLot = $"{thRecord.LotPo}-{thRecord.McPo}-{thRecord.NoPo}";
 
                 // ตรวจสอบว่ามี LOT นี้ในระบบแล้วหรือไม่
@@ -139,7 +131,6 @@ namespace SI24004.Controllers
                     });
                 }
 
-                // ค้นหาข้อมูลจาก ThRecord อีกครั้งเพื่อความแน่ใจ
                 var thRecord = await _sqlServerContext.ThRecords
                     .FirstOrDefaultAsync(t => t.ImobileLot == request.ImobileLot);
 
@@ -159,7 +150,9 @@ namespace SI24004.Controllers
                 if (thRecord.Status?.ToLower() == "rescreen")
                 {
                     var th100Record = await _sqlServerContext.Th100Records
-                        .FirstOrDefaultAsync(t => t.LotPo == thRecord.LotPo || t.McPo == thRecord.McPo || t.NoPo == thRecord.NoPo);
+                        .FirstOrDefaultAsync(t =>
+                            t.ImobileLot == thRecord.ImobileLot ||
+                            (t.LotPo == thRecord.LotPo && t.McPo == thRecord.McPo && t.NoPo == thRecord.NoPo));
 
                     if (th100Record != null && th100Record.Status?.ToUpper() == "OK")
                     {
@@ -173,7 +166,6 @@ namespace SI24004.Controllers
                     }
                     else
                     {
-                        // ไม่พบใน Th100Record - ไม่ควรบันทึก
                         return BadRequest(new
                         {
                             success = false,
@@ -185,7 +177,6 @@ namespace SI24004.Controllers
                 {
                     checkSt = thRecord.Status.ToUpper() == "OK";
 
-                    // ตรวจสอบว่าเป็น Hold หรือ Scrap
                     if (thRecord.Status.ToLower() == "hold" || thRecord.Status.ToLower() == "scrap")
                     {
                         return BadRequest(new
@@ -196,10 +187,7 @@ namespace SI24004.Controllers
                     }
                 }
 
-                // สร้าง PO LOT
                 string poLot = $"{thRecord.LotPo}-{thRecord.McPo}-{thRecord.NoPo}";
-
-                // รับ Qty จาก Request
                 int totalQty = request.LotQty ?? 0;
 
                 if (totalQty <= 0)
@@ -261,6 +249,7 @@ namespace SI24004.Controllers
                         imobileLot = poCheckFlow.Imobilelot,
                         statusTn = poCheckFlow.StatusTn,
                         checkSt = poCheckFlow.CheckSt,
+                        check = poCheckFlow.CheckSt ? "OK" : "NG",
                         checkDate = poCheckFlow.CheckDate,
                         mcNo = poCheckFlow.McNo,
                         lotQty = poCheckFlow.LotQty
@@ -280,41 +269,60 @@ namespace SI24004.Controllers
         }
 
         /// <summary>
-        /// ดึงข้อมูล LOT ตาม MC และวันที่
+        /// ดึงข้อมูล LOT ตาม MC (แสดงเฉพาะ 8 LOT ล่าสุดต่อ MC) เรียงตามเลข 3 ตัวท้าย
         /// </summary>
         [HttpGet("get-lots-by-mc")]
-        public async Task<IActionResult> GetLotsByMc([FromQuery] string mcNo, [FromQuery] DateTime? date)
+        public async Task<IActionResult> GetLotsByMc([FromQuery] string mcNo)
         {
             try
             {
-                var query = _context.PoCheckFlows.AsQueryable();
-
-                if (!string.IsNullOrEmpty(mcNo))
+                if (string.IsNullOrEmpty(mcNo))
                 {
-                    query = query.Where(p => p.McNo == mcNo);
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "กรุณาระบุ MC Number"
+                    });
                 }
 
-                if (date.HasValue)
-                {
-                    var targetDate = date.Value.Date;
-                    query = query.Where(p => p.CheckDate == targetDate);
-                }
-                else
-                {
-                    // ถ้าไม่ระบุวันที่ ให้ดึงวันนี้
-                    var today = DateTime.UtcNow.Date;
-                    query = query.Where(p => p.CheckDate == today);
-                }
-
-                var records = await query
-                    .OrderBy(p => p.CheckDate)
-                    .ThenBy(p => p.Id)
+                // ดึงข้อมูลของ MC ที่เลือก วันนี้เท่านั้น
+                var today = DateTime.UtcNow.Date;
+                var records = await _context.PoCheckFlows
+                    .Where(p => p.McNo == mcNo && p.CheckDate == today)
                     .ToListAsync();
+
+                // นับจำนวน LOT ทั้งหมดของ MC นี้ในวันนี้
+                int totalCount = records.Count;
+                int okCount = records.Count(r => r.CheckSt);
+                int ngCount = records.Count(r => !r.CheckSt);
+
+                // เรียงลำดับตาม LOT โดยแยกเลข 3 ตัวท้ายและตัวอักษร
+                var sortedRecords = records
+                    .Select(r => new
+                    {
+                        Record = r,
+                        Parts = r.PoLot?.Split('-') ?? new string[0],
+                        LastPart = r.PoLot?.Split('-').LastOrDefault() ?? "",
+                    })
+                    .Select(x => new
+                    {
+                        x.Record,
+                        x.Parts,
+                        x.LastPart,
+                        Number = int.TryParse(System.Text.RegularExpressions.Regex.Match(x.LastPart, @"^\d+").Value, out int num) ? num : 0,
+                        Letter = System.Text.RegularExpressions.Regex.Match(x.LastPart, @"[A-Za-z]+$").Value
+                    })
+                    .OrderByDescending(x => x.Number)  // เรียงจากมากไปน้อย (ล่าสุดก่อน)
+                    .ThenByDescending(x => x.Letter)   // ถ้าเลขเท่ากัน เรียงตามตัวอักษร
+                    .Take(8)                           // เอาเฉพาะ 8 LOT ล่าสุดของ MC นี้
+                    .Select(x => x.Record)
+                    .Reverse()                         // กลับลำดับเพื่อแสดง LOT เก่าก่อน LOT ใหม่
+                    .ToList();
 
                 return Ok(new
                 {
                     success = true,
-                    data = records.Select(r => new
+                    data = sortedRecords.Select(r => new
                     {
                         id = r.Id,
                         poLot = r.PoLot,
@@ -326,9 +334,10 @@ namespace SI24004.Controllers
                         mcNo = r.McNo,
                         lotQty = r.LotQty
                     }).ToList(),
-                    totalCount = records.Count,
-                    okCount = records.Count(r => r.CheckSt),
-                    ngCount = records.Count(r => !r.CheckSt)
+                    totalCount = totalCount,           // จำนวน LOT ทั้งหมดของ MC นี้ในวันนี้
+                    displayCount = sortedRecords.Count, // จำนวนที่แสดง (สูงสุด 8)
+                    okCount = okCount,                 // OK ทั้งหมดของ MC นี้
+                    ngCount = ngCount                  // NG ทั้งหมดของ MC นี้
                 });
             }
             catch (Exception ex)
@@ -343,7 +352,52 @@ namespace SI24004.Controllers
         }
 
         /// <summary>
-        /// ลบ LOT (สำหรับกรณีที่ต้องการแก้ไข)
+        /// ดึงรายการ MC ทั้งหมดจาก PoCheckFlows
+        /// </summary>
+        [HttpGet("get-mc-list")]
+        public async Task<IActionResult> GetMcList()
+        {
+            try
+            {
+                // ดึง MC ที่มีใน PoCheckFlows
+                var mcListInCleaning = await _context.PoCheckFlows
+                    .Where(t => !string.IsNullOrEmpty(t.McNo))
+                    .Select(t => t.McNo)
+                    .Distinct()
+                    .ToListAsync();
+
+                // ดึง MC จาก ThRecords
+                var mcList = await _sqlServerContext.ThRecords
+                    .Where(t => !string.IsNullOrEmpty(t.McPo))
+                    .Select(t => t.McPo)
+                    .Distinct()
+                    .ToListAsync();
+
+                // เอาเฉพาะ MC ที่มีใน mcListInCleaning
+                var filteredMcList = mcList
+                    .Where(mc => mcListInCleaning.Contains(mc))
+                    .OrderBy(mc => mc)
+                    .ToList();
+
+                return Ok(new
+                {
+                    success = true,
+                    data = filteredMcList
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "เกิดข้อผิดพลาดในการดึงรายการ MC",
+                    error = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// ลบ LOT
         /// </summary>
         [HttpDelete("delete-lot/{id}")]
         public async Task<IActionResult> DeleteLot(Guid id)
@@ -412,8 +466,7 @@ namespace SI24004.Controllers
                         totalLots = records.Count,
                         okCount = records.Count(r => r.CheckSt),
                         ngCount = records.Count(r => !r.CheckSt),
-                        totalQty = totalQty,
-                        canAddMore = records.Count < 8
+                        totalQty = totalQty
                     }
                 });
             }
@@ -423,193 +476,6 @@ namespace SI24004.Controllers
                 {
                     success = false,
                     message = "เกิดข้อผิดพลาดในการดึงสถิติ",
-                    error = ex.Message
-                });
-            }
-        }
-
-        /// <summary>
-        /// ตรวจสอบและบันทึกข้อมูลทั้งหมด (Batch Processing)
-        /// </summary>
-        [HttpPost("check-and-save")]
-        public async Task<IActionResult> CheckAndSaveAll()
-        {
-            try
-            {
-                var savedRecords = new List<object>();
-                var thRecords = await _sqlServerContext.ThRecords.ToListAsync();
-
-                foreach (var thRecord in thRecords)
-                {
-                    bool shouldSave = false;
-                    bool checkSt = false;
-                    string finalStatus = thRecord.Status;
-
-                    if (thRecord.Status?.ToLower() == "rescreen")
-                    {
-                        var th100Record = await _sqlServerContext.Th100Records
-                            .FirstOrDefaultAsync(t => t.ImobileLot == thRecord.ImobileLot);
-
-                        if (th100Record != null && th100Record.Status?.ToUpper() == "OK")
-                        {
-                            shouldSave = true;
-                            checkSt = true;
-                            finalStatus = "OK (Rescreen)";
-                        }
-                    }
-                    else if (!string.IsNullOrEmpty(thRecord.Status))
-                    {
-                        // ข้าม Hold และ Scrap
-                        if (thRecord.Status.ToLower() != "hold" && thRecord.Status.ToLower() != "scrap")
-                        {
-                            shouldSave = true;
-                            checkSt = thRecord.Status.ToUpper() == "OK";
-                        }
-                    }
-
-                    if (shouldSave)
-                    {
-                        string poLot = $"{thRecord.LotPo}{thRecord.McPo}{thRecord.NoPo}";
-
-                        var poCheckFlow = new PoCheckFlow
-                        {
-                            PoLot = poLot,
-                            Imobilelot = thRecord.ImobileLot,
-                            StatusTn = finalStatus,
-                            CheckSt = checkSt,
-                            CheckDate = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc),
-                            McNo = thRecord.McPo,
-                            LotQty = 0 // Default value for batch processing
-                        };
-
-                        _context.PoCheckFlows.Add(poCheckFlow);
-                        savedRecords.Add(new
-                        {
-                            poLot = poCheckFlow.PoLot,
-                            imobileLot = poCheckFlow.Imobilelot,
-                            statusTn = poCheckFlow.StatusTn,
-                            checkSt = poCheckFlow.CheckSt,
-                            mcNo = poCheckFlow.McNo
-                        });
-                    }
-                }
-
-                await _context.SaveChangesAsync();
-
-                return Ok(new
-                {
-                    success = true,
-                    message = $"บันทึกข้อมูลสำเร็จ {savedRecords.Count} รายการ",
-                    data = savedRecords
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new
-                {
-                    success = false,
-                    message = "เกิดข้อผิดพลาดในการบันทึกข้อมูล",
-                    error = ex.Message
-                });
-            }
-        }
-
-        /// <summary>
-        /// ตรวจสอบและบันทึกข้อมูลสำหรับ MC และวันที่ที่ระบุ
-        /// </summary>
-        [HttpPost("check-and-save-by-mc")]
-        public async Task<IActionResult> CheckAndSaveByMcAndDate([FromBody] CheckFlowRequest request)
-        {
-            try
-            {
-                var savedRecords = new List<object>();
-                var query = _sqlServerContext.ThRecords.AsQueryable();
-
-                if (!string.IsNullOrEmpty(request.McPo))
-                {
-                    query = query.Where(t => t.McPo == request.McPo);
-                }
-
-                if (request.DateProcess.HasValue)
-                {
-                    var targetDate = request.DateProcess.Value.Date;
-                    query = query.Where(t =>
-                        t.DateProcess.Year == targetDate.Year &&
-                        t.DateProcess.Month == targetDate.Month &&
-                        t.DateProcess.Day == targetDate.Day);
-                }
-
-                var thRecords = await query.ToListAsync();
-
-                foreach (var thRecord in thRecords)
-                {
-                    bool shouldSave = false;
-                    bool checkSt = false;
-                    string finalStatus = thRecord.Status;
-
-                    if (thRecord.Status?.ToLower() == "rescreen")
-                    {
-                        var th100Record = await _sqlServerContext.Th100Records
-                            .FirstOrDefaultAsync(t => t.ImobileLot == thRecord.ImobileLot);
-
-                        if (th100Record != null && th100Record.Status?.ToUpper() == "OK")
-                        {
-                            shouldSave = true;
-                            checkSt = true;
-                            finalStatus = "OK (Rescreen)";
-                        }
-                    }
-                    else if (!string.IsNullOrEmpty(thRecord.Status))
-                    {
-                        if (thRecord.Status.ToLower() != "hold" && thRecord.Status.ToLower() != "scrap")
-                        {
-                            shouldSave = true;
-                            checkSt = thRecord.Status.ToUpper() == "OK";
-                        }
-                    }
-
-                    if (shouldSave)
-                    {
-                        string poLot = $"{thRecord.LotPo}{thRecord.McPo}{thRecord.NoPo}";
-
-                        var poCheckFlow = new PoCheckFlow
-                        {
-                            PoLot = poLot,
-                            Imobilelot = thRecord.ImobileLot,
-                            StatusTn = finalStatus,
-                            CheckSt = checkSt,
-                            CheckDate = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc),
-                            McNo = thRecord.McPo,
-                            LotQty = 0
-                        };
-
-                        _context.PoCheckFlows.Add(poCheckFlow);
-                        savedRecords.Add(new
-                        {
-                            poLot = poCheckFlow.PoLot,
-                            imobileLot = poCheckFlow.Imobilelot,
-                            statusTn = poCheckFlow.StatusTn,
-                            checkSt = poCheckFlow.CheckSt,
-                            mcNo = poCheckFlow.McNo
-                        });
-                    }
-                }
-
-                await _context.SaveChangesAsync();
-
-                return Ok(new
-                {
-                    success = true,
-                    message = $"บันทึกข้อมูลสำเร็จ {savedRecords.Count} รายการ",
-                    data = savedRecords
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new
-                {
-                    success = false,
-                    message = "เกิดข้อผิดพลาดในการบันทึกข้อมูล",
                     error = ex.Message
                 });
             }
@@ -656,11 +522,5 @@ namespace SI24004.Controllers
     {
         public string? ImobileLot { get; set; }
         public int? LotQty { get; set; }
-    }
-
-    public class CheckFlowRequest
-    {
-        public string? McPo { get; set; }
-        public DateTime? DateProcess { get; set; }
     }
 }
