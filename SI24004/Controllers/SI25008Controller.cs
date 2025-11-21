@@ -11,6 +11,7 @@ using System.Net.Mail;
 using System.Net;
 using System.Text;
 using Microsoft.Extensions.Options;
+using SI24004.ModelsSQL;
 
 namespace SI24004.Controllers
 {
@@ -19,7 +20,7 @@ namespace SI24004.Controllers
     public class SI25008Controller : ControllerBase
     {
         private readonly PostgrestContext _context;
-        private readonly sqlServerContext _sqlcontext;
+        private readonly ThicknessContext _sqlcontext;
         private readonly SmtpSettings _smtpSettings;
         private readonly Models.Requests.EmailRecipients _emailRecipients; // ✅ กลับไปใช้ EmailRecipients
 
@@ -29,7 +30,7 @@ namespace SI24004.Controllers
         // ✅ กลับไปใช้ constructor แบบเดิม
         public SI25008Controller(
             PostgrestContext context,
-            sqlServerContext sqlcontext,
+            ThicknessContext sqlcontext,
             IOptions<SmtpSettings> smtpSettings,
             IOptions<Models.Requests.EmailRecipients> emailRecipients) // ✅ กลับไปใช้ IOptions<EmailRecipients>
         {

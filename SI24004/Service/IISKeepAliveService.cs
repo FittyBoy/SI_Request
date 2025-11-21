@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SI24004.Models;
+using SI24004.ModelsSQL;
 
 namespace SI24004.Service
 {
@@ -32,7 +33,7 @@ namespace SI24004.Service
                         try
                         {
                             using var scope = _serviceProvider.CreateScope();
-                            var dbContext = scope.ServiceProvider.GetService<sqlServerContext>();
+                            var dbContext = scope.ServiceProvider.GetService<ThicknessContext>();
                             if (dbContext != null)
                             {
                                 await dbContext.Database.ExecuteSqlRawAsync("SELECT 1");

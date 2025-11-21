@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SI24004.Models;
+using SI24004.ModelsSQL;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,10 +14,10 @@ namespace SI24004.Controllers
     [ApiController]
     public class SI25024Controller : ControllerBase
     {
-        private readonly sqlServerContext _sqlcontext;
+        private readonly ThicknessContext _sqlcontext;
 
         // เพิ่ม Constructor สำหรับ Dependency Injection
-        public SI25024Controller(sqlServerContext sqlcontext)
+        public SI25024Controller(ThicknessContext sqlcontext)
         {
             _sqlcontext = sqlcontext;
         }

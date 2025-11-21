@@ -3,7 +3,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace SI24004.Models;
+namespace SI24004.ModelsSQL;
 
 public partial class Th100Record
 {

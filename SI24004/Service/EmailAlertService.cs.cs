@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Mail;
 using System.Collections.Generic;
+using SI24004.ModelsSQL;
 
 public class EmailAlertService : BackgroundService
 {
@@ -41,7 +42,7 @@ public class EmailAlertService : BackgroundService
             {
                 using (var scope = _serviceProvider.CreateScope())
                 {
-                    var db = scope.ServiceProvider.GetRequiredService<sqlServerContext>();
+                    var db = scope.ServiceProvider.GetRequiredService<ThicknessContext>();
 
                     var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _thailandTimeZone);
                     var since = now.AddMinutes(-5);

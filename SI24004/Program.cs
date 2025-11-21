@@ -21,6 +21,8 @@ using SI24004.Repositories.Interfaces;
 using SI24004.Service.Interfaces;
 using SI24004.Services;
 using SI24004.ModelsMysql;
+using SI24004.ModelsSqlServer1;
+using SI24004.ModelsSQL;
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
 
@@ -58,7 +60,7 @@ builder.Services.AddDbContext<PostgrestContext>(options =>
             errorCodesToAdd: null);
     })
 );
-builder.Services.AddDbContext<SqlServerContext>(options =>
+builder.Services.AddDbContext<SI24004.ModelsMysql.SqlServerContext>(options =>
     options.UseMySql(config.GetConnectionString("WhServer"),
         ServerVersion.AutoDetect(config.GetConnectionString("WhServer")),
         mySqlOptions =>
@@ -71,7 +73,7 @@ builder.Services.AddDbContext<SqlServerContext>(options =>
         })
 );
 
-builder.Services.AddDbContext<sqlServerContext>(options =>
+builder.Services.AddDbContext<ThicknessContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer"), sqlOptions =>
     {
         sqlOptions.CommandTimeout(300);
@@ -80,6 +82,11 @@ builder.Services.AddDbContext<sqlServerContext>(options =>
             maxRetryDelay: TimeSpan.FromSeconds(30),
             errorNumbersToAdd: null);
     }));
+builder.Services.AddDbContext<SI24004.ModelsSqlServer1.OutputContext>(options =>
+{
+    options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer1"));
+    // ไม่ต้องทำ migration เพราะ database มีอยู่แล้ว
+}, ServiceLifetime.Scoped);
 
 // Configure SMTP and Email settings
 builder.Services.Configure<SmtpSettings>(options =>

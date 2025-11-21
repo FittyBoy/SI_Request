@@ -9,6 +9,7 @@ using System.Text;
 using SI24004.Models;
 using SI24004.Service;
 using SI24004.Models.Requests;
+using SI24004.ModelsSQL;
 
 namespace SI24004.Service
 {
@@ -307,7 +308,7 @@ namespace SI24004.Service
             using var scope = _serviceProvider.CreateScope();
             try
             {
-                var sqlContext = scope.ServiceProvider.GetRequiredService<sqlServerContext>();
+                var sqlContext = scope.ServiceProvider.GetRequiredService<ThicknessContext>();
                 var reportTime = currentTime ?? GetThailandTime();
                 var fromTime = reportTime.AddHours(-_scheduleSettings.DataLookbackHours);
                 var toTime = reportTime;

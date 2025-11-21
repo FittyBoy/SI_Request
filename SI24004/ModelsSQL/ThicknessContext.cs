@@ -4,11 +4,11 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
-namespace SI24004.Models;
+namespace SI24004.ModelsSQL;
 
-public partial class sqlServerContext : DbContext
+public partial class ThicknessContext : DbContext
 {
-    public sqlServerContext(DbContextOptions<sqlServerContext> options)
+    public ThicknessContext(DbContextOptions<ThicknessContext> options)
         : base(options)
     {
     }
@@ -985,6 +985,10 @@ public partial class sqlServerContext : DbContext
             entity
                 .HasNoKey()
                 .ToTable("TH_RECORD", tb => tb.HasTrigger("log_lotno_thickness"));
+
+            entity.HasIndex(e => new { e.ImobileSize, e.DateProcess, e.Status }, "IX_TH_RECORD_Composite_1");
+
+            entity.HasIndex(e => e.DateProcess, "IX_TH_RECORD_DateProcess");
 
             entity.HasIndex(e => e.LotId, "_dta_index_TH_RECORD_14_613577224__K1_2_3_4_5_6_7_8_9_10_11_12_13_14_15_16_17_18_19_20_21_22_23_24_25_26_27_28_29_30_31_32_33_");
 

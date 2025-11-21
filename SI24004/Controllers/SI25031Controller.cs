@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SI24004.Models;
+using SI24004.ModelsSQL;
+using SI24004.ModelsSqlServer1;
 
 namespace SI24004.Controllers
 {
@@ -9,12 +11,14 @@ namespace SI24004.Controllers
     public class SI25031Controller : ControllerBase
     {
         private readonly PostgrestContext _context;
-        private readonly sqlServerContext _sqlServerContext;
+        private readonly ThicknessContext _thicknessContext;
+        private readonly OutputContext _outputContext;
 
-        public SI25031Controller(PostgrestContext context, sqlServerContext sqlServerContext)
+        public SI25031Controller(PostgrestContext context, ThicknessContext thicknessContext, OutputContext outputContext)
         {
             _context = context;
-            _sqlServerContext = sqlServerContext;
+            _thicknessContext = thicknessContext;
+            _outputContext = outputContext;
         }
 
         /// <summary>
@@ -35,7 +39,7 @@ namespace SI24004.Controllers
                 }
 
                 // ค้นหาจาก ThRecord โดยใช้ ImobileLot
-                var thRecord = await _sqlServerContext.ThRecords
+                var thRecord = await _thicknessContext.ThRecords
                     .FirstOrDefaultAsync(t => t.ImobileLot == request.LotNumber);
 
                 if (thRecord == null)
@@ -55,7 +59,7 @@ namespace SI24004.Controllers
                 // ตรวจสอบ Logic
                 if (thRecord.Status?.ToLower() == "rescreen")
                 {
-                    var th100Record = await _sqlServerContext.Th100Records
+                    var th100Record = await _thicknessContext.Th100Records
                         .FirstOrDefaultAsync(t =>
                             t.ImobileLot == thRecord.ImobileLot ||
                             (t.LotPo == thRecord.LotPo && t.McPo == thRecord.McPo && t.NoPo == thRecord.NoPo));
@@ -131,7 +135,7 @@ namespace SI24004.Controllers
                     });
                 }
 
-                var thRecord = await _sqlServerContext.ThRecords
+                var thRecord = await _thicknessContext.ThRecords
                     .FirstOrDefaultAsync(t => t.ImobileLot == request.ImobileLot);
 
                 if (thRecord == null)
@@ -149,7 +153,7 @@ namespace SI24004.Controllers
                 // ตรวจสอบ Logic อีกครั้ง
                 if (thRecord.Status?.ToLower() == "rescreen")
                 {
-                    var th100Record = await _sqlServerContext.Th100Records
+                    var th100Record = await _thicknessContext.Th100Records
                         .FirstOrDefaultAsync(t =>
                             t.ImobileLot == thRecord.ImobileLot ||
                             (t.LotPo == thRecord.LotPo && t.McPo == thRecord.McPo && t.NoPo == thRecord.NoPo));
@@ -367,7 +371,7 @@ namespace SI24004.Controllers
                     .ToListAsync();
 
                 // ดึง MC จาก ThRecords
-                var mcList = await _sqlServerContext.ThRecords
+                var mcList = await _thicknessContext.ThRecords
                     .Where(t => !string.IsNullOrEmpty(t.McPo))
                     .Select(t => t.McPo)
                     .Distinct()
@@ -510,7 +514,259 @@ namespace SI24004.Controllers
                 });
             }
         }
+        /// <summary>
+        /// ดึงข้อมูล LOT พร้อม Quantity จาก Output_Defect
+        /// </summary>
+        [HttpGet("get-lots-with-quantity")]
+        public async Task<IActionResult> GetLotsWithQuantity([FromQuery] string? mcNo, [FromQuery] DateTime? date)
+        {
+            try
+            {
+                var targetDate = date?.Date ?? DateTime.UtcNow.Date;
+
+                // ดึงข้อมูลจาก ThRecord
+                var thRecordsQuery = _thicknessContext.ThRecords.AsQueryable();
+
+                if (!string.IsNullOrEmpty(mcNo))
+                {
+                    thRecordsQuery = thRecordsQuery.Where(t => t.McPo == mcNo);
+                }
+
+                var thRecords = await thRecordsQuery.ToListAsync();
+
+                var result = new List<object>();
+
+                foreach (var thRecord in thRecords)
+                {
+                    // สร้าง PO LOT
+                    string poLot = $"{thRecord.LotPo}-{thRecord.McPo}-{thRecord.NoPo}";
+                    string status = thRecord.Status ?? "";
+                    bool checkSt = false;
+                    int quantity = 0;
+
+                    // ตรวจสอบ Status
+                    if (status.ToLower() == "rescreen")
+                    {
+                        // เช็คใน TH100Record
+                        var th100Record = await _thicknessContext.Th100Records
+                            .FirstOrDefaultAsync(t =>
+                                t.LotPo == thRecord.LotPo &&
+                                t.McPo == thRecord.McPo &&
+                                t.NoPo == thRecord.NoPo);
+
+                        if (th100Record != null && th100Record.Status?.ToUpper() == "OK")
+                        {
+                            checkSt = true;
+                            status = "OK (Rescreen)";
+                        }
+                    }
+                    else if (!string.IsNullOrEmpty(status))
+                    {
+                        checkSt = status.ToUpper() == "OK";
+                    }
+
+                    // ดึงจำนวนจาก Output_Defect_A0400
+                    var outputA0400 = await _outputContext.OutputDefectA0400s
+                        .FirstOrDefaultAsync(o => o.Ltlotno == thRecord.ImobileLot);
+
+                    if (outputA0400 != null)
+                    {
+                        quantity = Convert.ToInt32(outputA0400.Mfoutqn ?? 0);
+                    }
+                    else
+                    {
+                        // ถ้าไม่มีใน A0400 ให้เช็คใน A0600
+                        var outputA0600 = await _outputContext.OutputDefectA0600s
+                            .FirstOrDefaultAsync(o => o.Ltlotno == thRecord.ImobileLot);
+
+                        if (outputA0600 != null)
+                        {
+                            quantity = Convert.ToInt32(outputA0400.Mfoutqn ?? 0);
+                        }
+                    }
+
+                    result.Add(new
+                    {
+                        poLot = poLot,
+                        imobileLot = thRecord.ImobileLot,
+                        mcNo = thRecord.McPo,
+                        status = status,
+                        check = checkSt ? "OK" : "NG",
+                        checkSt = checkSt,
+                        quantity = quantity
+                    });
+                }
+
+                // สรุปข้อมูล
+                int totalLots = result.Count;
+                int okCount = result.Count(r => ((dynamic)r).checkSt == true);
+                int ngCount = result.Count(r => ((dynamic)r).checkSt == false);
+                int totalQty = result.Sum(r => ((dynamic)r).quantity);
+
+                return Ok(new
+                {
+                    success = true,
+                    data = result,
+                    summary = new
+                    {
+                        date = targetDate,
+                        mcNo = mcNo,
+                        totalLots = totalLots,
+                        okCount = okCount,
+                        ngCount = ngCount,
+                        totalQuantity = totalQty
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "เกิดข้อผิดพลาดในการดึงข้อมูล",
+                    error = ex.Message,
+                    stackTrace = ex.StackTrace
+                });
+            }
+        }
+
+        /// <summary>
+        /// ดึงข้อมูล LOT เฉพาะ MC ของวันนี้ทั้งหมด (Real-time)
+        /// </summary>
+        [HttpGet("get-mc-lots-summary")]
+        public async Task<IActionResult> GetMcLotsSummary([FromQuery] string mcNo)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(mcNo))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "กรุณาระบุ MC Number"
+                    });
+                }
+
+                var today = DateTime.UtcNow.Date;
+
+                // ดึงข้อมูลจาก ThRecord สำหรับ MC นี้ของวันนี้เท่านั้น
+                var thRecords = await _thicknessContext.ThRecords
+                    .Where(t => t.McPo == mcNo && t.DateProcess.Date == today)
+                    .OrderByDescending(t => t.DateProcess)
+                    .ThenByDescending(t => t.NoPo)
+                    .ToListAsync();
+
+                var lotList = new List<object>();
+
+                foreach (var thRecord in thRecords)
+                {
+                    string poLot = $"{thRecord.LotPo}-{thRecord.McPo}-{thRecord.NoPo}";
+                    string status = thRecord.Status ?? "";
+                    bool checkSt = false;
+                    int quantity = 0;
+
+                    // ตรวจสอบ Status
+                    if (status.ToLower() == "rescreen")
+                    {
+                        var th100Record = await _thicknessContext.Th100Records
+                            .FirstOrDefaultAsync(t =>
+                                t.LotPo == thRecord.LotPo &&
+                                t.McPo == thRecord.McPo &&
+                                t.NoPo == thRecord.NoPo);
+
+                        if (th100Record != null && th100Record.Status?.ToUpper() == "OK")
+                        {
+                            checkSt = true;
+                            status = "OK (Rescreen)";
+                        }
+                    }
+                    else if (!string.IsNullOrEmpty(status))
+                    {
+                        checkSt = status.ToUpper() == "OK";
+                    }
+
+                    // ดึงจำนวน
+                    var outputA0400 = await _outputContext.OutputDefectA0400s
+                        .FirstOrDefaultAsync(o => o.Ltlotno == thRecord.ImobileLot);
+
+                    if (outputA0400 != null)
+                    {
+                        quantity = Convert.ToInt32(outputA0400.Mfoutqn ?? 0);
+                    }
+                    else
+                    {
+                        var outputA0600 = await _outputContext.OutputDefectA0600s
+                            .FirstOrDefaultAsync(o => o.Ltlotno == thRecord.ImobileLot);
+
+                        if (outputA0600 != null)
+                        {
+                            quantity = Convert.ToInt32(outputA0400.Mfoutqn ?? 0);
+                        }
+                    }
+
+                    lotList.Add(new
+                    {
+                        poLot = poLot,
+                        imobileLot = thRecord.ImobileLot,
+                        status = status,
+                        check = checkSt ? "OK" : "NG",
+                        checkSt = checkSt,
+                        quantity = quantity
+                    });
+                }
+
+                // เรียงลำดับ LOT ทั้งหมดของวันนี้
+                var sortedLots = lotList
+                    .Select(lot => new
+                    {
+                        Lot = lot,
+                        LastPart = ((dynamic)lot).poLot.Split('-').LastOrDefault() ?? "",
+                    })
+                    .Select(x => new
+                    {
+                        x.Lot,
+                        x.LastPart,
+                        Number = int.TryParse(System.Text.RegularExpressions.Regex.Match(x.LastPart, @"^\d+").Value, out int num) ? num : 0,
+                        Letter = System.Text.RegularExpressions.Regex.Match(x.LastPart, @"[A-Za-z]+$").Value
+                    })
+                    .OrderByDescending(x => x.Number)
+                    .ThenByDescending(x => x.Letter)
+                    .Select(x => x.Lot)
+                    .Reverse()
+                    .ToList();
+
+                // สรุปข้อมูล
+                int okCount = sortedLots.Count(r => ((dynamic)r).checkSt == true);
+                int ngCount = sortedLots.Count(r => ((dynamic)r).checkSt == false);
+                int totalQty = sortedLots.Sum(r => ((dynamic)r).quantity);
+
+                return Ok(new
+                {
+                    success = true,
+                    data = sortedLots,
+                    summary = new
+                    {
+                        mcNo = mcNo,
+                        date = today,
+                        totalCount = sortedLots.Count,
+                        okCount = okCount,
+                        ngCount = ngCount,
+                        totalQuantity = totalQty
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "เกิดข้อผิดพลาดในการดึงข้อมูล MC",
+                    error = ex.Message
+                });
+            }
+        }
     }
+
 
     // Request Models
     public class SearchLotRequest

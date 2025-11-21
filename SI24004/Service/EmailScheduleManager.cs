@@ -5,6 +5,7 @@ using System.Net.Mail;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
+using SI24004.ModelsSQL;
 
 namespace SI24004.Service
 {
@@ -153,7 +154,7 @@ namespace SI24004.Service
                 try
                 {
                     using var scope = _serviceProvider.CreateScope();
-                    var dbContext = scope.ServiceProvider.GetService<sqlServerContext>();
+                    var dbContext = scope.ServiceProvider.GetService<ThicknessContext>();
                     if (dbContext != null)
                     {
                         await dbContext.Database.ExecuteSqlRawAsync("SELECT 1");
@@ -311,7 +312,7 @@ namespace SI24004.Service
         private async Task SendScheduledEmailAsync(DateTime reportTime)
         {
             using var scope = _serviceProvider.CreateScope();
-            var sqlContext = scope.ServiceProvider.GetRequiredService<sqlServerContext>();
+            var sqlContext = scope.ServiceProvider.GetRequiredService<ThicknessContext>();
             var fromTime = reportTime.AddHours(-_scheduleSettings.DataLookbackHours);
             var toTime = reportTime;
 
@@ -961,7 +962,7 @@ namespace SI24004.Service
             int recentRecordCount = 0;
             try
             {
-                var sqlContext = scope.ServiceProvider.GetService<sqlServerContext>();
+                var sqlContext = scope.ServiceProvider.GetService<ThicknessContext>();
                 if (sqlContext != null)
                 {
                     var fromTime = currentTime.AddHours(-_scheduleSettings.DataLookbackHours);
