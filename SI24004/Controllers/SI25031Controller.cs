@@ -276,7 +276,7 @@ namespace SI24004.Controllers
         /// ดึงข้อมูล LOT ตาม MC (แสดงเฉพาะ 8 LOT ล่าสุดต่อ MC) เรียงตามเลข 3 ตัวท้าย
         /// </summary>
         [HttpGet("get-lots-by-mc")]
-        public async Task<IActionResult> GetLotsByMc([FromQuery] string mcNo)
+        public async Task<IActionResult> GetLotsByMc([FromQuery] string mcNo, [FromQuery] string? date)
         {
             try
             {
@@ -289,13 +289,38 @@ namespace SI24004.Controllers
                     });
                 }
 
-                // ดึงข้อมูลของ MC ที่เลือก วันนี้เท่านั้น
-                var today = DateTime.UtcNow.Date;
+                DateTime targetDate;
+
+                // แปลง string date เป็น DateTime
+                if (!string.IsNullOrEmpty(date) && DateTime.TryParse(date, out DateTime parsedDate))
+                {
+                    targetDate = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
+                }
+                else
+                {
+                    targetDate = DateTime.UtcNow.Date;
+                }
+
                 var records = await _context.PoCheckFlows
-                    .Where(p => p.McNo == mcNo && p.CheckDate == today)
+                    .Where(p => p.McNo == mcNo && p.CheckDate.Value.Date == targetDate.Date)
                     .ToListAsync();
 
-                // นับจำนวน LOT ทั้งหมดของ MC นี้ในวันนี้
+                // ถ้าไม่มีข้อมูล
+                if (records.Count == 0)
+                {
+                    return Ok(new
+                    {
+                        success = true,
+                        data = new List<object>(),
+                        totalCount = 0,
+                        displayCount = 0,
+                        okCount = 0,
+                        ngCount = 0,
+                        message = $"ไม่พบข้อมูล LOT ของ MC {mcNo} ในวันที่ {targetDate:yyyy-MM-dd}"
+                    });
+                }
+
+                // นับจำนวน LOT ทั้งหมดของ MC นี้ในวันที่เลือก
                 int totalCount = records.Count;
                 int okCount = records.Count(r => r.CheckSt);
                 int ngCount = records.Count(r => !r.CheckSt);
@@ -338,10 +363,11 @@ namespace SI24004.Controllers
                         mcNo = r.McNo,
                         lotQty = r.LotQty
                     }).ToList(),
-                    totalCount = totalCount,           // จำนวน LOT ทั้งหมดของ MC นี้ในวันนี้
+                    totalCount = totalCount,           // จำนวน LOT ทั้งหมดของ MC นี้ในวันที่เลือก
                     displayCount = sortedRecords.Count, // จำนวนที่แสดง (สูงสุด 8)
                     okCount = okCount,                 // OK ทั้งหมดของ MC นี้
-                    ngCount = ngCount                  // NG ทั้งหมดของ MC นี้
+                    ngCount = ngCount,                 // NG ทั้งหมดของ MC นี้
+                    date = targetDate.ToString("yyyy-MM-dd")
                 });
             }
             catch (Exception ex)
@@ -532,7 +558,7 @@ namespace SI24004.Controllers
                     thRecordsQuery = thRecordsQuery.Where(t => t.McPo == mcNo);
                 }
 
-                var thRecords = await thRecordsQuery.ToListAsync();
+                var thRecords = await thRecordsQuery.Where(x => x.DateProcess.Date == date.Value.Date).ToListAsync();
 
                 var result = new List<object>();
 
@@ -581,7 +607,7 @@ namespace SI24004.Controllers
 
                         if (outputA0600 != null)
                         {
-                            quantity = Convert.ToInt32(outputA0400.Mfoutqn ?? 0);
+                            quantity = Convert.ToInt32(outputA0600.Mfoutqn ?? 0);
                         }
                     }
 
@@ -700,7 +726,7 @@ namespace SI24004.Controllers
 
                         if (outputA0600 != null)
                         {
-                            quantity = Convert.ToInt32(outputA0400.Mfoutqn ?? 0);
+                            quantity = Convert.ToInt32(outputA0600.Mfoutqn ?? 0);
                         }
                     }
 
@@ -761,6 +787,329 @@ namespace SI24004.Controllers
                 {
                     success = false,
                     message = "เกิดข้อผิดพลาดในการดึงข้อมูล MC",
+                    error = ex.Message
+                });
+            }
+        }
+        /// <summary>
+        /// ดึงรายการ MC ทั้งหมดจาก ThRecord (ตามวันที่)
+        /// </summary>
+        [HttpGet("get-mc-list-from-threcord")]
+        public async Task<IActionResult> GetMcListFromThRecord([FromQuery] DateTime? date)
+        {
+            try
+            {
+                var targetDate = date?.Date ?? DateTime.UtcNow.Date;
+
+                // ดึง MC จาก ThRecords ตามวันที่
+                var mcList = await _thicknessContext.ThRecords
+                    .Where(t => !string.IsNullOrEmpty(t.McPo) && t.DateProcess.Date == targetDate)
+                    .Select(t => t.McPo)
+                    .Distinct()
+                    .OrderBy(mc => mc)
+                    .ToListAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    data = mcList,
+                    date = targetDate,
+                    count = mcList.Count
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "เกิดข้อผิดพลาดในการดึงรายการ MC จาก ThRecord",
+                    error = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// ดึงรายการ MC ทั้งหมดจาก ThRecord (ทุกวัน - ไม่กรองวันที่)
+        /// </summary>
+        [HttpGet("get-all-mc-from-threcord")]
+        public async Task<IActionResult> GetAllMcFromThRecord()
+        {
+            try
+            {
+                // ดึง MC จาก ThRecords ทั้งหมด
+                var mcList = await _thicknessContext.ThRecords
+                    .Where(t => !string.IsNullOrEmpty(t.McPo))
+                    .Select(t => t.McPo)
+                    .Distinct()
+                    .OrderBy(mc => mc)
+                    .ToListAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    data = mcList,
+                    count = mcList.Count
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "เกิดข้อผิดพลาดในการดึงรายการ MC จาก ThRecord",
+                    error = ex.Message
+                });
+            }
+        }
+        /// <summary>
+        /// ดึงข้อมูล LOT ทั้งหมดจาก ThRecord พร้อม Quantity แยกตาม MC (สำหรับ Summary Dashboard)
+        /// </summary>
+        [HttpGet("get-lots-summary-by-mc")]
+        public async Task<IActionResult> GetLotsSummaryByMc([FromQuery] DateTime? date)
+        {
+            try
+            {
+                var targetDate = date?.Date ?? DateTime.UtcNow.Date;
+
+                // ดึงข้อมูลจาก ThRecord ตามวันที่
+                var thRecords = await _thicknessContext.ThRecords
+                    .Where(t => t.DateProcess.Date == targetDate)
+                    .OrderBy(t => t.McPo)
+                    .ThenBy(t => t.NoPo)
+                    .ToListAsync();
+
+                var result = new List<object>();
+                var mcSummary = new Dictionary<string, dynamic>();
+
+                foreach (var thRecord in thRecords)
+                {
+                    string poLot = $"{thRecord.LotPo}-{thRecord.McPo}-{thRecord.NoPo}";
+                    string status = thRecord.Status ?? "";
+                    bool checkSt = false;
+                    int quantity = 0;
+
+                    // ตรวจสอบ Status
+                    if (status.ToLower() == "rescreen")
+                    {
+                        var th100Record = await _thicknessContext.Th100Records
+                            .FirstOrDefaultAsync(t =>
+                                t.LotPo == thRecord.LotPo &&
+                                t.McPo == thRecord.McPo &&
+                                t.NoPo == thRecord.NoPo);
+
+                        if (th100Record != null && th100Record.Status?.ToUpper() == "OK")
+                        {
+                            checkSt = true;
+                            status = "OK (Rescreen)";
+                        }
+                    }
+                    else if (!string.IsNullOrEmpty(status))
+                    {
+                        checkSt = status.ToUpper() == "OK";
+                    }
+
+                    // ดึงจำนวนจาก Output_Defect
+                    var outputA0400 = await _outputContext.OutputDefectA0400s
+                        .FirstOrDefaultAsync(o => o.Ltlotno == thRecord.ImobileLot);
+
+                    if (outputA0400 != null)
+                    {
+                        quantity = Convert.ToInt32(outputA0400.Mfoutqn ?? 0);
+                    }
+                    else
+                    {
+                        var outputA0600 = await _outputContext.OutputDefectA0600s
+                            .FirstOrDefaultAsync(o => o.Ltlotno == thRecord.ImobileLot);
+
+                        if (outputA0600 != null)
+                        {
+                            quantity = Convert.ToInt32(outputA0600.Mfoutqn ?? 0);
+                        }
+                    }
+
+                    result.Add(new
+                    {
+                        poLot = poLot,
+                        imobileLot = thRecord.ImobileLot,
+                        mcNo = thRecord.McPo,
+                        status = status,
+                        check = checkSt ? "OK" : "NG",
+                        checkSt = checkSt,
+                        quantity = quantity
+                    });
+
+                    // สรุปตาม MC
+                    if (!string.IsNullOrEmpty(thRecord.McPo))
+                    {
+                        if (!mcSummary.ContainsKey(thRecord.McPo))
+                        {
+                            mcSummary[thRecord.McPo] = new
+                            {
+                                mcNo = thRecord.McPo,
+                                totalLots = 0,
+                                okCount = 0,
+                                ngCount = 0,
+                                totalQty = 0
+                            };
+                        }
+
+                        var current = mcSummary[thRecord.McPo];
+                        mcSummary[thRecord.McPo] = new
+                        {
+                            mcNo = thRecord.McPo,
+                            totalLots = current.totalLots + 1,
+                            okCount = current.okCount + (checkSt ? 1 : 0),
+                            ngCount = current.ngCount + (checkSt ? 0 : 1),
+                            totalQty = current.totalQty + quantity
+                        };
+                    }
+                }
+
+                // สรุปรวม
+                int totalLots = result.Count;
+                int okCount = result.Count(r => ((dynamic)r).checkSt == true);
+                int ngCount = result.Count(r => ((dynamic)r).checkSt == false);
+                int totalQty = result.Sum(r => (int)((dynamic)r).quantity);
+
+                return Ok(new
+                {
+                    success = true,
+                    data = result,
+                    mcList = mcSummary.Keys.OrderBy(k => k).ToList(),
+                    mcSummary = mcSummary.Values.ToList(),
+                    summary = new
+                    {
+                        date = targetDate,
+                        totalLots = totalLots,
+                        okCount = okCount,
+                        ngCount = ngCount,
+                        totalQuantity = totalQty
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "เกิดข้อผิดพลาดในการดึงข้อมูล",
+                    error = ex.Message,
+                    stackTrace = ex.StackTrace
+                });
+            }
+        }
+
+        /// <summary>
+        /// ดึงข้อมูล LOT ตาม MC จาก ThRecord (Real-time)
+        /// </summary>
+        [HttpGet("get-lots-by-mc-from-threcord")]
+        public async Task<IActionResult> GetLotsByMcFromThRecord([FromQuery] string mcNo, [FromQuery] DateTime? date)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(mcNo))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "กรุณาระบุ MC Number"
+                    });
+                }
+
+                var targetDate = date?.Date ?? DateTime.UtcNow.Date;
+
+                // ดึงข้อมูลจาก ThRecord
+                var thRecords = await _thicknessContext.ThRecords
+                    .Where(t => t.McPo == mcNo && t.DateProcess.Date == targetDate)
+                    .OrderBy(t => t.NoPo)
+                    .ToListAsync();
+
+                var lotList = new List<object>();
+
+                foreach (var thRecord in thRecords)
+                {
+                    string poLot = $"{thRecord.LotPo}-{thRecord.McPo}-{thRecord.NoPo}";
+                    string status = thRecord.Status ?? "";
+                    bool checkSt = false;
+                    int quantity = 0;
+
+                    // ตรวจสอบ Status
+                    if (status.ToLower() == "rescreen")
+                    {
+                        var th100Record = await _thicknessContext.Th100Records
+                            .FirstOrDefaultAsync(t =>
+                                t.LotPo == thRecord.LotPo &&
+                                t.McPo == thRecord.McPo &&
+                                t.NoPo == thRecord.NoPo);
+
+                        if (th100Record != null && th100Record.Status?.ToUpper() == "OK")
+                        {
+                            checkSt = true;
+                            status = "OK (Rescreen)";
+                        }
+                    }
+                    else if (!string.IsNullOrEmpty(status))
+                    {
+                        checkSt = status.ToUpper() == "OK";
+                    }
+
+                    // ดึงจำนวน
+                    var outputA0400 = await _outputContext.OutputDefectA0400s
+                        .FirstOrDefaultAsync(o => o.Ltlotno == thRecord.ImobileLot);
+
+                    if (outputA0400 != null)
+                    {
+                        quantity = Convert.ToInt32(outputA0400.Mfoutqn ?? 0);
+                    }
+                    else
+                    {
+                        var outputA0600 = await _outputContext.OutputDefectA0600s
+                            .FirstOrDefaultAsync(o => o.Ltlotno == thRecord.ImobileLot);
+
+                        if (outputA0600 != null)
+                        {
+                            quantity = Convert.ToInt32(outputA0600.Mfoutqn ?? 0);
+                        }
+                    }
+
+                    lotList.Add(new
+                    {
+                        poLot = poLot,
+                        imobileLot = thRecord.ImobileLot,
+                        mcNo = thRecord.McPo,
+                        status = status,
+                        check = checkSt ? "OK" : "NG",
+                        checkSt = checkSt,
+                        quantity = quantity
+                    });
+                }
+
+                // สรุป
+                int okCount = lotList.Count(r => ((dynamic)r).checkSt == true);
+                int ngCount = lotList.Count(r => ((dynamic)r).checkSt == false);
+                int totalQty = lotList.Sum(r => (int)((dynamic)r).quantity);
+
+                return Ok(new
+                {
+                    success = true,
+                    data = lotList,
+                    summary = new
+                    {
+                        mcNo = mcNo,
+                        date = targetDate,
+                        totalLots = lotList.Count,
+                        okCount = okCount,
+                        ngCount = ngCount,
+                        totalQuantity = totalQty
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "เกิดข้อผิดพลาดในการดึงข้อมูล",
                     error = ex.Message
                 });
             }
