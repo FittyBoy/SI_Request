@@ -7,9 +7,9 @@ public partial class Section
 {
     public Guid Id { get; set; }
 
-    public string SectionCode { get; set; }
+    public string? SectionCode { get; set; }
 
-    public string SectionName { get; set; }
+    public string? SectionName { get; set; }
 
     public Guid ListItemId { get; set; }
 

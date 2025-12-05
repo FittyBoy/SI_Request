@@ -7,7 +7,7 @@ public partial class Role
 {
     public Guid Id { get; set; }
 
-    public string RoleName { get; set; }
+    public string? RoleName { get; set; }
 
     public bool? IsDeleted { get; set; }
 

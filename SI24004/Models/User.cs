@@ -7,9 +7,9 @@ public partial class User
 {
     public Guid Id { get; set; }
 
-    public string UserId { get; set; }
+    public string? UserId { get; set; }
 
-    public string UserPassword { get; set; }
+    public string? UserPassword { get; set; }
 
     public Guid? RoleId { get; set; }
 
@@ -17,9 +17,9 @@ public partial class User
 
     public bool? Active { get; set; }
 
-    public string UserName { get; set; }
+    public string? UserName { get; set; }
 
-    public string UserLastname { get; set; }
+    public string? UserLastname { get; set; }
 
     public Guid? SectionId { get; set; }
 

@@ -7,25 +7,25 @@ public partial class MaterialReceiveRecord
 {
     public Guid Id { get; set; }
 
-    public string MatName { get; set; }
+    public string? MatName { get; set; }
 
     public int MatQuantity { get; set; }
 
     public Guid? MatTypeId { get; set; }
 
-    public string Case { get; set; }
+    public string? Case { get; set; }
 
     public DateOnly? ExpDate { get; set; }
 
     public Guid? EmpId { get; set; }
 
-    public string Shift { get; set; }
+    public string? Shift { get; set; }
 
     public Guid? Product { get; set; }
 
-    public string LotNumber { get; set; }
+    public string? LotNumber { get; set; }
 
-    public string Location { get; set; }
+    public string? Location { get; set; }
 
     public DateOnly InsertDate { get; set; }
 
@@ -33,5 +33,5 @@ public partial class MaterialReceiveRecord
 
     public DateTime? UpdatedAt { get; set; }
 
-    public string Status { get; set; }
+    public string? Status { get; set; }
 }

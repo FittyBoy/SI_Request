@@ -385,34 +385,36 @@ namespace SI24004.Controllers
         /// ดึงรายการ MC ทั้งหมดจาก PoCheckFlows
         /// </summary>
         [HttpGet("get-mc-list")]
-        public async Task<IActionResult> GetMcList()
+        public async Task<IActionResult> GetMcList([FromQuery] string? date)
         {
             try
             {
-                // ดึง MC ที่มีใน PoCheckFlows
-                var mcListInCleaning = await _context.PoCheckFlows
-                    .Where(t => !string.IsNullOrEmpty(t.McNo))
-                    .Select(t => t.McNo)
-                    .Distinct()
-                    .ToListAsync();
+                DateTime targetDate;
 
-                // ดึง MC จาก ThRecords
+                // แปลง string date เป็น DateTime
+                if (!string.IsNullOrEmpty(date) && DateTime.TryParse(date, out DateTime parsedDate))
+                {
+                    targetDate = DateTime.SpecifyKind(parsedDate.Date, DateTimeKind.Utc);
+                }
+                else
+                {
+                    targetDate = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+                }
+
+                // ดึง MC จาก ThRecords ตามวันที่
                 var mcList = await _thicknessContext.ThRecords
-                    .Where(t => !string.IsNullOrEmpty(t.McPo))
+                    .Where(t => !string.IsNullOrEmpty(t.McPo) && t.DateProcess.Date == targetDate.Date)
                     .Select(t => t.McPo)
                     .Distinct()
-                    .ToListAsync();
-
-                // เอาเฉพาะ MC ที่มีใน mcListInCleaning
-                var filteredMcList = mcList
-                    .Where(mc => mcListInCleaning.Contains(mc))
                     .OrderBy(mc => mc)
-                    .ToList();
+                    .ToListAsync();
 
                 return Ok(new
                 {
                     success = true,
-                    data = filteredMcList
+                    data = mcList,
+                    date = targetDate.ToString("yyyy-MM-dd"),
+                    count = mcList.Count
                 });
             }
             catch (Exception ex)

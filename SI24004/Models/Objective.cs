@@ -7,7 +7,7 @@ public partial class Objective
 {
     public Guid Id { get; set; }
 
-    public string ObjectName { get; set; }
+    public string? ObjectName { get; set; }
 
     public Guid ListItemId { get; set; }
 

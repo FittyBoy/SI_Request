@@ -5,9 +5,9 @@ namespace SI24004.Models;
 
 public partial class RequestMachine
 {
-    public string Id { get; set; }
+    public string? Id { get; set; }
 
-    public string RequestMachineName { get; set; }
+    public string? RequestMachineName { get; set; }
 
     public bool? Active { get; set; }
 

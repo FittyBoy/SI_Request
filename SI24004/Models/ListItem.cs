@@ -7,9 +7,9 @@ public partial class ListItem
 {
     public Guid Id { get; set; }
 
-    public string ListItemName { get; set; }
+    public string? ListItemName { get; set; }
 
-    public string ListItemCode { get; set; }
+    public string? ListItemCode { get; set; }
 
     public virtual ICollection<Drawing> Drawings { get; set; } = new List<Drawing>();
 

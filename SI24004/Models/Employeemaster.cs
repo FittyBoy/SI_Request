@@ -7,15 +7,15 @@ public partial class Employeemaster
 {
     public Guid Id { get; set; }
 
-    public string Employeeid { get; set; }
+    public string? Employeeid { get; set; }
 
-    public string Employeename { get; set; }
+    public string? Employeename { get; set; }
 
-    public string Department { get; set; }
+    public string? Department { get; set; }
 
-    public string Position { get; set; }
+    public string? Position { get; set; }
 
-    public string Shift { get; set; }
+    public string? Shift { get; set; }
 
     public bool? Isactive { get; set; }
 

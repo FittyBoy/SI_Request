@@ -7,11 +7,11 @@ public partial class AviRequest
 {
     public Guid Id { get; set; }
 
-    public string RequestName { get; set; }
+    public string? RequestName { get; set; }
 
     public Guid UserId { get; set; }
 
-    public string RequestDescription { get; set; }
+    public string? RequestDescription { get; set; }
 
     public Guid? AttachmentId { get; set; }
 
@@ -25,7 +25,7 @@ public partial class AviRequest
 
     public bool? IsDeleted { get; set; }
 
-    public string RequestCode { get; set; }
+    public string? RequestCode { get; set; }
 
     public virtual Attachment Attachment { get; set; }
 

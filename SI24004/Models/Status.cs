@@ -7,7 +7,7 @@ public partial class Status
 {
     public Guid Id { get; set; }
 
-    public string StatusName { get; set; }
+    public string? StatusName { get; set; }
 
     public bool? IsDeleted { get; set; }
 
