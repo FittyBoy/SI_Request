@@ -23,6 +23,7 @@ using SI24004.Services;
 using SI24004.ModelsMysql;
 using SI24004.ModelsSqlServer1;
 using SI24004.ModelsSQL;
+using SI24004.SpecailModels;
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
 
@@ -59,6 +60,18 @@ builder.Services.AddDbContext<PostgrestContext>(options =>
             maxRetryDelay: TimeSpan.FromSeconds(30),
             errorCodesToAdd: null);
     })
+);
+builder.Services.AddDbContext<SpecialContext>(options =>
+    options.UseMySql(config.GetConnectionString("WhServer"),
+        ServerVersion.AutoDetect(config.GetConnectionString("WhServer")),
+        mySqlOptions =>
+        {
+            mySqlOptions.CommandTimeout(300);
+            mySqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 3,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null); // ✅ MySQL (Pomelo) ใช้ errorNumbersToAdd
+        })
 );
 builder.Services.AddDbContext<SI24004.ModelsMysql.SqlServerContext>(options =>
     options.UseMySql(config.GetConnectionString("WhServer"),
