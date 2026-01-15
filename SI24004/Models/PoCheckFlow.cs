@@ -7,17 +7,17 @@ public partial class PoCheckFlow
 {
     public Guid Id { get; set; }
 
-    public string? PoLot { get; set; }
+    public string PoLot { get; set; }
 
-    public string? StatusTn { get; set; }
+    public string StatusTn { get; set; }
 
     public bool CheckSt { get; set; }
 
     public DateTime? CheckDate { get; set; }
 
-    public string? McNo { get; set; }
+    public string McNo { get; set; }
 
-    public string? Imobilelot { get; set; }
+    public string Imobilelot { get; set; }
 
     public int? LotQty { get; set; }
 }

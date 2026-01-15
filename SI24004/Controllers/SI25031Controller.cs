@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using iText.Commons.Actions.Contexts;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SI24004.Models;
 using SI24004.ModelsSQL;
@@ -22,7 +23,7 @@ namespace SI24004.Controllers
         }
 
         /// <summary>
-        /// ค้นหา LOT จาก ThRecord โดยใช้ ImobileLot (ไม่บันทึกทันที รอ confirm จาก Modal)
+        /// ค้นหา LOT จาก ThRecord พร้อมตรวจสอบลำดับ (ไม่บันทึกทันที รอ confirm จาก Modal)
         /// </summary>
         [HttpPost("search-lot")]
         public async Task<IActionResult> SearchLot([FromBody] SearchLotRequest request)
@@ -51,12 +52,140 @@ namespace SI24004.Controllers
                     });
                 }
 
+                // ===============================================
+                // ⭐ ตรวจสอบสถานะ HOLD และ SCRAP ก่อนเช็คลำดับ LOT
+                // ===============================================
+                if (!string.IsNullOrEmpty(thRecord.Status))
+                {
+                    var statusLower = thRecord.Status.ToLower();
+
+                    if (statusLower == "hold")
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "❌ LOT นี้อยู่ในสถานะ HOLD\n\n⚠️ ไม่สามารถบันทึกเข้าระบบได้\n\n📌 กรุณาส่งกลับไปตรวจสอบ",
+                            status = "HOLD",
+                            canSave = false,
+                            reason = "LOT อยู่ในสถานะ HOLD"
+                        });
+                    }
+
+                    if (statusLower == "scrap")
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "❌ LOT นี้อยู่ในสถานะ SCRAP\n\n⚠️ ไม่สามารถบันทึกเข้าระบบได้\n\n📌 กรุณาส่งกลับ",
+                            status = "SCRAP",
+                            canSave = false,
+                            reason = "LOT อยู่ในสถานะ SCRAP"
+                        });
+                    }
+                }
+
+                // ===============================================
+                // ตรวจสอบลำดับ LOT
+                // ===============================================
+                var targetDate = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+
+                // ดึง LOT ทั้งหมดที่มี lot_po และ mc_po เดียวกันในวันนี้
+                var existingLots = await _context.PoCheckFlows
+                    .Where(p =>
+                        p.CheckDate.HasValue &&
+                        p.CheckDate.Value.Date == targetDate.Date &&
+                        p.McNo == thRecord.McPo &&
+                        p.PoLot.StartsWith($"{thRecord.LotPo}-{thRecord.McPo}-"))
+                    .ToListAsync();
+
+                // แยกเลข no_po จาก PoLot ที่มีอยู่
+                var existingNoPos = existingLots
+                    .Select(p => {
+                        var parts = p.PoLot?.Split('-');
+                        if (parts != null && parts.Length >= 3)
+                        {
+                            var thirdPart = parts[2];
+                            // รองรับทั้งรูปแบบ "003-T" และ "H01-E" 
+                            var numberMatch = System.Text.RegularExpressions.Regex.Match(thirdPart, @"[A-Z]?(\d+)");
+                            if (numberMatch.Success && int.TryParse(numberMatch.Groups[1].Value, out int num))
+                                return num;
+                        }
+                        return -1;
+                    })
+                    .Where(n => n > 0)
+                    .Distinct()
+                    .OrderBy(n => n)
+                    .ToList();
+
+                // แยกเลข no_po ของ LOT ที่จะเพิ่ม (รองรับทั้ง "003-T", "H01-E", "017-C")
+                var currentNoPoPart = thRecord.NoPo ?? "";
+                var currentNoPoMatch = System.Text.RegularExpressions.Regex.Match(currentNoPoPart, @"[A-Z]?(\d+)");
+
+                if (!currentNoPoMatch.Success || !int.TryParse(currentNoPoMatch.Groups[1].Value, out int currentNoPo))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"รูปแบบ NO PO ไม่ถูกต้อง (ได้รับ: {thRecord.NoPo})"
+                    });
+                }
+
+                // สร้าง PO LOT สำหรับแสดงในข้อความ
+                string currentPoLot = $"{thRecord.LotPo}-{thRecord.McPo}-{thRecord.NoPo}";
+                string statusInfo = !string.IsNullOrEmpty(thRecord.Status) ? $"\n📊 Status: {thRecord.Status.ToUpper()}" : "";
+
+                // *** เช็คว่าไม่มี LOT เลย ***
+                if (!existingNoPos.Any())
+                {
+                    if (currentNoPo != 1)
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = $"❌ ไม่มี LOT ของ {thRecord.LotPo}-{thRecord.McPo} ในระบบ\n\n📋 กรุณาเริ่มต้นด้วย: {thRecord.LotPo}-{thRecord.McPo}-001\n\n🔍 LOT ที่พยายามเพิ่ม: {currentPoLot}{statusInfo}",
+                            requiredLot = $"{thRecord.LotPo}-{thRecord.McPo}-001",
+                            currentLot = currentPoLot,
+                            status = thRecord.Status,
+                            reason = "ไม่มี LOT ในระบบ ต้องเริ่มด้วย 001"
+                        });
+                    }
+                }
+                else
+                {
+                    // *** เช็คว่ามี LOT ที่ข้ามหรือไม่ ***
+                    var missingNoPos = new List<int>();
+                    for (int i = 1; i < currentNoPo; i++)
+                    {
+                        if (!existingNoPos.Contains(i))
+                        {
+                            missingNoPos.Add(i);
+                        }
+                    }
+
+                    if (missingNoPos.Any())
+                    {
+                        var missingLotsList = string.Join("\n• ", missingNoPos.Select(n => $"{thRecord.LotPo}-{thRecord.McPo}-{n:D3}"));
+
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = $"❌ ไม่สามารถเพิ่ม LOT นี้ได้\n\n⚠️ ยังมี LOT ก่อนหน้าที่ยังไม่ได้เพิ่ม:\n• {missingLotsList}\n\n🔍 LOT ที่พยายามเพิ่ม: {currentPoLot}{statusInfo}\n\n📌 กรุณาเพิ่ม LOT ตามลำดับก่อน",
+                            missingLots = missingNoPos.Select(n => $"{thRecord.LotPo}-{thRecord.McPo}-{n:D3}").ToList(),
+                            currentLot = currentPoLot,
+                            status = thRecord.Status,
+                            reason = "ข้าม LOT ที่ยังไม่ได้เพิ่ม"
+                        });
+                    }
+                }
+
+                // ===============================================
+                // ถ้าผ่านการตรวจสอบลำดับแล้ว ตรวจสอบสถานะสำหรับเปิด Modal
+                // ===============================================
                 bool checkSt = false;
                 bool hasTH100 = false;
                 string finalStatus = thRecord.Status;
                 string th100Status = null;
 
-                // ตรวจสอบ Logic
                 if (thRecord.Status?.ToLower() == "rescreen")
                 {
                     var th100Record = await _thicknessContext.Th100Records
@@ -87,12 +216,12 @@ namespace SI24004.Controllers
                 var existingRecord = await _context.PoCheckFlows
                     .FirstOrDefaultAsync(p =>
                         p.Imobilelot == thRecord.ImobileLot &&
-                        p.CheckDate == DateTime.UtcNow.Date);
+                        p.CheckDate == targetDate);
 
                 return Ok(new
                 {
                     success = true,
-                    message = "พบข้อมูล LOT",
+                    message = "✅ พบข้อมูล LOT และผ่านการตรวจสอบลำดับ",
                     data = new
                     {
                         imobileLot = thRecord.ImobileLot,
@@ -103,7 +232,13 @@ namespace SI24004.Controllers
                         hasTH100 = hasTH100,
                         th100Status = th100Status,
                         isDuplicate = existingRecord != null,
-                        existingQty = existingRecord?.LotQty
+                        existingQty = existingRecord?.LotQty,
+                        sequenceInfo = new
+                        {
+                            currentNo = currentNoPo,
+                            existingNos = existingNoPos,
+                            isFirstLot = !existingNoPos.Any()
+                        }
                     }
                 });
             }
@@ -117,9 +252,8 @@ namespace SI24004.Controllers
                 });
             }
         }
-
         /// <summary>
-        /// บันทึก LOT พร้อม Qty หลังจาก confirm จาก Modal
+        /// บันทึก LOT พร้อม Qty หลังจาก confirm จาก Modal (ตรวจสอบอีกครั้งเพื่อความปลอดภัย)
         /// </summary>
         [HttpPost("save-lot")]
         public async Task<IActionResult> SaveLot([FromBody] SaveLotRequest request)
@@ -147,10 +281,90 @@ namespace SI24004.Controllers
                     });
                 }
 
+                // ===============================================
+                // ตรวจสอบลำดับ LOT อีกครั้ง (Double Check)
+                // ===============================================
+                var targetDate = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+
+                var existingLots = await _context.PoCheckFlows
+                    .Where(p =>
+                        p.CheckDate.HasValue &&
+                        p.CheckDate.Value.Date == targetDate.Date &&
+                        p.McNo == thRecord.McPo &&
+                        p.PoLot.StartsWith($"{thRecord.LotPo}-{thRecord.McPo}-"))
+                    .ToListAsync();
+
+                // แยกเลขจาก no_po (รองรับทั้ง "003-T", "H01-E", "017-C")
+                var existingNoPos = existingLots
+                    .Select(p => {
+                        var parts = p.PoLot?.Split('-');
+                        if (parts != null && parts.Length >= 3)
+                        {
+                            var thirdPart = parts[2];
+                            // รองรับทั้งรูปแบบ "003-T" และ "H01-E"
+                            var numberMatch = System.Text.RegularExpressions.Regex.Match(thirdPart, @"[A-Z]?(\d+)");
+                            if (numberMatch.Success && int.TryParse(numberMatch.Groups[1].Value, out int num))
+                                return num;
+                        }
+                        return -1;
+                    })
+                    .Where(n => n > 0)
+                    .Distinct()
+                    .OrderBy(n => n)
+                    .ToList();
+
+                // แยกเลข no_po ของ LOT ที่จะเพิ่ม (รองรับทั้ง "003-T", "H01-E", "017-C")
+                var currentNoPoPart = thRecord.NoPo ?? "";
+                var currentNoPoMatch = System.Text.RegularExpressions.Regex.Match(currentNoPoPart, @"[A-Z]?(\d+)");
+
+                if (!currentNoPoMatch.Success || !int.TryParse(currentNoPoMatch.Groups[1].Value, out int currentNoPo))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"รูปแบบ NO PO ไม่ถูกต้อง (ได้รับ: {thRecord.NoPo})"
+                    });
+                }
+
+                // Double check ลำดับ
+                if (!existingNoPos.Any())
+                {
+                    if (currentNoPo != 1)
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = $"ไม่มี LOT ของ {thRecord.LotPo}-{thRecord.McPo} ในระบบ กรุณาเริ่มต้นด้วย {thRecord.LotPo}-{thRecord.McPo}-001"
+                        });
+                    }
+                }
+                else
+                {
+                    var missingNoPos = new List<int>();
+                    for (int i = 1; i < currentNoPo; i++)
+                    {
+                        if (!existingNoPos.Contains(i))
+                        {
+                            missingNoPos.Add(i);
+                        }
+                    }
+
+                    if (missingNoPos.Any())
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = $"ไม่สามารถเพิ่ม LOT นี้ได้ เนื่องจากยังมี LOT ก่อนหน้าที่ยังไม่ได้เพิ่ม: {string.Join(", ", missingNoPos.Select(n => $"{thRecord.LotPo}-{thRecord.McPo}-{n:D3}"))}"
+                        });
+                    }
+                }
+
+                // ===============================================
+                // ตรวจสอบสถานะ LOT
+                // ===============================================
                 bool checkSt = false;
                 string finalStatus = thRecord.Status;
 
-                // ตรวจสอบ Logic อีกครั้ง
                 if (thRecord.Status?.ToLower() == "rescreen")
                 {
                     var th100Record = await _thicknessContext.Th100Records
@@ -203,40 +417,38 @@ namespace SI24004.Controllers
                     });
                 }
 
-                // ตรวจสอบว่ามีข้อมูลซ้ำหรือไม่
+                // ===============================================
+                // บันทึกข้อมูล
+                // ===============================================
                 var existingRecord = await _context.PoCheckFlows
                     .FirstOrDefaultAsync(p =>
                         p.Imobilelot == thRecord.ImobileLot &&
-                        p.CheckDate == DateTime.UtcNow.Date);
+                        p.CheckDate == targetDate);
 
                 PoCheckFlow poCheckFlow;
 
                 if (existingRecord != null)
                 {
-                    // อัพเดทข้อมูลเดิม
                     existingRecord.StatusTn = finalStatus;
                     existingRecord.CheckSt = checkSt;
-                    existingRecord.CheckDate = DateTime.UtcNow.Date;
+                    existingRecord.CheckDate = targetDate;
                     existingRecord.McNo = thRecord.McPo;
                     existingRecord.PoLot = poLot;
                     existingRecord.LotQty = totalQty;
-
                     poCheckFlow = existingRecord;
                 }
                 else
                 {
-                    // บันทึกข้อมูลใหม่
                     poCheckFlow = new PoCheckFlow
                     {
                         PoLot = poLot,
                         Imobilelot = thRecord.ImobileLot,
                         StatusTn = finalStatus,
                         CheckSt = checkSt,
-                        CheckDate = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc),
+                        CheckDate = targetDate,
                         McNo = thRecord.McPo,
                         LotQty = totalQty
                     };
-
                     _context.PoCheckFlows.Add(poCheckFlow);
                 }
 
@@ -245,7 +457,7 @@ namespace SI24004.Controllers
                 return Ok(new
                 {
                     success = true,
-                    message = $"บันทึก LOT {poLot} สำเร็จ",
+                    message = $"✅ บันทึก LOT {poLot} สำเร็จ",
                     data = new
                     {
                         id = poCheckFlow.Id,
@@ -273,7 +485,7 @@ namespace SI24004.Controllers
         }
 
         /// <summary>
-        /// ดึงข้อมูล LOT ตาม MC (แสดงเฉพาะ 8 LOT ล่าสุดต่อ MC) เรียงตามเลข 3 ตัวท้าย
+        /// ดึงข้อมูล LOT ตาม MC (แสดงเฉพาะ 8 LOT ล่าสุดต่อ MC) เรียงตามเลข 3 ตัวท้าย (รองรับตัวอักษร)
         /// </summary>
         [HttpGet("get-lots-by-mc")]
         public async Task<IActionResult> GetLotsByMc([FromQuery] string mcNo, [FromQuery] string? date)
@@ -294,16 +506,20 @@ namespace SI24004.Controllers
                 // แปลง string date เป็น DateTime
                 if (!string.IsNullOrEmpty(date) && DateTime.TryParse(date, out DateTime parsedDate))
                 {
-                    targetDate = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
+                    targetDate = DateTime.SpecifyKind(parsedDate.Date, DateTimeKind.Utc);
                 }
                 else
                 {
-                    targetDate = DateTime.UtcNow.Date;
+                    targetDate = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
                 }
 
                 var records = await _context.PoCheckFlows
-                    .Where(p => p.McNo == mcNo && p.CheckDate.Value.Date == targetDate.Date)
-                    .ToListAsync();
+                                            .Where(p => p.McNo == mcNo &&
+                                                   p.CheckDate.HasValue &&
+                                                   p.CheckDate.Value.Year == targetDate.Year &&
+                                                   p.CheckDate.Value.Month == targetDate.Month &&
+                                                   p.CheckDate.Value.Day == targetDate.Day)
+                                            .ToListAsync();
 
                 // ถ้าไม่มีข้อมูล
                 if (records.Count == 0)
@@ -325,7 +541,8 @@ namespace SI24004.Controllers
                 int okCount = records.Count(r => r.CheckSt);
                 int ngCount = records.Count(r => !r.CheckSt);
 
-                // เรียงลำดับตาม LOT โดยแยกเลข 3 ตัวท้ายและตัวอักษร
+                // เรียงลำดับตาม LOT โดยแยกเลขและตัวอักษร (รองรับทั้ง "003-T", "H01-E", "017-C")
+                // เรียงจาก LOT น้อย → มาก (เลขน้อยอยู่บน)
                 var sortedRecords = records
                     .Select(r => new
                     {
@@ -338,14 +555,21 @@ namespace SI24004.Controllers
                         x.Record,
                         x.Parts,
                         x.LastPart,
-                        Number = int.TryParse(System.Text.RegularExpressions.Regex.Match(x.LastPart, @"^\d+").Value, out int num) ? num : 0,
-                        Letter = System.Text.RegularExpressions.Regex.Match(x.LastPart, @"[A-Za-z]+$").Value
+                        // ดึงเลขจากรูปแบบ "H01-E" หรือ "003-T"
+                        NumberMatch = System.Text.RegularExpressions.Regex.Match(x.LastPart, @"[A-Z]?(\d+)"),
+                        // ดึงตัวอักษรต่อท้าย เช่น "-T", "-E"
+                        Letter = System.Text.RegularExpressions.Regex.Match(x.LastPart, @"-([A-Z]+)$").Groups[1].Value
                     })
-                    .OrderByDescending(x => x.Number)  // เรียงจากมากไปน้อย (ล่าสุดก่อน)
-                    .ThenByDescending(x => x.Letter)   // ถ้าเลขเท่ากัน เรียงตามตัวอักษร
-                    .Take(8)                           // เอาเฉพาะ 8 LOT ล่าสุดของ MC นี้
+                    .Select(x => new
+                    {
+                        x.Record,
+                        Number = x.NumberMatch.Success && int.TryParse(x.NumberMatch.Groups[1].Value, out int num) ? num : 0,
+                        x.Letter
+                    })
+                    .OrderBy(x => x.Number)        // เรียงจากน้อยไปมาก (LOT เก่าก่อน)
+                    .ThenBy(x => x.Letter)         // ถ้าเลขเท่ากัน เรียงตามตัวอักษร A, B, C...
+                    .Take(8)                       // เอาเฉพาะ 8 LOT แรก
                     .Select(x => x.Record)
-                    .Reverse()                         // กลับลำดับเพื่อแสดง LOT เก่าก่อน LOT ใหม่
                     .ToList();
 
                 return Ok(new
@@ -427,6 +651,7 @@ namespace SI24004.Controllers
                 });
             }
         }
+
 
         /// <summary>
         /// ลบ LOT
@@ -797,16 +1022,26 @@ namespace SI24004.Controllers
         /// ดึงรายการ MC ทั้งหมดจาก ThRecord (ตามวันที่)
         /// </summary>
         [HttpGet("get-mc-list-from-threcord")]
-        public async Task<IActionResult> GetMcListFromThRecord([FromQuery] DateTime? date)
+        public async Task<IActionResult> GetMcListFromThRecord([FromQuery] string? date)
         {
             try
             {
-                var targetDate = date?.Date ?? DateTime.UtcNow.Date;
+                DateTime targetDate;
 
-                // ดึง MC จาก ThRecords ตามวันที่
-                var mcList = await _thicknessContext.ThRecords
-                    .Where(t => !string.IsNullOrEmpty(t.McPo) && t.DateProcess.Date == targetDate)
-                    .Select(t => t.McPo)
+                // แปลง string เป็น DateTime แบบ UTC
+                if (!string.IsNullOrEmpty(date) && DateTime.TryParse(date, out DateTime parsedDate))
+                {
+                    targetDate = DateTime.SpecifyKind(parsedDate.Date, DateTimeKind.Utc);
+                }
+                else
+                {
+                    targetDate = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+                }
+
+                // ดึง MC จาก PoCheckFlows ตามวันที่
+                var mcList = await _context.PoCheckFlows
+                    .Where(p => p.CheckDate.HasValue && p.CheckDate.Value.Date == targetDate.Date)
+                    .Select(p => p.McNo)
                     .Distinct()
                     .OrderBy(mc => mc)
                     .ToListAsync();
@@ -815,7 +1050,7 @@ namespace SI24004.Controllers
                 {
                     success = true,
                     data = mcList,
-                    date = targetDate,
+                    date = targetDate.ToString("yyyy-MM-dd"),
                     count = mcList.Count
                 });
             }
@@ -824,11 +1059,12 @@ namespace SI24004.Controllers
                 return StatusCode(500, new
                 {
                     success = false,
-                    message = "เกิดข้อผิดพลาดในการดึงรายการ MC จาก ThRecord",
+                    message = "เกิดข้อผิดพลาดในการดึงรายการ MC จาก PoCheckFlow",
                     error = ex.Message
                 });
             }
         }
+
 
         /// <summary>
         /// ดึงรายการ MC ทั้งหมดจาก ThRecord (ทุกวัน - ไม่กรองวันที่)
@@ -1005,7 +1241,7 @@ namespace SI24004.Controllers
         /// ดึงข้อมูล LOT ตาม MC จาก ThRecord (Real-time)
         /// </summary>
         [HttpGet("get-lots-by-mc-from-threcord")]
-        public async Task<IActionResult> GetLotsByMcFromThRecord([FromQuery] string mcNo, [FromQuery] DateTime? date)
+        public async Task<IActionResult> GetLotsByMcFromThRecord([FromQuery] string mcNo, [FromQuery] string? date)
         {
             try
             {
@@ -1018,78 +1254,43 @@ namespace SI24004.Controllers
                     });
                 }
 
-                var targetDate = date?.Date ?? DateTime.UtcNow.Date;
+                DateTime targetDate;
 
-                // ดึงข้อมูลจาก ThRecord
-                var thRecords = await _thicknessContext.ThRecords
-                    .Where(t => t.McPo == mcNo && t.DateProcess.Date == targetDate)
-                    .OrderBy(t => t.NoPo)
-                    .ToListAsync();
-
-                var lotList = new List<object>();
-
-                foreach (var thRecord in thRecords)
+                // แปลง string เป็น DateTime แบบ UTC
+                if (!string.IsNullOrEmpty(date) && DateTime.TryParse(date, out DateTime parsedDate))
                 {
-                    string poLot = $"{thRecord.LotPo}-{thRecord.McPo}-{thRecord.NoPo}";
-                    string status = thRecord.Status ?? "";
-                    bool checkSt = false;
-                    int quantity = 0;
-
-                    // ตรวจสอบ Status
-                    if (status.ToLower() == "rescreen")
-                    {
-                        var th100Record = await _thicknessContext.Th100Records
-                            .FirstOrDefaultAsync(t =>
-                                t.LotPo == thRecord.LotPo &&
-                                t.McPo == thRecord.McPo &&
-                                t.NoPo == thRecord.NoPo);
-
-                        if (th100Record != null && th100Record.Status?.ToUpper() == "OK")
-                        {
-                            checkSt = true;
-                            status = "OK (Rescreen)";
-                        }
-                    }
-                    else if (!string.IsNullOrEmpty(status))
-                    {
-                        checkSt = status.ToUpper() == "OK";
-                    }
-
-                    // ดึงจำนวน
-                    var outputA0400 = await _outputContext.OutputDefectA0400s
-                        .FirstOrDefaultAsync(o => o.Ltlotno == thRecord.ImobileLot);
-
-                    if (outputA0400 != null)
-                    {
-                        quantity = Convert.ToInt32(outputA0400.Mfoutqn ?? 0);
-                    }
-                    else
-                    {
-                        var outputA0600 = await _outputContext.OutputDefectA0600s
-                            .FirstOrDefaultAsync(o => o.Ltlotno == thRecord.ImobileLot);
-
-                        if (outputA0600 != null)
-                        {
-                            quantity = Convert.ToInt32(outputA0600.Mfoutqn ?? 0);
-                        }
-                    }
-
-                    lotList.Add(new
-                    {
-                        poLot = poLot,
-                        imobileLot = thRecord.ImobileLot,
-                        mcNo = thRecord.McPo,
-                        status = status,
-                        check = checkSt ? "OK" : "NG",
-                        checkSt = checkSt,
-                        quantity = quantity
-                    });
+                    targetDate = DateTime.SpecifyKind(parsedDate.Date, DateTimeKind.Utc);
+                }
+                else
+                {
+                    targetDate = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
                 }
 
+                // ดึงข้อมูลจาก PoCheckFlow
+                var records = await _context.PoCheckFlows
+                    .Where(p => p.McNo == mcNo && p.CheckDate.HasValue && p.CheckDate.Value.Date == targetDate.Date)
+                    .OrderBy(p => p.PoLot)
+                    .ToListAsync();
+
+                var lotList = records.Select(r => new
+                {
+                    id = r.Id,
+                    poLot = r.PoLot,
+                    imobileLot = r.Imobilelot,
+                    mcNo = r.McNo,
+                    status = r.StatusTn,
+                    statusTn = r.StatusTn,
+                    check = r.CheckSt ? "OK" : "NG",
+                    checkSt = r.CheckSt,
+                    quantity = r.LotQty,
+                    lotQty = r.LotQty,
+                    checkDate = r.CheckDate
+                }).ToList();
+
                 // สรุป
-                int okCount = lotList.Count(r => ((dynamic)r).checkSt == true);
-                int ngCount = lotList.Count(r => ((dynamic)r).checkSt == false);
-                int totalQty = lotList.Sum(r => (int)((dynamic)r).quantity);
+                int okCount = lotList.Count(r => r.checkSt);
+                int ngCount = lotList.Count(r => !r.checkSt);
+                int totalQty = lotList.Sum(r => r.quantity ?? 0);
 
                 return Ok(new
                 {
@@ -1098,7 +1299,7 @@ namespace SI24004.Controllers
                     summary = new
                     {
                         mcNo = mcNo,
-                        date = targetDate,
+                        date = targetDate.ToString("yyyy-MM-dd"),
                         totalLots = lotList.Count,
                         okCount = okCount,
                         ngCount = ngCount,
@@ -1116,6 +1317,76 @@ namespace SI24004.Controllers
                 });
             }
         }
+        [HttpGet("get-all-lots-by-date")]
+        public async Task<IActionResult> GetAllLotsByDate([FromQuery] string? date)
+        {
+            try
+            {
+                DateTime targetDate;
+
+                // แปลง string เป็น DateTime แบบ UTC
+                if (!string.IsNullOrEmpty(date) && DateTime.TryParse(date, out DateTime parsedDate))
+                {
+                    targetDate = DateTime.SpecifyKind(parsedDate.Date, DateTimeKind.Utc);
+                }
+                else
+                {
+                    targetDate = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+                }
+
+                var records = await _context.PoCheckFlows
+                    .Where(p => p.CheckDate.HasValue && p.CheckDate.Value.Date == targetDate.Date)
+                    .OrderBy(p => p.McNo)
+                    .ThenBy(p => p.PoLot)
+                    .ToListAsync();
+
+                var lotList = records.Select(r => new
+                {
+                    id = r.Id,
+                    poLot = r.PoLot,
+                    imobileLot = r.Imobilelot,
+                    mcNo = r.McNo,
+                    status = r.StatusTn,
+                    statusTn = r.StatusTn,
+                    check = r.CheckSt ? "OK" : "NG",
+                    checkSt = r.CheckSt,
+                    quantity = r.LotQty,
+                    lotQty = r.LotQty,
+                    checkDate = r.CheckDate
+                }).ToList();
+
+                int okCount = lotList.Count(r => r.checkSt);
+                int ngCount = lotList.Count(r => !r.checkSt);
+                int totalQty = lotList.Sum(r => r.quantity ?? 0);
+
+                return Ok(new
+                {
+                    success = true,
+                    data = lotList,
+                    summary = new
+                    {
+                        date = targetDate.ToString("yyyy-MM-dd"),
+                        totalLots = lotList.Count,
+                        okCount = okCount,
+                        ngCount = ngCount,
+                        totalQuantity = totalQty
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "เกิดข้อผิดพลาดในการดึงข้อมูล",
+                    error = ex.Message,
+                    stackTrace = ex.StackTrace
+                });
+            }
+
+        }
+
+
     }
 
 

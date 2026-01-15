@@ -26,17 +26,18 @@ namespace SI24004.Controllers
 
         // Paths
         private readonly string _localWorkingDir = @"D:\InspectionSync";
-        private readonly string _localExcelFile = @"D:\InspectionSync\Rank invoceForTest.xlsb";
-        private readonly string _networkExcelPath = @"\\172.18.106.9\oe-fadata\PC\PC_PUB\(22) Inspection report\Rank invoceForTest.xlsb";
+        private readonly string _localBackupDir = @"D:\InspectionSync\Backup";
+        private readonly string _localExcelFile = @"D:\InspectionSync\Rank invoce.xlsb";
+        private readonly string _networkExcelPath = @"\\172.18.106.9\oe-fadata\PC\PC_PUB\(22) Inspection report\Rank invoce.xlsb";
         private readonly string _excelPassword = "1234";
         private readonly string _pythonScriptPath = @"D:\InspectionSync\sync_xlsb.py";
         private readonly string _pythonExePath = @"D:\CrawlerShared\WPy64-3720\python-3.7.2.amd64\python.exe";
-        private readonly string _psexecPath = @"D:\InspectionSync\PsExec64.exe";
 
         public InspectionController(SpecialContext context)
         {
             _context = context;
             EnsureLocalScriptExists();
+            EnsureBackupDirectoryExists();
         }
 
         #region Network Connection Methods
@@ -232,59 +233,181 @@ namespace SI24004.Controllers
             }
         }
 
+        private void EnsureBackupDirectoryExists()
+        {
+            try
+            {
+                if (!Directory.Exists(_localBackupDir))
+                {
+                    Directory.CreateDirectory(_localBackupDir);
+                    Console.WriteLine($"[INFO] Created backup directory: {_localBackupDir}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[WARNING] Could not create backup directory: {ex.Message}");
+            }
+        }
+
         #endregion
 
-        #region PsExec Helper
+        #region Excel Process Management
 
-        private async Task<(int exitCode, string output, string error, string logFile, string errorFile)> RunPythonWithPsExec(
+        private void KillExcelProcesses()
+        {
+            try
+            {
+                var excelProcs = Process.GetProcessesByName("EXCEL");
+                if (excelProcs.Length > 0)
+                {
+                    Console.WriteLine($"[INFO] Found {excelProcs.Length} Excel process(es), terminating...");
+                    foreach (var proc in excelProcs)
+                    {
+                        try
+                        {
+                            proc.Kill();
+                            proc.WaitForExit(5000);
+                            Console.WriteLine($"[INFO] Killed Excel PID: {proc.Id}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[WARN] Could not kill Excel PID {proc.Id}: {ex.Message}");
+                        }
+                    }
+                    System.Threading.Thread.Sleep(2000);
+                }
+                else
+                {
+                    Console.WriteLine("[INFO] No Excel processes found");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[WARN] Error checking Excel processes: {ex.Message}");
+            }
+        }
+
+        private async Task<bool> VerifyExcelNotHung()
+        {
+            try
+            {
+                // Check for hung Excel processes
+                var excelProcs = Process.GetProcessesByName("EXCEL");
+
+                foreach (var proc in excelProcs)
+                {
+                    // Check if process is responding
+                    try
+                    {
+                        if (!proc.Responding)
+                        {
+                            Console.WriteLine($"[WARN] Excel process {proc.Id} is not responding - killing");
+                            proc.Kill();
+                            proc.WaitForExit(5000);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[WARN] Could not check/kill Excel {proc.Id}: {ex.Message}");
+                    }
+                }
+
+                await Task.Delay(2000);
+
+                // Verify all Excel processes are gone
+                excelProcs = Process.GetProcessesByName("EXCEL");
+                if (excelProcs.Length > 0)
+                {
+                    Console.WriteLine($"[WARN] {excelProcs.Length} Excel process(es) still running");
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Excel verification failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        #endregion
+
+        #region File Management
+
+        private void DeleteFileWithRetry(string filePath, int maxRetries = 3)
+        {
+            for (int retry = 0; retry < maxRetries; retry++)
+            {
+                try
+                {
+                    if (System.IO.File.Exists(filePath))
+                    {
+                        // Clear attributes
+                        System.IO.File.SetAttributes(filePath, FileAttributes.Normal);
+                        System.IO.File.Delete(filePath);
+                        Console.WriteLine($"[INFO] Deleted: {Path.GetFileName(filePath)}");
+                        return;
+                    }
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[WARN] Delete attempt {retry + 1}/{maxRetries} failed: {ex.Message}");
+                    if (retry == maxRetries - 1)
+                    {
+                        throw new Exception($"Cannot delete file after {maxRetries} attempts: {ex.Message}");
+                    }
+                    System.Threading.Thread.Sleep(2000);
+                }
+            }
+        }
+
+        private void CopyFileWithVerification(string source, string destination)
+        {
+            // Copy file
+            System.IO.File.Copy(source, destination, true);
+
+            // Clear read-only attribute
+            System.IO.File.SetAttributes(destination, FileAttributes.Normal);
+
+            // Verify copy
+            var sourceInfo = new FileInfo(source);
+            var destInfo = new FileInfo(destination);
+
+            if (sourceInfo.Length != destInfo.Length)
+            {
+                throw new Exception($"File copy verification failed: Source={sourceInfo.Length:N0} bytes, Dest={destInfo.Length:N0} bytes");
+            }
+
+            Console.WriteLine($"[INFO] File copied and verified: {destInfo.Length:N0} bytes");
+        }
+
+        #endregion
+
+        #region Python Execution - Fixed for Background Mode
+
+        private async Task<(int exitCode, string output, string error, string logFile, string errorFile)> RunPythonDirect(
             string pythonScript, string xlsbPath, string jsonPath, string password)
         {
-            if (!System.IO.File.Exists(_psexecPath))
-            {
-                throw new FileNotFoundException(
-                    "PsExec64.exe not found. Download from: https://download.sysinternals.com/files/PSTools.zip",
-                    _psexecPath);
-            }
-
-            // Verify all files exist before running
-            if (!System.IO.File.Exists(_pythonExePath))
-            {
-                throw new FileNotFoundException($"Python not found: {_pythonExePath}");
-            }
-            if (!System.IO.File.Exists(pythonScript))
-            {
-                throw new FileNotFoundException($"Python script not found: {pythonScript}");
-            }
-            if (!System.IO.File.Exists(xlsbPath))
-            {
-                throw new FileNotFoundException($"Excel file not found: {xlsbPath}");
-            }
-            if (!System.IO.File.Exists(jsonPath))
-            {
-                throw new FileNotFoundException($"JSON file not found: {jsonPath}");
-            }
-
-            // Create log files for Python output
             var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             var logFile = Path.Combine(_localWorkingDir, $"python_output_{timestamp}.log");
             var errorFile = Path.Combine(_localWorkingDir, $"python_error_{timestamp}.log");
 
-            // Use cmd /c to redirect Python output to files
-            var pythonCommand = $@"""{_pythonExePath}"" ""{pythonScript}"" ""{xlsbPath}"" ""{jsonPath}"" ""{password}""";
-            var arguments = $@"-accepteula -i -u imobile -p ""ps@imobile"" -w ""D:\InspectionSync"" " +
-                           $@"cmd /c ""{pythonCommand} > \""{logFile}\"" 2> \""{errorFile}\""""";
-
-            Console.WriteLine($"[INFO] Running PsExec with output redirection");
+            Console.WriteLine("[INFO] ========================================");
+            Console.WriteLine("[INFO] Running Python in BACKGROUND MODE");
+            Console.WriteLine("[INFO] ========================================");
             Console.WriteLine($"[INFO] Python: {_pythonExePath}");
             Console.WriteLine($"[INFO] Script: {pythonScript}");
-            Console.WriteLine($"[INFO] Excel: {xlsbPath}");
+            Console.WriteLine($"[INFO] XLSB: {xlsbPath}");
             Console.WriteLine($"[INFO] JSON: {jsonPath}");
-            Console.WriteLine($"[INFO] Output log: {logFile}");
-            Console.WriteLine($"[INFO] Error log: {errorFile}");
+            Console.WriteLine("[INFO] ========================================");
+
+            var arguments = $"\"{pythonScript}\" \"{xlsbPath}\" \"{jsonPath}\" \"{password}\"";
 
             var startInfo = new ProcessStartInfo
             {
-                FileName = _psexecPath,
+                FileName = _pythonExePath,
                 Arguments = arguments,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
@@ -297,13 +420,15 @@ namespace SI24004.Controllers
 
             var outputBuilder = new System.Text.StringBuilder();
             var errorBuilder = new System.Text.StringBuilder();
+            var lastActivityTime = DateTime.Now;
 
             process.OutputDataReceived += (s, e) =>
             {
                 if (e.Data != null)
                 {
                     outputBuilder.AppendLine(e.Data);
-                    Console.WriteLine($"[PSEXEC_OUT] {e.Data}");
+                    Console.WriteLine($"[PYTHON] {e.Data}");
+                    lastActivityTime = DateTime.Now; // Reset activity timer
                 }
             };
 
@@ -312,7 +437,8 @@ namespace SI24004.Controllers
                 if (e.Data != null)
                 {
                     errorBuilder.AppendLine(e.Data);
-                    Console.WriteLine($"[PSEXEC_ERR] {e.Data}");
+                    Console.WriteLine($"[PYTHON_ERR] {e.Data}");
+                    lastActivityTime = DateTime.Now; // Reset activity timer
                 }
             };
 
@@ -320,44 +446,79 @@ namespace SI24004.Controllers
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
 
-            var completed = process.WaitForExit(300000); // 5 minutes
+            // ENHANCED TIMEOUT: 15 minutes total OR 3 minutes no activity
+            var maxTotalTimeout = TimeSpan.FromMinutes(15);
+            var maxInactivityTimeout = TimeSpan.FromMinutes(3);
+            var startTime = DateTime.Now;
 
-            if (!completed)
+            while (!process.HasExited)
             {
-                try { process.Kill(); } catch { }
-                throw new TimeoutException("PsExec/Python execution timeout (5 minutes)");
+                await Task.Delay(1000); // Check every second
+
+                var totalElapsed = DateTime.Now - startTime;
+                var inactivityElapsed = DateTime.Now - lastActivityTime;
+
+                // Log progress every 30 seconds
+                if (totalElapsed.TotalSeconds % 30 < 1)
+                {
+                    Console.WriteLine($"[MONITOR] Elapsed: {totalElapsed.TotalSeconds:F0}s | " +
+                                    $"Inactive: {inactivityElapsed.TotalSeconds:F0}s | " +
+                                    $"Output: {outputBuilder.Length} bytes | " +
+                                    $"Errors: {errorBuilder.Length} bytes");
+                }
+
+                // Check total timeout
+                if (totalElapsed > maxTotalTimeout)
+                {
+                    try { process.Kill(); } catch { }
+                    throw new TimeoutException(
+                        $"Python execution exceeded maximum time limit ({maxTotalTimeout.TotalMinutes} minutes). " +
+                        $"This usually means Excel is hung or waiting for user input.");
+                }
+
+                // Check inactivity timeout
+                if (inactivityElapsed > maxInactivityTimeout)
+                {
+                    try { process.Kill(); } catch { }
+                    throw new TimeoutException(
+                        $"Python execution stalled - no output for {maxInactivityTimeout.TotalMinutes} minutes. " +
+                        $"Excel may be showing a dialog or waiting for user interaction.");
+                }
             }
 
-            Console.WriteLine($"[INFO] Process exit code: {process.ExitCode}");
+            // Process completed naturally
+            process.WaitForExit(); // Ensure all output is captured
 
-            // Wait a bit for files to be written
-            await Task.Delay(2000);
+            var output = outputBuilder.ToString();
+            var error = errorBuilder.ToString();
 
-            // Read log files
-            string logContent = "";
-            string errorContent = "";
-
-            if (System.IO.File.Exists(logFile))
+            // Save to log files
+            try
             {
-                logContent = await System.IO.File.ReadAllTextAsync(logFile);
-                Console.WriteLine($"[INFO] Log file size: {logContent.Length} bytes");
+                if (!string.IsNullOrEmpty(output))
+                {
+                    await System.IO.File.WriteAllTextAsync(logFile, output);
+                }
+                if (!string.IsNullOrEmpty(error))
+                {
+                    await System.IO.File.WriteAllTextAsync(errorFile, error);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                Console.WriteLine($"[WARN] Log file not created: {logFile}");
-            }
-
-            if (System.IO.File.Exists(errorFile))
-            {
-                errorContent = await System.IO.File.ReadAllTextAsync(errorFile);
-                Console.WriteLine($"[INFO] Error file size: {errorContent.Length} bytes");
-            }
-            else
-            {
-                Console.WriteLine($"[WARN] Error file not created: {errorFile}");
+                Console.WriteLine($"[WARN] Could not save log files: {ex.Message}");
             }
 
-            return (process.ExitCode, logContent, errorContent, logFile, errorFile);
+            var totalDuration = DateTime.Now - startTime;
+            Console.WriteLine($"[INFO] ========================================");
+            Console.WriteLine($"[INFO] Python execution completed");
+            Console.WriteLine($"[INFO] Duration: {totalDuration.TotalSeconds:F1}s");
+            Console.WriteLine($"[INFO] Exit code: {process.ExitCode}");
+            Console.WriteLine($"[INFO] Output: {output.Length} bytes");
+            Console.WriteLine($"[INFO] Errors: {error.Length} bytes");
+            Console.WriteLine($"[INFO] ========================================");
+
+            return (process.ExitCode, output, error, logFile, errorFile);
         }
 
         #endregion
@@ -365,196 +526,428 @@ namespace SI24004.Controllers
         #region Main Sync Endpoint
 
         /// <summary>
-        /// Sync Rank Invoice - ทำงานทั้งหมดใน D:\InspectionSync แล้วค่อย copy ไปเครือข่าย
+        /// Sync Rank Invoice - Fixed for non-interactive background execution
+        /// Maximum execution time: 15 minutes
+        /// Inactivity timeout: 3 minutes
         /// </summary>
         [HttpPost("sync-rank-invoice")]
         public async Task<IActionResult> SyncRankInvoice()
         {
-            var tempId = Guid.NewGuid().ToString();
-            var tempJsonFile = Path.Combine(_localWorkingDir, $"sync_data_{tempId}.json");
+            var sessionId = Guid.NewGuid().ToString().Substring(0, 8);
+            var tempJsonFile = Path.Combine(_localWorkingDir, $"sync_data_{sessionId}.json");
 
             try
             {
                 Console.WriteLine("==========================================================");
-                Console.WriteLine($"SYNC RANK INVOICE - ID: {tempId}");
-                Console.WriteLine($"Working in: {_localWorkingDir}");
+                Console.WriteLine($"SYNC RANK INVOICE - Session: {sessionId}");
+                Console.WriteLine($"Timestamp: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                Console.WriteLine($"Working Directory: {_localWorkingDir}");
                 Console.WriteLine("==========================================================");
 
+                // Ensure working directory exists
                 Directory.CreateDirectory(_localWorkingDir);
 
-                // STEP 1: Fetch data
-                Console.WriteLine("[STEP 1] Fetching data from database...");
+                // STEP 1: Fetch data from database
+                Console.WriteLine("[STEP 1/11] Fetching data from database...");
                 var viewData = await _context.UvirRankInvoices.AsNoTracking().ToListAsync();
+
                 if (!viewData.Any())
                 {
-                    return Ok(new { message = "ไม่มีข้อมูลใน view", updated = 0 });
+                    return Ok(new
+                    {
+                        success = true,
+                        message = "ไม่มีข้อมูลใน view",
+                        updated = 0,
+                        timestamp = DateTime.Now
+                    });
                 }
-                Console.WriteLine($"[INFO] Total records: {viewData.Count}");
 
-                // STEP 2: Write JSON to D:\InspectionSync
-                Console.WriteLine("[STEP 2] Writing JSON data...");
+                Console.WriteLine($"[INFO] ✓ Fetched {viewData.Count} records from database");
+
+                // STEP 2: Write JSON to local directory
+                Console.WriteLine("[STEP 2/11] Writing JSON data...");
                 var jsonData = JsonSerializer.Serialize(viewData, new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                     WriteIndented = false
                 });
+
                 var utf8WithoutBom = new System.Text.UTF8Encoding(false);
                 await System.IO.File.WriteAllTextAsync(tempJsonFile, jsonData, utf8WithoutBom);
-                Console.WriteLine($"[INFO] JSON saved: {tempJsonFile}");
-                Console.WriteLine($"[INFO] JSON size: {new FileInfo(tempJsonFile).Length:N0} bytes");
+
+                var jsonInfo = new FileInfo(tempJsonFile);
+                Console.WriteLine($"[INFO] ✓ JSON file created: {jsonInfo.Length:N0} bytes");
 
                 // STEP 3: Connect to network share
-                Console.WriteLine("[STEP 3] Connecting to network share...");
+                Console.WriteLine("[STEP 3/11] Connecting to network share...");
                 var connected = ConnectToNetworkShare(NETWORK_SHARE, NETWORK_USERNAME, NETWORK_PASSWORD);
+
                 if (!connected)
                 {
-                    return StatusCode(500, new { message = "Cannot connect to network share" });
+                    return StatusCode(500, new
+                    {
+                        success = false,
+                        message = "❌ Cannot connect to network share",
+                        networkPath = NETWORK_SHARE
+                    });
                 }
 
-                // STEP 4: Copy Excel to D:\InspectionSync\Rank invoceForTest.xlsb
-                Console.WriteLine("[STEP 4] Copying Excel to local working directory...");
-                if (System.IO.File.Exists(_localExcelFile))
+                Console.WriteLine("[INFO] ✓ Connected to network share");
+
+                // STEP 4: Verify and kill Excel processes
+                Console.WriteLine("[STEP 4/11] Checking Excel processes...");
+                await VerifyExcelNotHung();
+                KillExcelProcesses();
+                await Task.Delay(3000);
+
+                // Double-check Excel is gone
+                var stillRunning = Process.GetProcessesByName("EXCEL");
+                if (stillRunning.Length > 0)
                 {
-                    System.IO.File.Delete(_localExcelFile);
-                    await Task.Delay(500);
+                    Console.WriteLine($"[WARN] {stillRunning.Length} Excel process(es) still detected - force killing");
+                    foreach (var proc in stillRunning)
+                    {
+                        try
+                        {
+                            proc.Kill();
+                            proc.WaitForExit(3000);
+                        }
+                        catch { }
+                    }
+                    await Task.Delay(2000);
                 }
-                System.IO.File.Copy(_networkExcelPath, _localExcelFile, true);
-                Console.WriteLine($"[INFO] Excel copied to: {_localExcelFile}");
-                Console.WriteLine($"[INFO] File size: {new FileInfo(_localExcelFile).Length:N0} bytes");
 
-                // STEP 5: Run Python via PsExec
-                Console.WriteLine("[STEP 5] Running Python via PsExec on local file...");
-                var (exitCode, output, error, logFile, errorFile) = await RunPythonWithPsExec(
+                Console.WriteLine("[INFO] ✓ All Excel processes terminated");
+
+                // STEP 5: Copy Excel file to local directory
+                Console.WriteLine("[STEP 5/11] Copying Excel file to local directory...");
+
+                DeleteFileWithRetry(_localExcelFile);
+                CopyFileWithVerification(_networkExcelPath, _localExcelFile);
+
+                // Ensure file is writable
+                try
+                {
+                    System.IO.File.SetAttributes(_localExcelFile, FileAttributes.Normal);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[WARN] Could not set file attributes: {ex.Message}");
+                }
+
+                var localExcelInfo = new FileInfo(_localExcelFile);
+                Console.WriteLine($"[INFO] ✓ Excel file ready: {localExcelInfo.Length:N0} bytes");
+
+                // STEP 6: Pre-flight checks
+                Console.WriteLine("[STEP 6/11] Pre-flight checks...");
+
+                var checks = new Dictionary<string, bool>
+                {
+                    ["Python executable"] = System.IO.File.Exists(_pythonExePath),
+                    ["Python script"] = System.IO.File.Exists(_pythonScriptPath),
+                    ["Local Excel file"] = System.IO.File.Exists(_localExcelFile),
+                    ["JSON data file"] = System.IO.File.Exists(tempJsonFile)
+                };
+
+                var allChecksPassed = true;
+                foreach (var check in checks)
+                {
+                    var status = check.Value ? "✓" : "✗";
+                    Console.WriteLine($"[CHECK] {status} {check.Key}");
+
+                    if (!check.Value)
+                    {
+                        allChecksPassed = false;
+                    }
+                }
+
+                if (!allChecksPassed)
+                {
+                    return StatusCode(500, new
+                    {
+                        success = false,
+                        message = "❌ Pre-flight checks failed",
+                        checks = checks
+                    });
+                }
+
+                Console.WriteLine("[INFO] ✓ All pre-flight checks passed");
+
+                // STEP 7: Execute Python script (BACKGROUND MODE)
+                Console.WriteLine("[STEP 7/11] Executing Python script in BACKGROUND MODE...");
+                Console.WriteLine("[INFO] ⏱️  Maximum execution time: 15 minutes");
+                Console.WriteLine("[INFO] ⏱️  Inactivity timeout: 3 minutes");
+                Console.WriteLine("[INFO] 📊 Monitoring output for progress...");
+                Console.WriteLine("[INFO] This may take several minutes for large files...");
+
+                var execStart = DateTime.Now;
+                var (exitCode, output, error, logFile, errorFile) = await RunPythonDirect(
                     _pythonScriptPath, _localExcelFile, tempJsonFile, _excelPassword);
-                Console.WriteLine($"[INFO] PsExec exit code: {exitCode}");
 
-                // STEP 6: Copy updated file back to network
-                Console.WriteLine("[STEP 6] Copying updated file back to network...");
-                if (System.IO.File.Exists(_localExcelFile))
-                {
-                    // Create backup on network
-                    var backupPath = Path.Combine(
-                        Path.GetDirectoryName(_networkExcelPath),
-                        $"backup_{DateTime.Now:yyyyMMdd_HHmmss}_Rank invoceForTest.xlsb");
+                var execDuration = DateTime.Now - execStart;
+                Console.WriteLine($"[INFO] ✓ Python execution completed in {execDuration.TotalSeconds:F1}s");
 
-                    try
-                    {
-                        System.IO.File.Copy(_networkExcelPath, backupPath, true);
-                        Console.WriteLine($"[INFO] Backup created: {Path.GetFileName(backupPath)}");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[WARN] Backup failed: {ex.Message}");
-                    }
-
-                    // Copy updated file to network
-                    System.IO.File.Copy(_localExcelFile, _networkExcelPath, true);
-                    Console.WriteLine($"[INFO] ✓ Updated file copied to: {_networkExcelPath}");
-                }
-
-                // STEP 7: Parse results
-                Console.WriteLine("[STEP 7] Parsing results...");
+                // STEP 8: Parse results
+                Console.WriteLine("[STEP 8/11] Parsing Python results...");
                 PythonResultWithProgress result = null;
+
                 if (!string.IsNullOrEmpty(output))
                 {
                     try
                     {
+                        // Find JSON in output
                         var jsonStart = output.IndexOf('{');
                         var jsonEnd = output.LastIndexOf('}');
+
                         if (jsonStart >= 0 && jsonEnd > jsonStart)
                         {
                             var jsonString = output.Substring(jsonStart, jsonEnd - jsonStart + 1);
                             result = JsonSerializer.Deserialize<PythonResultWithProgress>(jsonString,
                                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                            Console.WriteLine($"[INFO] Parsed result: Success={result?.Success}, Added={result?.AddedCount}/{result?.TotalRecords}");
+                        }
+                        else
+                        {
+                            Console.WriteLine("[WARN] No JSON result found in output");
                         }
                     }
                     catch (JsonException ex)
                     {
-                        Console.WriteLine($"[WARN] Cannot parse JSON: {ex.Message}");
+                        Console.WriteLine($"[WARN] Cannot parse JSON result: {ex.Message}");
                     }
                 }
+
+                // STEP 9: Copy updated file back to network (if successful)
+                if (exitCode == 0 && result?.Success == true)
+                {
+                    Console.WriteLine("[STEP 9/11] Creating backup and copying to network...");
+
+                    // Create backup in LOCAL directory (D:\InspectionSync\Backup)
+                    try
+                    {
+                        var backupFileName = $"Rank_invoce_{DateTime.Now:yyyyMMdd_HHmmss}.xlsb";
+                        var backupPath = Path.Combine(_localBackupDir, backupFileName);
+
+                        // Backup from LOCAL file (before copying to network)
+                        System.IO.File.Copy(_localExcelFile, backupPath, true);
+                        Console.WriteLine($"[INFO] ✓ Backup created: {backupPath}");
+                        Console.WriteLine($"[INFO] Backup location: D:\\InspectionSync\\Backup\\{backupFileName}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[WARN] Backup creation failed (non-critical): {ex.Message}");
+                    }
+
+                    // Copy updated file to network
+                    CopyFileWithVerification(_localExcelFile, _networkExcelPath);
+                    Console.WriteLine($"[INFO] ✓ Updated file copied to network");
+                }
+                else
+                {
+                    Console.WriteLine("[STEP 9/11] Skipping network copy (Python script failed)");
+                }
+
+                // STEP 10: Cleanup temporary files
+                Console.WriteLine("[STEP 10/11] Cleanup temporary files...");
+                CleanupTempFiles(tempJsonFile);
+
+                // STEP 11: Prepare and return response
+                Console.WriteLine("[STEP 11/11] Preparing response...");
 
                 var networkFileInfo = new FileInfo(_networkExcelPath);
                 var lastModified = networkFileInfo.LastWriteTime;
                 var timeSinceModified = DateTime.Now - lastModified;
 
-                // Parse result ก่อน cleanup
                 if (exitCode == 0 && result?.Success == true)
                 {
-                    CleanupTempFiles(tempJsonFile);
+                    Console.WriteLine("==========================================================");
+                    Console.WriteLine("✓ SYNC COMPLETED SUCCESSFULLY");
+                    Console.WriteLine($"  Added: {result.AddedCount} records");
+                    Console.WriteLine($"  Skipped: {result.TotalRecords - result.AddedCount} records");
+                    Console.WriteLine($"  Execution time: {execDuration.TotalSeconds:F1}s");
+                    Console.WriteLine($"  Backup location: D:\\InspectionSync\\Backup\\");
+                    Console.WriteLine("==========================================================");
 
                     return Ok(new
                     {
+                        success = true,
                         message = "✓ อัปเดตสำเร็จ",
                         totalRecords = result.TotalRecords,
                         addedRecords = result.AddedCount,
                         skippedRecords = result.TotalRecords - result.AddedCount,
+                        executionTime = $"{execDuration.TotalSeconds:F1}s",
                         fileModified = lastModified.ToString("yyyy-MM-dd HH:mm:ss"),
+                        timeSinceModified = $"{timeSinceModified.TotalSeconds:F1}s ago",
                         localFile = _localExcelFile,
                         networkFile = _networkExcelPath,
+                        backupLocation = _localBackupDir,
                         pythonMessage = result.Message,
-                        progress = FormatProgressDisplay(result?.Progress)
+                        progress = FormatProgressDisplay(result?.Progress),
+                        timestamp = DateTime.Now,
+                        sessionId = sessionId
                     });
                 }
                 else if (timeSinceModified.TotalSeconds <= 120)
                 {
-                    CleanupTempFiles(tempJsonFile);
+                    // File was recently modified, assume success
+                    Console.WriteLine("==========================================================");
+                    Console.WriteLine("✓ SYNC COMPLETED (file modification detected)");
+                    Console.WriteLine($"  File modified: {timeSinceModified.TotalSeconds:F1}s ago");
+                    Console.WriteLine($"  Backup location: D:\\InspectionSync\\Backup\\");
+                    Console.WriteLine("==========================================================");
 
                     return Ok(new
                     {
+                        success = true,
                         message = "✓ อัปเดตสำเร็จ (ตรวจพบการแก้ไขไฟล์)",
                         totalRecords = viewData.Count,
+                        executionTime = $"{execDuration.TotalSeconds:F1}s",
                         fileModified = lastModified.ToString("yyyy-MM-dd HH:mm:ss"),
-                        timeSinceModified = $"{timeSinceModified.TotalSeconds:F1}s",
+                        timeSinceModified = $"{timeSinceModified.TotalSeconds:F1}s ago",
                         localFile = _localExcelFile,
-                        networkFile = _networkExcelPath
+                        networkFile = _networkExcelPath,
+                        backupLocation = _localBackupDir,
+                        note = "File modification detected within 2 minutes",
+                        timestamp = DateTime.Now,
+                        sessionId = sessionId
                     });
                 }
                 else
                 {
-                    // เก็บไฟล์ไว้ debug ในกรณี error
+                    // Failure - return detailed diagnostics
+                    Console.WriteLine("==========================================================");
+                    Console.WriteLine("✗ SYNC FAILED");
+                    Console.WriteLine($"  Exit code: {exitCode}");
+                    Console.WriteLine($"  Error: {result?.Error ?? "Unknown error"}");
+                    Console.WriteLine("==========================================================");
+
                     return StatusCode(500, new
                     {
+                        success = false,
                         message = "✗ Python script failed",
                         exitCode = exitCode,
                         error = result?.Error ?? "Unknown error",
+                        executionTime = $"{execDuration.TotalSeconds:F1}s",
                         pythonOutput = output,
                         pythonError = error,
                         localFile = _localExcelFile,
                         jsonFile = tempJsonFile,
                         logFile = logFile,
                         errorFile = errorFile,
+                        progress = FormatProgressDisplay(result?.Progress),
                         diagnostics = new
                         {
                             pythonExists = System.IO.File.Exists(_pythonExePath),
                             scriptExists = System.IO.File.Exists(_pythonScriptPath),
                             excelExists = System.IO.File.Exists(_localExcelFile),
                             jsonExists = System.IO.File.Exists(tempJsonFile),
-                            psexecExists = System.IO.File.Exists(_psexecPath),
                             jsonSize = System.IO.File.Exists(tempJsonFile) ?
                                 new FileInfo(tempJsonFile).Length : 0,
                             logFileExists = System.IO.File.Exists(logFile),
                             errorFileExists = System.IO.File.Exists(errorFile),
-                            logFileSize = System.IO.File.Exists(logFile) ?
-                                new FileInfo(logFile).Length : 0,
-                            errorFileSize = System.IO.File.Exists(errorFile) ?
-                                new FileInfo(errorFile).Length : 0,
-                            suggestion = "Check log files in D:\\InspectionSync\\python_output_*.log and python_error_*.log"
-                        }
+                            suggestion = $"Check log files: {logFile}"
+                        },
+                        timestamp = DateTime.Now,
+                        sessionId = sessionId
                     });
                 }
             }
-            catch (Exception ex)
+            catch (TimeoutException tex)
             {
-                Console.WriteLine($"[ERROR] {ex.Message}");
+                Console.WriteLine("==========================================================");
+                Console.WriteLine("⏱️ TIMEOUT ERROR");
+                Console.WriteLine($"  Message: {tex.Message}");
+                Console.WriteLine("==========================================================");
+
+                // Kill any remaining Excel processes
+                try
+                {
+                    var excelProcs = Process.GetProcessesByName("EXCEL");
+                    foreach (var proc in excelProcs)
+                    {
+                        try
+                        {
+                            Console.WriteLine($"[CLEANUP] Killing Excel PID: {proc.Id}");
+                            proc.Kill();
+                            proc.WaitForExit(3000);
+                        }
+                        catch { }
+                    }
+                }
+                catch { }
+
                 return StatusCode(500, new
                 {
-                    message = "เกิดข้อผิดพลาด",
+                    success = false,
+                    message = "⏱️ Timeout - การทำงานใช้เวลานานเกินไป",
+                    error = tex.Message,
+                    type = "TimeoutException",
+                    possibleCauses = new[]
+                    {
+                        "Excel file is very large or has many complex formulas",
+                        "Excel is hung or waiting for user input (should not happen in background mode)",
+                        "Network file access is slow",
+                        "Python script encountered an infinite loop",
+                        "Excel add-ins are interfering with the process"
+                    },
+                    suggestions = new[]
+                    {
+                        "Check if Excel processes are running: tasklist | findstr EXCEL",
+                        "Check Python log files in D:\\InspectionSync\\",
+                        "Try running the script manually to see if there are prompts",
+                        "Verify the Excel file is not corrupted",
+                        "Consider optimizing the Excel file (remove unused sheets, simplify formulas)"
+                    },
+                    timestamp = DateTime.Now,
+                    sessionId = sessionId
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("==========================================================");
+                Console.WriteLine("❌ FATAL ERROR");
+                Console.WriteLine($"  Type: {ex.GetType().Name}");
+                Console.WriteLine($"  Message: {ex.Message}");
+                Console.WriteLine($"  Stack: {ex.StackTrace}");
+                Console.WriteLine("==========================================================");
+
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "❌ เกิดข้อผิดพลาดร้ายแรง",
                     error = ex.Message,
                     type = ex.GetType().Name,
                     stackTrace = ex.StackTrace,
-                    workingDir = _localWorkingDir
+                    workingDir = _localWorkingDir,
+                    timestamp = DateTime.Now,
+                    sessionId = sessionId
                 });
+            }
+            finally
+            {
+                Console.WriteLine("[FINALLY] Final cleanup...");
+
+                // Ensure Excel is killed
+                try
+                {
+                    var excelProcs = Process.GetProcessesByName("EXCEL");
+                    if (excelProcs.Length > 0)
+                    {
+                        Console.WriteLine($"[FINALLY] Killing {excelProcs.Length} remaining Excel process(es)");
+                        foreach (var proc in excelProcs)
+                        {
+                            try
+                            {
+                                proc.Kill();
+                            }
+                            catch { }
+                        }
+                    }
+                }
+                catch { }
+
+                Console.WriteLine("[FINALLY] Session ended");
             }
         }
 
@@ -571,18 +964,23 @@ namespace SI24004.Controllers
                     if (System.IO.File.Exists(file))
                     {
                         System.IO.File.Delete(file);
+                        Console.WriteLine($"[CLEANUP] Deleted temp file: {Path.GetFileName(file)}");
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[CLEANUP] Could not delete {Path.GetFileName(file)}: {ex.Message}");
+                }
             }
         }
 
         private List<string> FormatProgressDisplay(List<ProgressEntry> progress)
         {
             if (progress == null || !progress.Any())
-                return new List<string> { "No progress information" };
+                return new List<string> { "No progress information available" };
 
             var display = new List<string>();
+
             foreach (var entry in progress)
             {
                 var icon = entry.Status switch
@@ -593,8 +991,25 @@ namespace SI24004.Controllers
                     "error" => "✗",
                     _ => "ℹ️"
                 };
-                display.Add($"{icon} [{entry.Step}] {entry.Message}");
+
+                var line = $"{icon} [{entry.Step}] {entry.Message}";
+
+                if (entry.Details != null)
+                {
+                    try
+                    {
+                        var detailsJson = JsonSerializer.Serialize(entry.Details);
+                        line += $" | {detailsJson}";
+                    }
+                    catch
+                    {
+                        line += $" | {entry.Details}";
+                    }
+                }
+
+                display.Add(line);
             }
+
             return display;
         }
 

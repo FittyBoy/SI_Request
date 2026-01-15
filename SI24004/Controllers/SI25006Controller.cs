@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SI24004.Models;
 using SI24004.Models.Requests;
@@ -17,41 +16,155 @@ namespace SI24004.Controllers
             _context = context;
         }
 
+        // POST: api/SI25006/initialize-data
+        [HttpPost("initialize-data")]
+        public async Task<ActionResult> InitializeData()
+        {
+            try
+            {
+                // Check if data already exists
+                var hasData = await _context.Materalinventories.AnyAsync();
+                if (hasData)
+                {
+                    return Ok(new { message = "Data already initialized" });
+                }
+
+                // Initialize sample shifts
+                var shifts = new[]
+                {
+                    new Shiftmaster { Id = Guid.NewGuid(), Shiftcode = "A", Shiftname = "Morning Shift", Starttime = new TimeOnly(7, 0), Endtime = new TimeOnly(15, 0) },
+                    new Shiftmaster { Id = Guid.NewGuid(), Shiftcode = "B", Shiftname = "Afternoon Shift", Starttime = new TimeOnly(15, 0), Endtime = new TimeOnly(23, 0) },
+                    new Shiftmaster { Id = Guid.NewGuid(), Shiftcode = "C", Shiftname = "Night Shift", Starttime = new TimeOnly(23, 0), Endtime = new TimeOnly(7, 0) }
+                };
+                _context.Shiftmasters.AddRange(shifts);
+
+                // Initialize sample products
+                var products = new[]
+                {
+                    new Productmaster { Id = Guid.NewGuid(), Productcode = "MOB01", Productname = "Mobile 0.1", Description = "Mobile Device Screen 0.1mm" },
+                    new Productmaster { Id = Guid.NewGuid(), Productcode = "MOB02", Productname = "Mobile 0.2", Description = "Mobile Device Screen 0.2mm" },
+                    new Productmaster { Id = Guid.NewGuid(), Productcode = "MOB03", Productname = "Mobile 0.3", Description = "Mobile Device Screen 0.3mm" }
+                };
+                _context.Productmasters.AddRange(products);
+
+                // Initialize sample suppliers
+                var suppliers = new[]
+                {
+                    new Suppliermaster { Id = Guid.NewGuid(), Suppliercode = "SUP001", Suppliername = "Supplier A", Contactperson = "John Doe", Phone = "02-1234567" },
+                    new Suppliermaster { Id = Guid.NewGuid(), Suppliercode = "SUP002", Suppliername = "Supplier B", Contactperson = "Jane Smith", Phone = "02-7654321" },
+                    new Suppliermaster { Id = Guid.NewGuid(), Suppliercode = "INT001", Suppliername = "Internal Production", Contactperson = "Production Team", Phone = "02-1111111" }
+                };
+                _context.Suppliermasters.AddRange(suppliers);
+
+                // Initialize sample material types
+                var materialTypes = new[]
+                {
+                    new Materialtype { Id = Guid.NewGuid(), Typename = "Raw Material", Description = "Raw materials for production" },
+                    new Materialtype { Id = Guid.NewGuid(), Typename = "Chemical", Description = "Chemical substances" },
+                    new Materialtype { Id = Guid.NewGuid(), Typename = "Packaging", Description = "Packaging materials" },
+                    new Materialtype { Id = Guid.NewGuid(), Typename = "Additive", Description = "Production additives" }
+                };
+                _context.Materialtypes.AddRange(materialTypes);
+
+                // Initialize sample locations
+                var locations = new[]
+                {
+                    new Locationmaster { Id = Guid.NewGuid(), Locationcode = "A-01", Locationname = "Zone A Shelf 1", Zone = "A", Maxcapacity = 100, Currentcapacity = 0, Isactive = true },
+                    new Locationmaster { Id = Guid.NewGuid(), Locationcode = "A-02", Locationname = "Zone A Shelf 2", Zone = "A", Maxcapacity = 100, Currentcapacity = 0, Isactive = true },
+                    new Locationmaster { Id = Guid.NewGuid(), Locationcode = "B-01", Locationname = "Zone B Shelf 1", Zone = "B", Maxcapacity = 100, Currentcapacity = 0, Isactive = true }
+                };
+                _context.Locationmasters.AddRange(locations);
+
+                // Initialize sample employees
+                var employees = new[]
+                {
+                    new Employeemaster { Id = Guid.NewGuid(), Employeeid = "12345", Employeename = "John Doe", Department = "Production", Position = "Operator", Shift = shifts[0].Id, Isactive = true },
+                    new Employeemaster { Id = Guid.NewGuid(), Employeeid = "12346", Employeename = "Jane Smith", Department = "Production", Position = "Supervisor", Shift = shifts[1].Id, Isactive = true }
+                };
+                _context.Employeemasters.AddRange(employees);
+
+                await _context.SaveChangesAsync();
+
+                // Initialize sample materials (ต้อง save ก่อนเพื่อให้มี FK)
+                var materials = new[]
+                {
+                    new Materalinventory
+                    {
+                        Id = Guid.NewGuid(),
+                        Matname = "FO1500",
+                        Matquantity = 150,
+                        Mattypeid = materialTypes[0].Id,
+                        Case = "Box",
+                        Location = "A-01",
+                        Shift = shifts[0].Id,
+                        Product = products[0].Id,
+                        Supplier = suppliers[0].Id,
+                        Empid = employees[0].Id,
+                        Insertdate = DateOnly.FromDateTime(DateTime.Now)
+                    },
+                    new Materalinventory
+                    {
+                        Id = Guid.NewGuid(),
+                        Matname = "Aluminum Oxide",
+                        Matquantity = 75,
+                        Mattypeid = materialTypes[1].Id,
+                        Case = "Drum",
+                        Location = "A-02",
+                        Shift = shifts[0].Id,
+                        Product = products[1].Id,
+                        Supplier = suppliers[1].Id,
+                        Empid = employees[0].Id,
+                        Insertdate = DateOnly.FromDateTime(DateTime.Now)
+                    }
+                };
+                _context.Materalinventories.AddRange(materials);
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Sample data initialized successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error initializing data: {ex.Message}\n{ex.InnerException?.Message}");
+            }
+        }
+
         // GET: api/SI25006
         [HttpGet]
         public async Task<ActionResult<IEnumerable<object>>> GetMaterials()
         {
             try
             {
-                var materials = await _context.MateralInventories
+                var materials = await _context.Materalinventories
+                    .Include(m => m.ShiftNavigation)
+                    .Include(m => m.ProductNavigation)
+                    .Include(m => m.SupplierNavigation)
+                    .Include(m => m.Emp)
+                    .Include(m => m.Mattype)
                     .Select(m => new
                     {
-                        m.Id,
-                        m.MatName,
-                        m.MatQuantity,
-                        m.MatTypeId,
-                        m.Case,
-                        m.ExpDate,
-                        m.EmpId,
-                        m.Shift,
-                        m.Product,
-                        m.LotNumber,
-                        m.Location,
-                        m.InsertDate,
-                        MaterialTypeName = _context.MaterialTypes
-                            .Where(mt => mt.Id == m.MatTypeId)
-                            .Select(mt => mt.TypeName)
-                            .FirstOrDefault(),
-                        EmployeeName = _context.Employeemasters
-                            .Where(e => e.Id == m.EmpId)
-                            .Select(e => e.Employeename)
-                            .FirstOrDefault(),
-                        LocationName = _context.Locationmasters
-                            .Where(l => l.Locationcode == m.Location)
-                            .Select(l => l.Locationname)
-                            .FirstOrDefault()
+                        Id = m.Id.ToString(),
+                        Matname = m.Matname ?? "",
+                        Matquantity = m.Matquantity ?? 0,
+                        matUnit = "kg",
+                        matTypeId = m.Mattypeid.ToString(),
+                        @case = m.Case ?? "",
+                        expDate = m.Expdate,
+                        insertDate = m.Insertdate,
+                        empId = m.Empid.ToString(),
+                        shift = m.Shift.ToString(),
+                        product = m.Product.ToString(),
+                        supplier = m.Supplier.ToString(),
+                        lotNumber = m.Lotnumber ?? "",
+                        Location = m.Location ?? "",
+                        // Additional info for display
+                        shiftName = m.ShiftNavigation != null ? m.ShiftNavigation.Shiftcode : "",
+                        productName = m.ProductNavigation != null ? m.ProductNavigation.Productname : "",
+                        supplierName = m.SupplierNavigation != null ? m.SupplierNavigation.Suppliername : "",
+                        employeeName = m.Emp != null ? m.Emp.Employeename : "",
+                        materialTypename = m.Mattype != null ? m.Mattype.Typename : ""
                     })
-                    .OrderBy(m => m.MatName)
+                    .OrderBy(m => m.Matname)
                     .ToListAsync();
 
                 return Ok(materials);
@@ -62,59 +175,136 @@ namespace SI24004.Controllers
             }
         }
 
-        // GET: api/SI25006/stock-summary
-        [HttpGet("stock-summary")]
-        public async Task<ActionResult<IEnumerable<object>>> GetStockSummary()
+        // GET: api/SI25006/{id}
+        [HttpGet("{id}")]
+        public async Task<ActionResult<object>> GetMaterial(string id)
         {
             try
             {
-                var stockSummary = await _context.MateralInventories
-                    .GroupBy(m => new { m.MatName, m.MatTypeId })
-                    .Select(g => new
-                    {
-                        MaterialName = g.Key.MatName,
-                        MaterialTypeId = g.Key.MatTypeId,
-                        TotalQuantity = g.Sum(m => m.MatQuantity ?? 0),
-                        LocationCount = g.Select(m => m.Location).Distinct().Count(),
-                        LastUpdate = g.Max(m => m.InsertDate),
-                        MaterialTypeName = _context.MaterialTypes
-                            .Where(mt => mt.Id == g.Key.MatTypeId)
-                            .Select(mt => mt.TypeName)
-                            .FirstOrDefault()
-                    })
-                    .OrderBy(s => s.MaterialName)
-                    .ToListAsync();
+                if (!Guid.TryParse(id, out Guid guidId))
+                {
+                    return BadRequest("Invalid ID format");
+                }
 
-                return Ok(stockSummary);
+                var material = await _context.Materalinventories
+                    .Include(m => m.ShiftNavigation)
+                    .Include(m => m.ProductNavigation)
+                    .Include(m => m.SupplierNavigation)
+                    .Include(m => m.Emp)
+                    .Include(m => m.Mattype)
+                    .Where(m => m.Id == guidId)
+                    .Select(m => new
+                    {
+                        Id = m.Id.ToString(),
+                        Matname = m.Matname ?? "",
+                        Matquantity = m.Matquantity ?? 0,
+                        matUnit = "kg",
+                        matTypeId = m.Mattypeid.ToString(),
+                        @case = m.Case ?? "",
+                        expDate = m.Expdate,
+                        insertDate = m.Insertdate,
+                        empId = m.Empid.ToString(),
+                        shift = m.Shift.ToString(),
+                        product = m.Product.ToString(),
+                        supplier = m.Supplier.ToString(),
+                        lotNumber = m.Lotnumber ?? "",
+                        Location = m.Location ?? "",
+                        shiftName = m.ShiftNavigation != null ? m.ShiftNavigation.Shiftcode : "",
+                        productName = m.ProductNavigation != null ? m.ProductNavigation.Productname : "",
+                        supplierName = m.SupplierNavigation != null ? m.SupplierNavigation.Suppliername : "",
+                        employeeName = m.Emp != null ? m.Emp.Employeename : ""
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (material == null)
+                {
+                    return NotFound();
+                }
+
+                return Ok(material);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
-        // GET: api/SI25006/materials/master
-        [HttpGet("materials/master")]
-        public async Task<ActionResult<IEnumerable<object>>> GetMaterialsMaster()
+
+        // GET: api/SI25006/shifts
+        [HttpGet("shifts")]
+        public async Task<ActionResult<IEnumerable<object>>> GetShifts()
         {
             try
             {
-                var materials = await _context.MateralInventories
-                    .Select(m => new
+                var shifts = await _context.Shiftmasters
+                    .Select(s => new
                     {
-                        materialName = m.MatName,
-                        materialTypeId = m.MatTypeId,
-                        materialTypeName = _context.MaterialTypes
-                            .Where(mt => mt.Id == m.MatTypeId)
-                            .Select(mt => mt.TypeName)
-                            .FirstOrDefault(),
-                        currentStock = _context.MateralInventories
-                            .Where(inv => inv.MatName == m.MatName)
-                            .Sum(inv => inv.MatQuantity ?? 0)
+                        id = s.Id.ToString(),
+                        shift = s.Shiftcode,
+                        shiftName = s.Shiftname,
+                        startTime = s.Starttime,
+                        endTime = s.Endtime,
+                        count = _context.Materialreceiverecords.Count(r => r.Shift == s.Id)
                     })
-                    .OrderBy(m => m.materialName)
+                    .OrderBy(x => x.shift)
                     .ToListAsync();
 
-                return Ok(materials);
+                return Ok(shifts);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        // GET: api/SI25006/products
+        [HttpGet("products")]
+        public async Task<ActionResult<IEnumerable<object>>> GetProducts()
+        {
+            try
+            {
+                var products = await _context.Productmasters
+                    .Select(p => new
+                    {
+                        id = p.Id.ToString(),
+                        product = p.Productname,
+                        productCode = p.Productcode,
+                        description = p.Description,
+                        count = _context.Materialreceiverecords.Count(r => r.Product == p.Id)
+                    })
+                    .OrderBy(x => x.product)
+                    .ToListAsync();
+
+                return Ok(products);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        // GET: api/SI25006/suppliers
+        [HttpGet("suppliers")]
+        public async Task<ActionResult<IEnumerable<object>>> GetSuppliers()
+        {
+            try
+            {
+                var suppliers = await _context.Suppliermasters
+                    .Select(s => new
+                    {
+                        id = s.Id.ToString(),
+                        supplier = s.Suppliername,
+                        supplierCode = s.Suppliercode,
+                        contactPerson = s.Contactperson,
+                        phone = s.Phone,
+                        count = _context.Materialreceiverecords.Count(r => r.Supplier == s.Id),
+                        lastUsed = _context.Materialreceiverecords
+                            .Where(r => r.Supplier == s.Id)
+                            .Max(r => (DateOnly?)r.Insertdate)
+                    })
+                    .OrderByDescending(x => x.count)
+                    .ToListAsync();
+
+                return Ok(suppliers);
             }
             catch (Exception ex)
             {
@@ -132,19 +322,66 @@ namespace SI24004.Controllers
                     .Where(l => l.Isactive == true)
                     .Select(l => new
                     {
-                        locationCode = l.Locationcode,
+                        location = l.Locationcode,
                         locationName = l.Locationname,
                         zone = l.Zone,
                         isActive = l.Isactive,
-                        currentCapacity = l.Currentcapacity,
-                        maxCapacity = l.Maxcapacity,
-                        materialCount = _context.MateralInventories
-                            .Count(m => m.Location == l.Locationcode)
+                        currentCapacity = l.Currentcapacity ?? 0,
+                        maxCapacity = l.Maxcapacity ?? 100
                     })
-                    .OrderBy(l => l.locationCode)
+                    .OrderBy(l => l.location)
                     .ToListAsync();
 
                 return Ok(locations);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        // GET: api/SI25006/material-types
+        [HttpGet("material-types")]
+        public async Task<ActionResult<IEnumerable<object>>> GetMaterialTypes()
+        {
+            try
+            {
+                var types = await _context.Materialtypes
+                    .Select(mt => new
+                    {
+                        id = mt.Id.ToString(),
+                        name = mt.Typename,
+                        description = mt.Description ?? ""
+                    })
+                    .OrderBy(mt => mt.name)
+                    .ToListAsync();
+
+                return Ok(types);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        // GET: api/SI25006/case-types
+        [HttpGet("case-types")]
+        public async Task<ActionResult<IEnumerable<object>>> GetCaseTypes()
+        {
+            try
+            {
+                var caseTypes = await _context.Materialreceiverecords
+                    .Where(r => !string.IsNullOrEmpty(r.Case))
+                    .GroupBy(r => r.Case)
+                    .Select(g => new
+                    {
+                        caseType = g.Key,
+                        count = g.Count()
+                    })
+                    .OrderByDescending(x => x.count)
+                    .ToListAsync();
+
+                return Ok(caseTypes);
             }
             catch (Exception ex)
             {
@@ -159,17 +396,19 @@ namespace SI24004.Controllers
             try
             {
                 var employees = await _context.Employeemasters
+                    .Include(e => e.ShiftNavigation)
                     .Where(e => e.Isactive == true)
                     .Select(e => new
                     {
+                        id = e.Id.ToString(),
                         empId = e.Employeeid,
                         empName = e.Employeename,
+                        employeename = e.Employeename,
                         department = e.Department,
                         position = e.Position,
-                        shift = e.Shift,
-                        isActive = e.Isactive,
-                        totalTransactions = _context.MaterialReceiveRecords
-                            .Count(r => r.EmpId == e.Id)
+                        shift = e.Shift.ToString(),
+                        shiftCode = e.ShiftNavigation != null ? e.ShiftNavigation.Shiftcode : "",
+                        isActive = e.Isactive
                     })
                     .OrderBy(e => e.empId)
                     .ToListAsync();
@@ -182,178 +421,40 @@ namespace SI24004.Controllers
             }
         }
 
-        // GET: api/SI25006/material-types
-        [HttpGet("material-types")]
-        public async Task<ActionResult<IEnumerable<object>>> GetMaterialTypes()
+        // GET: api/SI25006/receive/recent
+        [HttpGet("receive/recent")]
+        public async Task<ActionResult<IEnumerable<object>>> GetRecentReceipts([FromQuery] int count = 10)
         {
             try
             {
-                var types = await _context.MaterialTypes
-                    .Select(mt => new
-                    {
-                        id = mt.Id,
-                        name = mt.TypeName,
-                        description = mt.Description,
-                        materialCount = _context.MateralInventories.Count(m => m.MatTypeId == mt.Id)
-                    })
-                    .OrderBy(mt => mt.id)
-                    .ToListAsync();
-
-                return Ok(types);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-        // GET: api/SI25006/shifts
-        [HttpGet("shifts")]
-        public async Task<ActionResult<IEnumerable<object>>> GetShifts()
-        {
-            try
-            {
-                var shifts = await _context.Employeemasters
-                    .Where(e => e.Isactive == true && !string.IsNullOrEmpty(e.Shift))
-                    .GroupBy(e => e.Shift)
-                    .Select(g => new
-                    {
-                        shift = g.Key,
-                        employeeCount = g.Count(),
-                        transactionCount = _context.MaterialReceiveRecords
-                            .Count(r => r.Shift == g.Key)
-                    })
-                    .OrderBy(x => x.shift)
-                    .ToListAsync();
-
-                return Ok(shifts);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-        // GET: api/SI25006/case-types
-        [HttpGet("case-types")]
-        public async Task<ActionResult<IEnumerable<object>>> GetCaseTypes()
-        {
-            try
-            {
-                var caseTypes = await _context.MaterialReceiveRecords
-                    .Where(r => !string.IsNullOrEmpty(r.Case))
-                    .GroupBy(r => r.Case)
-                    .Select(g => new
-                    {
-                        caseType = g.Key,
-                        count = g.Count(),
-                        lastUsed = g.Max(x => x.InsertDate)
-                    })
-                    .OrderByDescending(x => x.count)
-                    .ToListAsync();
-
-                return Ok(caseTypes);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-        // GET: api/SI25006/transactions
-        [HttpGet("transactions")]
-        public async Task<ActionResult<object>> GetTransactions(
-            [FromQuery] string? status = null,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 50)
-        {
-            try
-            {
-                var query = _context.MaterialReceiveRecords.AsQueryable();
-
-                if (!string.IsNullOrEmpty(status))
-                {
-                    query = query.Where(r => r.Status.ToLower() == status.ToLower());
-                }
-
-                var totalCount = await query.CountAsync();
-
-                var transactions = await query
-                    .OrderByDescending(r => r.InsertDate)
-                    .ThenByDescending(r => r.CreatedAt)
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .Select(r => new
-                    {
-                        r.Id,
-                        r.MatName,
-                        r.MatQuantity,
-                        r.MatTypeId,
-                        r.Case,
-                        r.ExpDate,
-                        r.EmpId,
-                        r.Shift,
-                        r.Product,
-                        r.LotNumber,
-                        r.Location,
-                        r.Status,
-                        r.InsertDate,
-                        r.CreatedAt,
-                        //EmployeeName = _context.Employeemasters
-                        //    .Where(e => e.Employeeid == r.EmpId)
-                        //    .Select(e => e.Employeename)
-                        //    .FirstOrDefault(),
-                        //MaterialTypeName = _context.MaterialTypes
-                        //    .Where(mt => mt.Id == r.MatTypeId)
-                        //    .Select(mt => mt.Typename)
-                        //    .FirstOrDefault()
-                    })
-                    .ToListAsync();
-
-                return Ok(new
-                {
-                    data = transactions,
-                    pagination = new
-                    {
-                        page,
-                        pageSize,
-                        totalCount,
-                        totalPages = (int)Math.Ceiling((double)totalCount / pageSize)
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-        // GET: api/SI25006/transactions/recent
-        [HttpGet("transactions/recent")]
-        public async Task<ActionResult<IEnumerable<object>>> GetRecentTransactions([FromQuery] int count = 10)
-        {
-            try
-            {
-                var transactions = await _context.MaterialReceiveRecords
-                    .OrderByDescending(r => r.InsertDate)
-                    .ThenByDescending(r => r.CreatedAt)
+                var receipts = await _context.Materialreceiverecords
+                    .Include(r => r.ShiftNavigation)
+                    .Include(r => r.ProductNavigation)
+                    .Include(r => r.SupplierNavigation)
+                    .Include(r => r.Empid)
+                    .Where(r => r.Status == "in")
+                    .OrderByDescending(r => r.Insertdate)
+                    .ThenByDescending(r => r.Createdat)
                     .Take(count)
                     .Select(r => new
                     {
-                        r.Id,
-                        r.MatName,
-                        r.MatQuantity,
-                        r.Status,
-                        r.InsertDate,
-                        r.EmpId,
-                        EmployeeName = _context.Employeemasters
-                            .Where(e => e.Id == r.EmpId)
-                            .Select(e => e.Employeename)
-                            .FirstOrDefault()
+                        Id = r.Id.ToString(),
+                        Matname = r.Matname,
+                        Matquantity = r.Matquantity,
+                        Mattypeid = r.Mattypeid.ToString(),
+                        Case = r.Case,
+                        Expdate = r.Expdate,
+                        Empid = r.Empid.ToString(),
+                        Shift = r.ShiftNavigation != null ? r.ShiftNavigation.Shiftcode : "",
+                        Product = r.ProductNavigation != null ? r.ProductNavigation.Productname : "",
+                        Supplier = r.SupplierNavigation != null ? r.SupplierNavigation.Suppliername : "",
+                        Lotnumber = r.Lotnumber,
+                        Location = r.Location,
+                        Insertdate = r.Insertdate
                     })
                     .ToListAsync();
 
-                return Ok(transactions);
+                return Ok(receipts);
             }
             catch (Exception ex)
             {
@@ -361,9 +462,9 @@ namespace SI24004.Controllers
             }
         }
 
-        // POST: api/SI25006/receive
-        [HttpPost("receive")]
-        public async Task<ActionResult<object>> ReceiveMaterial(MaterialReceiveUpdateRequest request)
+        // POST: api/SI25006/receive-and-update
+        [HttpPost("receive-and-update")]
+        public async Task<ActionResult<object>> ReceiveAndUpdate(MaterialReceiveUpdateRequest request)
         {
             var strategy = _context.Database.CreateExecutionStrategy();
 
@@ -383,61 +484,99 @@ namespace SI24004.Controllers
                         return BadRequest("Quantity must be greater than 0.");
                     }
 
-                    var receiveRecord = new MaterialReceiveRecord
+                    // Validate foreign keys
+                    if (!Guid.TryParse(request.EmpId, out Guid empGuid))
+                    {
+                        return BadRequest("Invalid Employee ID format.");
+                    }
+
+                    if (!Guid.TryParse(request.Shift, out Guid shiftGuid))
+                    {
+                        return BadRequest("Invalid Shift ID format.");
+                    }
+
+                    Guid? productGuid = null;
+                    if (!string.IsNullOrEmpty(request.Product) && Guid.TryParse(request.Product, out Guid pGuid))
+                    {
+                        productGuid = pGuid;
+                    }
+
+                    Guid? supplierGuid = null;
+                    if (!string.IsNullOrEmpty(request.Supplier) && Guid.TryParse(request.Supplier, out Guid sGuid))
+                    {
+                        supplierGuid = sGuid;
+                    }
+
+                    Guid? matTypeGuid = null;
+                    if (!string.IsNullOrEmpty(request.MatTypeId) && Guid.TryParse(request.MatTypeId, out Guid mtGuid))
+                    {
+                        matTypeGuid = mtGuid;
+                    }
+
+                    // Create receive record
+                    var receiveRecord = new Materialreceiverecord
                     {
                         Id = Guid.NewGuid(),
-                        MatName = request.MatName,
-                        MatQuantity = request.MatQuantity,
-                        //MatTypeId = request.MatTypeId,
+                        Matname = request.MatName,
+                        Matquantity = request.MatQuantity,
+                        Mattypeid = matTypeGuid,
                         Case = request.Case,
-                        ExpDate = request.ExpDate,
-                        //EmpId = request.EmpId,
-                        Shift = request.Shift,
-                        //Product = request.Product,
-                        LotNumber = request.LotNumber,
+                        Expdate = request.ExpDate,
+                        Empid = empGuid,
+                        Shift = shiftGuid,
+                        Product = productGuid,
+                        Supplier = supplierGuid,
+                        Lotnumber = request.LotNumber,
                         Location = request.Location,
                         Status = "in",
-                        InsertDate = DateOnly.FromDateTime(DateTime.Now)
+                        Insertdate = DateOnly.FromDateTime(DateTime.Now),
+                        Createdat = DateTime.UtcNow
                     };
 
-                    _context.MaterialReceiveRecords.Add(receiveRecord);
+                    _context.Materialreceiverecords.Add(receiveRecord);
 
-                    var inventory = await _context.MateralInventories
-                        .FirstOrDefaultAsync(m => m.MatName == request.MatName &&
+                    // Update or create inventory
+                    var inventory = await _context.Materalinventories
+                        .FirstOrDefaultAsync(m => m.Matname == request.MatName &&
                                                    m.Location == request.Location);
 
                     if (inventory != null)
                     {
-                        inventory.MatQuantity = (inventory.MatQuantity ?? 0) + request.MatQuantity;
-                        inventory.LotNumber = request.LotNumber;
+                        inventory.Matquantity = (inventory.Matquantity ?? 0) + request.MatQuantity;
+                        inventory.Lotnumber = request.LotNumber;
                         if (request.ExpDate.HasValue)
                         {
-                            inventory.ExpDate = request.ExpDate;
+                            inventory.Expdate = request.ExpDate;
                         }
+                        inventory.Shift = shiftGuid;
+                        inventory.Product = productGuid;
+                        inventory.Supplier = supplierGuid;
+                        inventory.Empid = empGuid;
                         _context.Entry(inventory).State = EntityState.Modified;
                     }
                     else
                     {
-                        var newInventory = new MateralInventory
+                        var newInventory = new Materalinventory
                         {
                             Id = Guid.NewGuid(),
-                            MatName = request.MatName,
-                            MatQuantity = request.MatQuantity,
-                            //MatTypeId = request.MatTypeId,
+                            Matname = request.MatName,
+                            Matquantity = request.MatQuantity,
+                            Mattypeid = matTypeGuid,
                             Case = request.Case,
-                            ExpDate = request.ExpDate,
-                            //EmpId = request.EmpId,
-                            Shift = request.Shift,
-                            Product = request.Product,
-                            //Supplier = request.Supplier,
-                            LotNumber = request.LotNumber,
+                            Expdate = request.ExpDate,
+                            Empid = empGuid,
+                            Shift = shiftGuid,
+                            Product = productGuid,
+                            Supplier = supplierGuid,
+                            Lotnumber = request.LotNumber,
                             Location = request.Location,
-                            InsertDate = DateOnly.FromDateTime(DateTime.Now)
+                            Insertdate = DateOnly.FromDateTime(DateTime.Now)
                         };
-                        _context.MateralInventories.Add(newInventory);
+                        _context.Materalinventories.Add(newInventory);
                         inventory = newInventory;
                     }
 
+                    // Update location capacity
                     var location = await _context.Locationmasters
                         .FirstOrDefaultAsync(l => l.Locationcode == request.Location);
 
@@ -460,188 +599,32 @@ namespace SI24004.Controllers
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    return StatusCode(500, $"Internal server error: {ex.Message}");
+                    return StatusCode(500, $"Internal server error: {ex.Message}\n{ex.InnerException?.Message}");
                 }
             });
         }
 
-        // POST: api/SI25006/issue
-        [HttpPost("issue")]
-        public async Task<ActionResult<object>> IssueMaterial(MaterialReceiveUpdateRequest request)
-        {
-            var strategy = _context.Database.CreateExecutionStrategy();
-
-            return await strategy.ExecuteAsync(async () =>
-            {
-                await using var transaction = await _context.Database.BeginTransactionAsync();
-
-                try
-                {
-                    if (string.IsNullOrEmpty(request.MatName))
-                    {
-                        return BadRequest("Material name is required.");
-                    }
-
-                    if (request.MatQuantity <= 0)
-                    {
-                        return BadRequest("Quantity must be greater than 0.");
-                    }
-
-                    var currentStock = await _context.MateralInventories
-                        .Where(m => m.MatName == request.MatName)
-                        .SumAsync(m => m.MatQuantity ?? 0);
-
-                    if (currentStock < request.MatQuantity)
-                    {
-                        return BadRequest($"Insufficient stock. Available: {currentStock}, Requested: {request.MatQuantity}");
-                    }
-
-                    var issueRecord = new MaterialReceiveRecord
-                    {
-                        Id = Guid.NewGuid(),
-                        MatName = request.MatName,
-                        MatQuantity = request.MatQuantity,
-                        //MatTypeId = request.MatTypeId,
-                        Case = request.Case,
-                        ExpDate = request.ExpDate,
-                        //EmpId = request.EmpId,
-                        Shift = request.Shift,
-                        //Product = request.Product,
-                        LotNumber = request.LotNumber,
-                        Location = request.Location,
-                        Status = "out",
-                        InsertDate = DateOnly.FromDateTime(DateTime.Now)
-                    };
-
-                    _context.MaterialReceiveRecords.Add(issueRecord);
-
-                    var inventory = await _context.MateralInventories
-                        .Where(m => m.MatName == request.MatName && m.MatQuantity > 0)
-                        .OrderBy(m => m.ExpDate)
-                        .FirstOrDefaultAsync();
-
-                    if (inventory != null)
-                    {
-                        inventory.MatQuantity = (inventory.MatQuantity ?? 0) - request.MatQuantity;
-
-                        if (inventory.MatQuantity <= 0)
-                        {
-                            _context.MateralInventories.Remove(inventory);
-                        }
-                        else
-                        {
-                            _context.Entry(inventory).State = EntityState.Modified;
-                        }
-                    }
-
-                    var location = await _context.Locationmasters
-                        .FirstOrDefaultAsync(l => l.Locationcode == request.Location);
-
-                    if (location != null && location.Currentcapacity > 0)
-                    {
-                        location.Currentcapacity = (location.Currentcapacity ?? 0) - 1;
-                        _context.Entry(location).State = EntityState.Modified;
-                    }
-
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-
-                    return Ok(new
-                    {
-                        issueRecord,
-                        updatedInventory = inventory,
-                        message = $"Successfully issued {request.MatQuantity} units of {request.MatName}"
-                    });
-                }
-                catch (Exception ex)
-                {
-                    await transaction.RollbackAsync();
-                    return StatusCode(500, $"Internal server error: {ex.Message}");
-                }
-            });
-        }
-
-        // GET: api/SI25006/stock-report
-        [HttpGet("stock-report")]
-        public async Task<ActionResult<object>> GetStockReport()
+        // PATCH: api/SI25006/{id}/quantity
+        [HttpPatch("{id}/quantity")]
+        public async Task<ActionResult> UpdateQuantity(string id, [FromBody] int newQuantity)
         {
             try
             {
-                var stockReport = await _context.MateralInventories
-                    .Select(m => new
-                    {
-                        materialName = m.MatName,
-                        materialType = m.MatTypeId,
-                        materialTypeName = _context.MaterialTypes
-                            .Where(mt => mt.Id == m.MatTypeId)
-                            .Select(mt => mt.TypeName)
-                            .FirstOrDefault(),
-                        currentStock = _context.MateralInventories
-                            .Where(inv => inv.MatName == m.MatName)
-                            .Sum(inv => inv.MatQuantity ?? 0)
-                    })
-                    .OrderBy(m => m.materialName)
-                    .ToListAsync();
-
-                return Ok(new
+                if (!Guid.TryParse(id, out Guid guidId))
                 {
-                    reportDate = DateTime.Now,
-                    totalMaterials = stockReport.Count,
-                    materials = stockReport
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
+                    return BadRequest("Invalid ID format");
+                }
 
-        // GET: api/SI25006/material/{materialName}/history
-        [HttpGet("material/{materialName}/history")]
-        public async Task<ActionResult<object>> GetMaterialHistory(string materialName, [FromQuery] int days = 30)
-        {
-            try
-            {
-                var startDate = DateOnly.FromDateTime(DateTime.Now.AddDays(-days));
-
-                var history = await _context.MaterialReceiveRecords
-                    .Where(r => r.MatName == materialName && r.InsertDate >= startDate)
-                    .OrderByDescending(r => r.InsertDate)
-                    .ThenByDescending(r => r.CreatedAt)
-                    .Select(r => new
-                    {
-                        r.Id,
-                        r.MatName,
-                        r.MatQuantity,
-                        r.Status,
-                        r.InsertDate,
-                        r.EmpId,
-                        //employeeName = _context.Employeemasters
-                        //    .Where(e => e.Employeeid == r.EmpId)
-                        //    .Select(e => e.Employeename)
-                        //    .FirstOrDefault(),
-                        r.Shift,
-                        r.Location,
-                        r.LotNumber,
-                        r.Product
-                    })
-                    .ToListAsync();
-
-                var currentStock = await _context.MateralInventories
-                    .Where(m => m.MatName == materialName)
-                    .SumAsync(m => m.MatQuantity ?? 0);
-
-                return Ok(new
+                var material = await _context.Materalinventories.FindAsync(guidId);
+                if (material == null)
                 {
-                    materialName,
-                    currentStock,
-                    periodDays = days,
-                    summary = new
-                    {
-                        transactionCount = history.Count
-                    },
-                    history
-                });
+                    return NotFound();
+                }
+
+                material.Matquantity = newQuantity;
+                await _context.SaveChangesAsync();
+
+                return NoContent();
             }
             catch (Exception ex)
             {

@@ -7,11 +7,11 @@ public partial class Locationmaster
 {
     public Guid Id { get; set; }
 
-    public string? Locationcode { get; set; }
+    public string Locationcode { get; set; }
 
-    public string? Locationname { get; set; }
+    public string Locationname { get; set; }
 
-    public string? Zone { get; set; }
+    public string Zone { get; set; }
 
     public decimal? Maxcapacity { get; set; }
 

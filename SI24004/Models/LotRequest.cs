@@ -9,7 +9,7 @@ public partial class LotRequest
 
     public Guid RequestId { get; set; }
 
-    public string? LotNo { get; set; }
+    public string LotNo { get; set; }
 
     public bool? IsDeleted { get; set; }
 

@@ -3,9 +3,9 @@ using System.Collections.Generic;
 
 namespace SI24004.Models;
 
-public partial class RegularSubstand
+public partial class RegularSubstandReordered
 {
-    public Guid Id { get; set; }
+    public Guid? Id { get; set; }
 
     public string SubstanceChemical { get; set; }
 

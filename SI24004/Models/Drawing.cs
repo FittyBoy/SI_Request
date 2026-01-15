@@ -7,9 +7,9 @@ public partial class Drawing
 {
     public Guid Id { get; set; }
 
-    public string? DrawingCode { get; set; }
+    public string DrawingCode { get; set; }
 
-    public string? DrawingName { get; set; }
+    public string DrawingName { get; set; }
 
     public Guid ListItemId { get; set; }
 

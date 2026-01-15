@@ -7,7 +7,7 @@ public partial class Shift
 {
     public Guid Id { get; set; }
 
-    public string? ShiftName { get; set; }
+    public string ShiftName { get; set; }
 
     public Guid? ListItemId { get; set; }
 

@@ -15,11 +15,19 @@ public partial class PostgrestContext : DbContext
 
     public virtual DbSet<AviRequest> AviRequests { get; set; }
 
+    public virtual DbSet<Cache> Caches { get; set; }
+
+    public virtual DbSet<CacheLock> CacheLocks { get; set; }
+
+    public virtual DbSet<DownloadLogDrawing> DownloadLogDrawings { get; set; }
+
     public virtual DbSet<Drawing> Drawings { get; set; }
 
     public virtual DbSet<DwRequest> DwRequests { get; set; }
 
     public virtual DbSet<Employeemaster> Employeemasters { get; set; }
+
+    public virtual DbSet<FailedJob> FailedJobs { get; set; }
 
     public virtual DbSet<InaRequest> InaRequests { get; set; }
 
@@ -33,25 +41,39 @@ public partial class PostgrestContext : DbContext
 
     public virtual DbSet<ItemReceiveDetail> ItemReceiveDetails { get; set; }
 
+    public virtual DbSet<Job> Jobs { get; set; }
+
+    public virtual DbSet<JobBatch> JobBatches { get; set; }
+
     public virtual DbSet<ListItem> ListItems { get; set; }
 
     public virtual DbSet<Locationmaster> Locationmasters { get; set; }
 
     public virtual DbSet<LotRequest> LotRequests { get; set; }
 
-    public virtual DbSet<MateralInventory> MateralInventories { get; set; }
+    public virtual DbSet<Materalinventory> Materalinventories { get; set; }
 
-    public virtual DbSet<MaterialReceiveRecord> MaterialReceiveRecords { get; set; }
+    public virtual DbSet<Materialreceiverecord> Materialreceiverecords { get; set; }
 
-    public virtual DbSet<MaterialType> MaterialTypes { get; set; }
+    public virtual DbSet<Materialtype> Materialtypes { get; set; }
+
+    public virtual DbSet<Materialtype1> Materialtypes1 { get; set; }
+
+    public virtual DbSet<Migration> Migrations { get; set; }
 
     public virtual DbSet<Objective> Objectives { get; set; }
 
+    public virtual DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+
     public virtual DbSet<PoCheckFlow> PoCheckFlows { get; set; }
+
+    public virtual DbSet<Productmaster> Productmasters { get; set; }
 
     public virtual DbSet<QaSubstance> QaSubstances { get; set; }
 
     public virtual DbSet<RegularSubstand> RegularSubstands { get; set; }
+
+    public virtual DbSet<RegularSubstandReordered> RegularSubstandReordereds { get; set; }
 
     public virtual DbSet<RequestMachine> RequestMachines { get; set; }
 
@@ -59,11 +81,19 @@ public partial class PostgrestContext : DbContext
 
     public virtual DbSet<Section> Sections { get; set; }
 
+    public virtual DbSet<Session> Sessions { get; set; }
+
     public virtual DbSet<Shift> Shifts { get; set; }
+
+    public virtual DbSet<Shiftmaster> Shiftmasters { get; set; }
 
     public virtual DbSet<Status> Statuses { get; set; }
 
+    public virtual DbSet<Suppliermaster> Suppliermasters { get; set; }
+
     public virtual DbSet<User> Users { get; set; }
+
+    public virtual DbSet<User1> Users1 { get; set; }
 
     public virtual DbSet<VwIssueSummary> VwIssueSummaries { get; set; }
 
@@ -75,6 +105,7 @@ public partial class PostgrestContext : DbContext
     {
         modelBuilder
             .HasPostgresExtension("pg_catalog", "adminpack")
+            .HasPostgresExtension("pgcrypto")
             .HasPostgresExtension("uuid-ossp");
 
         modelBuilder.Entity<Attachment>(entity =>
@@ -151,6 +182,58 @@ public partial class PostgrestContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("avi_request_users_fk");
+        });
+
+        modelBuilder.Entity<Cache>(entity =>
+        {
+            entity.HasKey(e => e.Key).HasName("cache_pkey");
+
+            entity.ToTable("cache");
+
+            entity.Property(e => e.Key)
+                .HasMaxLength(255)
+                .HasColumnName("key");
+            entity.Property(e => e.Expiration).HasColumnName("expiration");
+            entity.Property(e => e.Value)
+                .IsRequired()
+                .HasColumnName("value");
+        });
+
+        modelBuilder.Entity<CacheLock>(entity =>
+        {
+            entity.HasKey(e => e.Key).HasName("cache_locks_pkey");
+
+            entity.ToTable("cache_locks");
+
+            entity.Property(e => e.Key)
+                .HasMaxLength(255)
+                .HasColumnName("key");
+            entity.Property(e => e.Expiration).HasColumnName("expiration");
+            entity.Property(e => e.Owner)
+                .IsRequired()
+                .HasMaxLength(255)
+                .HasColumnName("owner");
+        });
+
+        modelBuilder.Entity<DownloadLogDrawing>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("download_log_drawing_pk");
+
+            entity.ToTable("download_log_drawing", "audit");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("uuid_generate_v4()")
+                .HasColumnName("id");
+            entity.Property(e => e.CreateDate).HasColumnName("create_date");
+            entity.Property(e => e.IpAddress)
+                .HasColumnType("character varying")
+                .HasColumnName("ip_address");
+            entity.Property(e => e.UserEmail)
+                .HasColumnType("character varying")
+                .HasColumnName("user_email");
+            entity.Property(e => e.UserUsername)
+                .HasColumnType("character varying")
+                .HasColumnName("user_username");
         });
 
         modelBuilder.Entity<Drawing>(entity =>
@@ -251,6 +334,10 @@ public partial class PostgrestContext : DbContext
 
             entity.HasIndex(e => e.Employeeid, "employeemaster_employeeid_key").IsUnique();
 
+            entity.HasIndex(e => e.Employeeid, "idx_employeemaster_employeeid");
+
+            entity.HasIndex(e => e.Shift, "idx_employeemaster_shift");
+
             entity.Property(e => e.Id)
                 .HasDefaultValueSql("gen_random_uuid()")
                 .HasColumnName("id");
@@ -265,7 +352,6 @@ public partial class PostgrestContext : DbContext
                 .HasMaxLength(20)
                 .HasColumnName("employeeid");
             entity.Property(e => e.Employeename)
-                .IsRequired()
                 .HasMaxLength(100)
                 .HasColumnName("employeename");
             entity.Property(e => e.Isactive)
@@ -274,12 +360,46 @@ public partial class PostgrestContext : DbContext
             entity.Property(e => e.Position)
                 .HasMaxLength(50)
                 .HasColumnName("position");
-            entity.Property(e => e.Shift)
-                .HasMaxLength(1)
-                .HasColumnName("shift");
+            entity.Property(e => e.Shift).HasColumnName("shift");
             entity.Property(e => e.Updateddate)
                 .HasDefaultValueSql("CURRENT_DATE")
                 .HasColumnName("updateddate");
+
+            entity.HasOne(d => d.ShiftNavigation).WithMany(p => p.Employeemasters)
+                .HasForeignKey(d => d.Shift)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("employeemaster_shift_fkey");
+        });
+
+        modelBuilder.Entity<FailedJob>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("failed_jobs_pkey");
+
+            entity.ToTable("failed_jobs");
+
+            entity.HasIndex(e => e.Uuid, "failed_jobs_uuid_unique").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Connection)
+                .IsRequired()
+                .HasColumnName("connection");
+            entity.Property(e => e.Exception)
+                .IsRequired()
+                .HasColumnName("exception");
+            entity.Property(e => e.FailedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp(0) without time zone")
+                .HasColumnName("failed_at");
+            entity.Property(e => e.Payload)
+                .IsRequired()
+                .HasColumnName("payload");
+            entity.Property(e => e.Queue)
+                .IsRequired()
+                .HasColumnName("queue");
+            entity.Property(e => e.Uuid)
+                .IsRequired()
+                .HasMaxLength(255)
+                .HasColumnName("uuid");
         });
 
         modelBuilder.Entity<InaRequest>(entity =>
@@ -774,6 +894,53 @@ public partial class PostgrestContext : DbContext
                 .HasColumnName("updated_at");
         });
 
+        modelBuilder.Entity<Job>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("jobs_pkey");
+
+            entity.ToTable("jobs");
+
+            entity.HasIndex(e => e.Queue, "jobs_queue_index");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Attempts).HasColumnName("attempts");
+            entity.Property(e => e.AvailableAt).HasColumnName("available_at");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.Payload)
+                .IsRequired()
+                .HasColumnName("payload");
+            entity.Property(e => e.Queue)
+                .IsRequired()
+                .HasMaxLength(255)
+                .HasColumnName("queue");
+            entity.Property(e => e.ReservedAt).HasColumnName("reserved_at");
+        });
+
+        modelBuilder.Entity<JobBatch>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("job_batches_pkey");
+
+            entity.ToTable("job_batches");
+
+            entity.Property(e => e.Id)
+                .HasMaxLength(255)
+                .HasColumnName("id");
+            entity.Property(e => e.CancelledAt).HasColumnName("cancelled_at");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.FailedJobIds)
+                .IsRequired()
+                .HasColumnName("failed_job_ids");
+            entity.Property(e => e.FailedJobs).HasColumnName("failed_jobs");
+            entity.Property(e => e.FinishedAt).HasColumnName("finished_at");
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(255)
+                .HasColumnName("name");
+            entity.Property(e => e.Options).HasColumnName("options");
+            entity.Property(e => e.PendingJobs).HasColumnName("pending_jobs");
+            entity.Property(e => e.TotalJobs).HasColumnName("total_jobs");
+        });
+
         modelBuilder.Entity<ListItem>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("list_item_pk");
@@ -819,12 +986,11 @@ public partial class PostgrestContext : DbContext
                 .HasMaxLength(50)
                 .HasColumnName("locationcode");
             entity.Property(e => e.Locationname)
-                .IsRequired()
                 .HasMaxLength(200)
                 .HasColumnName("locationname");
             entity.Property(e => e.Maxcapacity)
                 .HasPrecision(10, 2)
-                .HasDefaultValueSql("1000")
+                .HasDefaultValueSql("100")
                 .HasColumnName("maxcapacity");
             entity.Property(e => e.Updateddate)
                 .HasDefaultValueSql("CURRENT_DATE")
@@ -856,98 +1022,229 @@ public partial class PostgrestContext : DbContext
                 .HasConstraintName("lot_request_ina_request_fk");
         });
 
-        modelBuilder.Entity<MateralInventory>(entity =>
+        modelBuilder.Entity<Materalinventory>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("MateralInventories_pkey");
+            entity.HasKey(e => e.Id).HasName("materalinventories_pkey");
 
-            entity.ToTable("MateralInventories", "LP");
+            entity.ToTable("materalinventories", "LP");
 
-            entity.HasIndex(e => e.Location, "idx_material_inventory_location");
+            entity.HasIndex(e => e.Location, "idx_materalinventories_location");
 
-            entity.HasIndex(e => e.MatName, "idx_material_inventory_matname");
+            entity.HasIndex(e => e.Matname, "idx_materalinventories_matname");
 
-            entity.HasIndex(e => e.EmpId, "idx_materialinventories_empid");
+            entity.HasIndex(e => e.Product, "idx_materalinventories_product");
 
-            entity.HasIndex(e => e.ExpDate, "idx_materialinventories_expdate");
+            entity.HasIndex(e => e.Shift, "idx_materalinventories_shift");
 
-            entity.HasIndex(e => e.InsertDate, "idx_materialinventories_insertdate");
+            entity.HasIndex(e => e.Supplier, "idx_materalinventories_supplier");
 
-            entity.HasIndex(e => e.MatName, "idx_materialinventories_matname");
-
-            entity.HasIndex(e => e.MatTypeId, "idx_materialinventories_mattypeid");
-
-            entity.Property(e => e.Id).HasDefaultValueSql("uuid_generate_v4()");
-            entity.Property(e => e.Case).HasMaxLength(100);
-            entity.Property(e => e.CreatedAt)
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.Case)
+                .HasMaxLength(100)
+                .HasColumnName("case");
+            entity.Property(e => e.Createdat)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone");
-            entity.Property(e => e.InsertDate).HasDefaultValueSql("CURRENT_DATE");
-            entity.Property(e => e.Location).HasMaxLength(255);
-            entity.Property(e => e.LotNumber).HasMaxLength(100);
-            entity.Property(e => e.MatName)
-                .IsRequired()
-                .HasMaxLength(255);
-            entity.Property(e => e.Product).HasMaxLength(255);
-            entity.Property(e => e.Shift).HasMaxLength(20);
-            entity.Property(e => e.UpdatedAt)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("createdat");
+            entity.Property(e => e.Empid).HasColumnName("empid");
+            entity.Property(e => e.Expdate).HasColumnName("expdate");
+            entity.Property(e => e.Insertdate)
+                .HasDefaultValueSql("CURRENT_DATE")
+                .HasColumnName("insertdate");
+            entity.Property(e => e.Location)
+                .HasMaxLength(255)
+                .HasColumnName("location");
+            entity.Property(e => e.Lotnumber)
+                .HasMaxLength(100)
+                .HasColumnName("lotnumber");
+            entity.Property(e => e.Matname)
+                .HasMaxLength(255)
+                .HasColumnName("matname");
+            entity.Property(e => e.Matquantity).HasColumnName("matquantity");
+            entity.Property(e => e.Mattypeid).HasColumnName("mattypeid");
+            entity.Property(e => e.Product).HasColumnName("product");
+            entity.Property(e => e.Shift).HasColumnName("shift");
+            entity.Property(e => e.Supplier).HasColumnName("supplier");
+            entity.Property(e => e.Updatedat)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone");
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updatedat");
+
+            entity.HasOne(d => d.Emp).WithMany(p => p.Materalinventories)
+                .HasForeignKey(d => d.Empid)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("materalinventories_empid_fkey");
+
+            entity.HasOne(d => d.Mattype).WithMany(p => p.Materalinventories)
+                .HasForeignKey(d => d.Mattypeid)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("materalinventories_mattypeid_fkey");
+
+            entity.HasOne(d => d.ProductNavigation).WithMany(p => p.Materalinventories)
+                .HasForeignKey(d => d.Product)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("materalinventories_product_fkey");
+
+            entity.HasOne(d => d.ShiftNavigation).WithMany(p => p.Materalinventories)
+                .HasForeignKey(d => d.Shift)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("materalinventories_shift_fkey");
+
+            entity.HasOne(d => d.SupplierNavigation).WithMany(p => p.Materalinventories)
+                .HasForeignKey(d => d.Supplier)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("materalinventories_supplier_fkey");
         });
 
-        modelBuilder.Entity<MaterialReceiveRecord>(entity =>
+        modelBuilder.Entity<Materialreceiverecord>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("MaterialReceiveRecords_pkey");
+            entity.HasKey(e => e.Id).HasName("materialreceiverecords_pkey");
 
-            entity.ToTable("MaterialReceiveRecords", "LP");
+            entity.ToTable("materialreceiverecords", "LP");
 
-            entity.HasIndex(e => e.InsertDate, "idx_material_receive_records_insertdate");
+            entity.HasIndex(e => e.Insertdate, "idx_materialreceiverecords_insertdate").IsDescending();
 
-            entity.HasIndex(e => e.MatName, "idx_material_receive_records_matname");
+            entity.HasIndex(e => e.Matname, "idx_materialreceiverecords_matname");
 
-            entity.HasIndex(e => e.EmpId, "idx_materialreceiverecords_empid");
+            entity.HasIndex(e => e.Product, "idx_materialreceiverecords_product");
 
-            entity.HasIndex(e => e.ExpDate, "idx_materialreceiverecords_expdate");
+            entity.HasIndex(e => e.Shift, "idx_materialreceiverecords_shift");
 
-            entity.HasIndex(e => e.InsertDate, "idx_materialreceiverecords_insertdate");
+            entity.HasIndex(e => e.Status, "idx_materialreceiverecords_status");
 
-            entity.HasIndex(e => e.MatName, "idx_materialreceiverecords_matname");
-
-            entity.Property(e => e.Id).HasDefaultValueSql("uuid_generate_v4()");
-            entity.Property(e => e.Case).HasMaxLength(100);
-            entity.Property(e => e.CreatedAt)
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.Case)
+                .HasMaxLength(100)
+                .HasColumnName("case");
+            entity.Property(e => e.Createdat)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone");
-            entity.Property(e => e.InsertDate).HasDefaultValueSql("CURRENT_DATE");
-            entity.Property(e => e.Location).HasMaxLength(255);
-            entity.Property(e => e.LotNumber).HasMaxLength(100);
-            entity.Property(e => e.MatName)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("createdat");
+            entity.Property(e => e.Empid).HasColumnName("empid");
+            entity.Property(e => e.Expdate).HasColumnName("expdate");
+            entity.Property(e => e.Insertdate)
+                .HasDefaultValueSql("CURRENT_DATE")
+                .HasColumnName("insertdate");
+            entity.Property(e => e.Location)
                 .IsRequired()
-                .HasMaxLength(255);
-            entity.Property(e => e.Shift).HasMaxLength(20);
+                .HasMaxLength(255)
+                .HasColumnName("location");
+            entity.Property(e => e.Lotnumber)
+                .IsRequired()
+                .HasMaxLength(100)
+                .HasColumnName("lotnumber");
+            entity.Property(e => e.Matname)
+                .IsRequired()
+                .HasMaxLength(255)
+                .HasColumnName("matname");
+            entity.Property(e => e.Matquantity).HasColumnName("matquantity");
+            entity.Property(e => e.Mattypeid).HasColumnName("mattypeid");
+            entity.Property(e => e.Product).HasColumnName("product");
+            entity.Property(e => e.Shift).HasColumnName("shift");
             entity.Property(e => e.Status)
-                .HasColumnType("character varying")
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'in'::character varying")
                 .HasColumnName("status");
-            entity.Property(e => e.UpdatedAt)
+            entity.Property(e => e.Supplier).HasColumnName("supplier");
+            entity.Property(e => e.Updatedat)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone");
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updatedat");
+
+            entity.HasOne(d => d.Emp).WithMany(p => p.Materialreceiverecords)
+                .HasForeignKey(d => d.Empid)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("materialreceiverecords_empid_fkey");
+
+            entity.HasOne(d => d.Mattype).WithMany(p => p.Materialreceiverecords)
+                .HasForeignKey(d => d.Mattypeid)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("materialreceiverecords_mattypeid_fkey");
+
+            entity.HasOne(d => d.ProductNavigation).WithMany(p => p.Materialreceiverecords)
+                .HasForeignKey(d => d.Product)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("materialreceiverecords_product_fkey");
+
+            entity.HasOne(d => d.ShiftNavigation).WithMany(p => p.Materialreceiverecords)
+                .HasForeignKey(d => d.Shift)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("materialreceiverecords_shift_fkey");
+
+            entity.HasOne(d => d.SupplierNavigation).WithMany(p => p.Materialreceiverecords)
+                .HasForeignKey(d => d.Supplier)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("materialreceiverecords_supplier_fkey");
         });
 
-        modelBuilder.Entity<MaterialType>(entity =>
+        modelBuilder.Entity<Materialtype>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("MaterialTypes_pkey");
+            entity.HasKey(e => e.Id).HasName("materialtypes_pkey");
 
-            entity.ToTable("MaterialTypes", "LP");
+            entity.ToTable("materialtypes");
 
-            entity.Property(e => e.Id).HasDefaultValueSql("uuid_generate_v4()");
-            entity.Property(e => e.CreatedAt)
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.Createdat)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone");
-            entity.Property(e => e.TypeName)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("createdat");
+            entity.Property(e => e.Description)
+                .HasMaxLength(500)
+                .HasColumnName("description");
+            entity.Property(e => e.Typename)
                 .IsRequired()
-                .HasMaxLength(255);
-            entity.Property(e => e.UpdatedAt)
+                .HasMaxLength(255)
+                .HasColumnName("typename");
+            entity.Property(e => e.Updatedat)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone");
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updatedat");
+        });
+
+        modelBuilder.Entity<Materialtype1>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("materialtypes_pkey");
+
+            entity.ToTable("materialtypes", "LP");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.Createdat)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("createdat");
+            entity.Property(e => e.Description)
+                .HasMaxLength(500)
+                .HasColumnName("description");
+            entity.Property(e => e.Typename)
+                .IsRequired()
+                .HasMaxLength(255)
+                .HasColumnName("typename");
+            entity.Property(e => e.Updatedat)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updatedat");
+        });
+
+        modelBuilder.Entity<Migration>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("migrations_pkey");
+
+            entity.ToTable("migrations");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Batch).HasColumnName("batch");
+            entity.Property(e => e.Migration1)
+                .IsRequired()
+                .HasMaxLength(255)
+                .HasColumnName("migration");
         });
 
         modelBuilder.Entity<Objective>(entity =>
@@ -968,6 +1265,24 @@ public partial class PostgrestContext : DbContext
                 .HasForeignKey(d => d.ListItemId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("objective_list_item_fk");
+        });
+
+        modelBuilder.Entity<PasswordResetToken>(entity =>
+        {
+            entity.HasKey(e => e.Email).HasName("password_reset_tokens_pkey");
+
+            entity.ToTable("password_reset_tokens");
+
+            entity.Property(e => e.Email)
+                .HasMaxLength(255)
+                .HasColumnName("email");
+            entity.Property(e => e.CreatedAt)
+                .HasColumnType("timestamp(0) without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Token)
+                .IsRequired()
+                .HasMaxLength(255)
+                .HasColumnName("token");
         });
 
         modelBuilder.Entity<PoCheckFlow>(entity =>
@@ -995,6 +1310,39 @@ public partial class PostgrestContext : DbContext
             entity.Property(e => e.StatusTn)
                 .HasColumnType("character varying")
                 .HasColumnName("status_tn");
+        });
+
+        modelBuilder.Entity<Productmaster>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("productmaster_pkey");
+
+            entity.ToTable("productmaster", "LP");
+
+            entity.HasIndex(e => e.Productcode, "productmaster_productcode_key").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.Createddate)
+                .HasDefaultValueSql("CURRENT_DATE")
+                .HasColumnName("createddate");
+            entity.Property(e => e.Description)
+                .HasMaxLength(500)
+                .HasColumnName("description");
+            entity.Property(e => e.Isactive)
+                .HasDefaultValue(true)
+                .HasColumnName("isactive");
+            entity.Property(e => e.Productcode)
+                .IsRequired()
+                .HasMaxLength(50)
+                .HasColumnName("productcode");
+            entity.Property(e => e.Productname)
+                .IsRequired()
+                .HasMaxLength(255)
+                .HasColumnName("productname");
+            entity.Property(e => e.Updateddate)
+                .HasDefaultValueSql("CURRENT_DATE")
+                .HasColumnName("updateddate");
         });
 
         modelBuilder.Entity<QaSubstance>(entity =>
@@ -1029,6 +1377,38 @@ public partial class PostgrestContext : DbContext
             entity.HasKey(e => e.Id).HasName("regular_substand_pkey");
 
             entity.ToTable("regular_substand", "QA");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("uuid_generate_v4()")
+                .HasColumnName("id");
+            entity.Property(e => e.SubstanceCasNo)
+                .HasColumnType("character varying")
+                .HasColumnName("substance_cas_no");
+            entity.Property(e => e.SubstanceChemical)
+                .HasColumnType("character varying")
+                .HasColumnName("substance_chemical");
+            entity.Property(e => e.SubstanceExamples)
+                .HasColumnType("character varying")
+                .HasColumnName("substance_examples");
+            entity.Property(e => e.SubstanceIdentifier)
+                .HasColumnType("character varying")
+                .HasColumnName("substance_identifier");
+            entity.Property(e => e.SubstanceReferences)
+                .HasColumnType("character varying")
+                .HasColumnName("substance_references");
+            entity.Property(e => e.SubstanceScope)
+                .HasColumnType("character varying")
+                .HasColumnName("substance_scope");
+            entity.Property(e => e.SubstanceThresholdLimit)
+                .HasColumnType("character varying")
+                .HasColumnName("substance_threshold_limit");
+        });
+
+        modelBuilder.Entity<RegularSubstandReordered>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToTable("regular_substand_reordered");
 
             entity.Property(e => e.Id)
                 .HasDefaultValueSql("uuid_generate_v4()")
@@ -1120,6 +1500,30 @@ public partial class PostgrestContext : DbContext
                 .HasConstraintName("section_list_item_fk");
         });
 
+        modelBuilder.Entity<Session>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("sessions_pkey");
+
+            entity.ToTable("sessions");
+
+            entity.HasIndex(e => e.LastActivity, "sessions_last_activity_index");
+
+            entity.HasIndex(e => e.UserId, "sessions_user_id_index");
+
+            entity.Property(e => e.Id)
+                .HasMaxLength(255)
+                .HasColumnName("id");
+            entity.Property(e => e.IpAddress)
+                .HasMaxLength(45)
+                .HasColumnName("ip_address");
+            entity.Property(e => e.LastActivity).HasColumnName("last_activity");
+            entity.Property(e => e.Payload)
+                .IsRequired()
+                .HasColumnName("payload");
+            entity.Property(e => e.UserAgent).HasColumnName("user_agent");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+        });
+
         modelBuilder.Entity<Shift>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("shif_pk");
@@ -1137,6 +1541,37 @@ public partial class PostgrestContext : DbContext
             entity.HasOne(d => d.ListItem).WithMany(p => p.Shifts)
                 .HasForeignKey(d => d.ListItemId)
                 .HasConstraintName("shift_list_item_fk");
+        });
+
+        modelBuilder.Entity<Shiftmaster>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("shiftmaster_pkey");
+
+            entity.ToTable("shiftmaster", "LP");
+
+            entity.HasIndex(e => e.Shiftcode, "shiftmaster_shiftcode_key").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.Createddate)
+                .HasDefaultValueSql("CURRENT_DATE")
+                .HasColumnName("createddate");
+            entity.Property(e => e.Endtime).HasColumnName("endtime");
+            entity.Property(e => e.Isactive)
+                .HasDefaultValue(true)
+                .HasColumnName("isactive");
+            entity.Property(e => e.Shiftcode)
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasColumnName("shiftcode");
+            entity.Property(e => e.Shiftname)
+                .HasMaxLength(100)
+                .HasColumnName("shiftname");
+            entity.Property(e => e.Starttime).HasColumnName("starttime");
+            entity.Property(e => e.Updateddate)
+                .HasDefaultValueSql("CURRENT_DATE")
+                .HasColumnName("updateddate");
         });
 
         modelBuilder.Entity<Status>(entity =>
@@ -1158,6 +1593,48 @@ public partial class PostgrestContext : DbContext
             entity.HasOne(d => d.StatusType).WithMany(p => p.Statuses)
                 .HasForeignKey(d => d.StatusTypeId)
                 .HasConstraintName("status_list_item_fk");
+        });
+
+        modelBuilder.Entity<Suppliermaster>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("suppliermaster_pkey");
+
+            entity.ToTable("suppliermaster", "LP");
+
+            entity.HasIndex(e => e.Suppliercode, "suppliermaster_suppliercode_key").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.Address)
+                .HasMaxLength(500)
+                .HasColumnName("address");
+            entity.Property(e => e.Contactperson)
+                .HasMaxLength(100)
+                .HasColumnName("contactperson");
+            entity.Property(e => e.Createddate)
+                .HasDefaultValueSql("CURRENT_DATE")
+                .HasColumnName("createddate");
+            entity.Property(e => e.Email)
+                .HasMaxLength(100)
+                .HasColumnName("email");
+            entity.Property(e => e.Isactive)
+                .HasDefaultValue(true)
+                .HasColumnName("isactive");
+            entity.Property(e => e.Phone)
+                .HasMaxLength(20)
+                .HasColumnName("phone");
+            entity.Property(e => e.Suppliercode)
+                .IsRequired()
+                .HasMaxLength(50)
+                .HasColumnName("suppliercode");
+            entity.Property(e => e.Suppliername)
+                .IsRequired()
+                .HasMaxLength(255)
+                .HasColumnName("suppliername");
+            entity.Property(e => e.Updateddate)
+                .HasDefaultValueSql("CURRENT_DATE")
+                .HasColumnName("updateddate");
         });
 
         modelBuilder.Entity<User>(entity =>
@@ -1195,6 +1672,41 @@ public partial class PostgrestContext : DbContext
             entity.HasOne(d => d.Section).WithMany(p => p.Users)
                 .HasForeignKey(d => d.SectionId)
                 .HasConstraintName("users_section_fk");
+        });
+
+        modelBuilder.Entity<User1>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("users_pkey");
+
+            entity.ToTable("users");
+
+            entity.HasIndex(e => e.Email, "users_email_unique").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasColumnType("timestamp(0) without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Email)
+                .IsRequired()
+                .HasMaxLength(255)
+                .HasColumnName("email");
+            entity.Property(e => e.EmailVerifiedAt)
+                .HasColumnType("timestamp(0) without time zone")
+                .HasColumnName("email_verified_at");
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(255)
+                .HasColumnName("name");
+            entity.Property(e => e.Password)
+                .IsRequired()
+                .HasMaxLength(255)
+                .HasColumnName("password");
+            entity.Property(e => e.RememberToken)
+                .HasMaxLength(100)
+                .HasColumnName("remember_token");
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnType("timestamp(0) without time zone")
+                .HasColumnName("updated_at");
         });
 
         modelBuilder.Entity<VwIssueSummary>(entity =>

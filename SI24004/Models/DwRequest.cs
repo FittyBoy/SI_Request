@@ -7,11 +7,11 @@ public partial class DwRequest
 {
     public Guid Id { get; set; }
 
-    public string? DrawingCode { get; set; }
+    public string DrawingCode { get; set; }
 
-    public string? RequestCode { get; set; }
+    public string RequestCode { get; set; }
 
-    public string? DrawingName { get; set; }
+    public string DrawingName { get; set; }
 
     public Guid SectionId { get; set; }
 
@@ -21,13 +21,13 @@ public partial class DwRequest
 
     public DateTime? CreatedDate { get; set; }
 
-    public string? CreatedBy { get; set; }
+    public string CreatedBy { get; set; }
 
     public DateTime? UpdateDate { get; set; }
 
-    public string? UpdateBy { get; set; }
+    public string UpdateBy { get; set; }
 
-    public string? DrawingDescription { get; set; }
+    public string DrawingDescription { get; set; }
 
     public Guid? UserId { get; set; }
 
