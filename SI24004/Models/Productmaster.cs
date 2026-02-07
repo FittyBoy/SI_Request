@@ -7,11 +7,11 @@ public partial class Productmaster
 {
     public Guid Id { get; set; }
 
-    public string Productcode { get; set; }
+    public string? Productcode { get; set; }
 
-    public string Productname { get; set; }
+    public string? Productname { get; set; }
 
-    public string Description { get; set; }
+    public string? Description { get; set; }
 
     public bool? Isactive { get; set; }
 

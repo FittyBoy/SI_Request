@@ -7,11 +7,11 @@ public partial class Attachment
 {
     public Guid Id { get; set; }
 
-    public string AttachmentName { get; set; }
+    public string? AttachmentName { get; set; }
 
-    public string AttachementPath { get; set; }
+    public string? AttachementPath { get; set; }
 
-    public string AttachementType { get; set; }
+    public string? AttachementType { get; set; }
 
     public DateTime? UploadDate { get; set; }
 
@@ -21,11 +21,11 @@ public partial class Attachment
 
     public Guid? RequestId { get; set; }
 
-    public string Category { get; set; }
+    public string? Category { get; set; }
 
-    public string AttachmentSize { get; set; }
+    public string? AttachmentSize { get; set; }
 
-    public string AttachmentFileLocation { get; set; }
+    public string? AttachmentFileLocation { get; set; }
 
     public virtual ICollection<AviRequest> AviRequests { get; set; } = new List<AviRequest>();
 
