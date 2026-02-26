@@ -77,6 +77,10 @@ public partial class PostgrestContext : DbContext
 
     public virtual DbSet<RequestMachine> RequestMachines { get; set; }
 
+    public virtual DbSet<RescreenCheckRecord> RescreenCheckRecords { get; set; }
+
+    public virtual DbSet<RescreenCheckRecord1> RescreenCheckRecords1 { get; set; }
+
     public virtual DbSet<Role> Roles { get; set; }
 
     public virtual DbSet<Section> Sections { get; set; }
@@ -1287,28 +1291,49 @@ public partial class PostgrestContext : DbContext
 
         modelBuilder.Entity<PoCheckFlow>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("po_check_flow_pk");
+            entity.HasKey(e => e.Id).HasName("po_check_flow_pkey");
 
-            entity.ToTable("po_check_flow", "PO");
+            entity.ToTable("po_check_flow", "PO", tb => tb.HasComment("บันทึกการตรวจสอบ LOT ในกระบวนการผลิต"));
+
+            entity.HasIndex(e => e.CheckDate, "idx_po_check_flow_check_date");
+
+            entity.HasIndex(e => e.McNo, "idx_po_check_flow_mc_no");
+
+            entity.HasIndex(e => e.PoLot, "idx_po_check_flow_po_lot");
+
+            entity.HasIndex(e => e.StatusTn, "idx_po_check_flow_status");
+
+            entity.HasIndex(e => e.Imobilelot, "uq_po_check_flow_imobilelot").IsUnique();
 
             entity.Property(e => e.Id)
-                .HasDefaultValueSql("uuid_generate_v4()")
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasComment("Primary Key (UUID)")
                 .HasColumnName("id");
-            entity.Property(e => e.CheckDate).HasColumnName("check_date");
-            entity.Property(e => e.CheckSt).HasColumnName("check_st");
+            entity.Property(e => e.CheckDate)
+                .HasComment("วันที่ตรวจสอบ")
+                .HasColumnName("check_date");
+            entity.Property(e => e.CheckSt)
+                .HasDefaultValue(false)
+                .HasComment("Check Status (true = OK, false = NG)")
+                .HasColumnName("check_st");
             entity.Property(e => e.Imobilelot)
-                .HasColumnType("character varying")
+                .HasMaxLength(100)
+                .HasComment("Imobile LOT Number (Unique)")
                 .HasColumnName("imobilelot");
-            entity.Property(e => e.LotQty).HasColumnName("lot_qty");
+            entity.Property(e => e.LotQty)
+                .HasComment("จำนวน LOT")
+                .HasColumnName("lot_qty");
             entity.Property(e => e.McNo)
-                .HasColumnType("character varying")
+                .HasMaxLength(50)
+                .HasComment("Machine Number")
                 .HasColumnName("mc_no");
             entity.Property(e => e.PoLot)
-                .IsRequired()
-                .HasColumnType("character varying")
+                .HasMaxLength(100)
+                .HasComment("PO LOT Number (รูปแบบ: DDMM-MC-NoPo)")
                 .HasColumnName("po_lot");
             entity.Property(e => e.StatusTn)
-                .HasColumnType("character varying")
+                .HasMaxLength(50)
+                .HasComment("Status (OK, NG, SCRAP, HOLD, Rescreen)")
                 .HasColumnName("status_tn");
         });
 
@@ -1458,6 +1483,132 @@ public partial class PostgrestContext : DbContext
                 .HasForeignKey(d => d.ListItemId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("request_machine_list_item_fk");
+        });
+
+        modelBuilder.Entity<RescreenCheckRecord>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("rescreen_check_record_pkey");
+
+            entity.ToTable("rescreen_check_record", tb => tb.HasComment("บันทึกข้อมูล LOT ที่ผ่านการ Rescreen"));
+
+            entity.HasIndex(e => e.DateProcess, "idx_rescreen_date");
+
+            entity.HasIndex(e => e.ImobileLot, "idx_rescreen_imobile_lot").IsUnique();
+
+            entity.HasIndex(e => new { e.LotPo, e.McPo }, "idx_rescreen_lot_mc");
+
+            entity.HasIndex(e => e.Status, "idx_rescreen_status");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasComment("Primary Key")
+                .HasColumnName("id");
+            entity.Property(e => e.DateProcess)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("วันที่บันทึก")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("date_process");
+            entity.Property(e => e.ImobileLot)
+                .IsRequired()
+                .HasMaxLength(100)
+                .HasComment("Imobile LOT Number (Unique)")
+                .HasColumnName("imobile_lot");
+            entity.Property(e => e.LotPo)
+                .HasMaxLength(50)
+                .HasComment("LOT PO Number")
+                .HasColumnName("lot_po");
+            entity.Property(e => e.McPo)
+                .HasMaxLength(50)
+                .HasComment("Machine Number")
+                .HasColumnName("mc_po");
+            entity.Property(e => e.NoPo)
+                .HasMaxLength(50)
+                .HasComment("NO PO")
+                .HasColumnName("no_po");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasDefaultValueSql("'OK'::character varying")
+                .HasComment("Status: OK, HOLD, PENDING")
+                .HasColumnName("status");
+        });
+
+        modelBuilder.Entity<RescreenCheckRecord1>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("rescreen_check_record_pkey");
+
+            entity.ToTable("rescreen_check_record", "PO", tb => tb.HasComment("บันทึกการตรวจสอบ LOT ที่มี Status = Rescreen"));
+
+            entity.HasIndex(e => e.CheckDate, "idx_rescreen_check_date");
+
+            entity.HasIndex(e => e.DateProcess, "idx_rescreen_date_process");
+
+            entity.HasIndex(e => e.FinalStatus, "idx_rescreen_final_status");
+
+            entity.HasIndex(e => e.IsApproved, "idx_rescreen_is_approved");
+
+            entity.HasIndex(e => new { e.LotPo, e.McPo }, "idx_rescreen_lot_mc");
+
+            entity.HasIndex(e => e.McPo, "idx_rescreen_mc");
+
+            entity.HasIndex(e => e.ImobileLot, "uq_rescreen_imobile_lot").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasComment("Primary Key (UUID)")
+                .HasColumnName("id");
+            entity.Property(e => e.CheckDate)
+                .HasComment("วันที่ตรวจสอบและบันทึก")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("check_date");
+            entity.Property(e => e.CheckedBy)
+                .HasMaxLength(100)
+                .HasComment("ผู้ตรวจสอบ")
+                .HasColumnName("checked_by");
+            entity.Property(e => e.DateProcess)
+                .HasComment("วันที่ประมวลผล LOT")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("date_process");
+            entity.Property(e => e.FinalStatus)
+                .HasMaxLength(50)
+                .HasComment("Status สุดท้ายหลังตรวจสอบ (OK, HOLD, SCRAP, Rescreen, PENDING)")
+                .HasColumnName("final_status");
+            entity.Property(e => e.ImobileLot)
+                .IsRequired()
+                .HasMaxLength(100)
+                .HasComment("Imobile LOT Number (Unique)")
+                .HasColumnName("imobile_lot");
+            entity.Property(e => e.IsApproved)
+                .HasDefaultValue(false)
+                .HasComment("สถานะการอนุมัติ (true = อนุมัติ, false = รอตรวจสอบ)")
+                .HasColumnName("is_approved");
+            entity.Property(e => e.LotPo)
+                .HasMaxLength(50)
+                .HasComment("LOT PO Number")
+                .HasColumnName("lot_po");
+            entity.Property(e => e.McPo)
+                .HasMaxLength(50)
+                .HasComment("Machine Number")
+                .HasColumnName("mc_po");
+            entity.Property(e => e.NoPo)
+                .HasMaxLength(50)
+                .HasComment("NO PO")
+                .HasColumnName("no_po");
+            entity.Property(e => e.Remarks)
+                .HasMaxLength(500)
+                .HasComment("หมายเหตุเพิ่มเติม")
+                .HasColumnName("remarks");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasComment("Status จาก TH Record (Rescreen)")
+                .HasColumnName("status");
+            entity.Property(e => e.Th100Status)
+                .HasMaxLength(50)
+                .HasComment("Status จาก TH100 Record")
+                .HasColumnName("th100_status");
+            entity.Property(e => e.ApprovedSource)           // ← เพิ่ม
+                .HasMaxLength(50)
+                .HasComment("แหล่งที่มาของ Approve: TH100 Confirm, Approved, Pending")
+                .HasColumnName("approved_source");
         });
 
         modelBuilder.Entity<Role>(entity =>

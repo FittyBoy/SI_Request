@@ -313,6 +313,14 @@ builder.Services.AddSwaggerGen(options =>
 
 ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
+// ========================================
+// 🔧 FIX: PostgreSQL DateTime Timezone Error
+// ========================================
+// แก้ไข error: "Cannot write DateTime with Kind=UTC to PostgreSQL type 'timestamp without time zone'"
+// วิธีนี้จะทำให้ DateTime.UtcNow สามารถบันทึกลง PostgreSQL ได้โดยไม่มี error
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+// ========================================
+
 var app = builder.Build();
 
 // ✅ FIXED: เพิ่ม endpoint เพื่อ debug services

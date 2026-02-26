@@ -107,6 +107,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "PO.rescreen_check_record",
+         "ObjectType": 0
+      },
+      {
          "Name": "public.cache",
          "ObjectType": 0
       },
@@ -140,6 +144,10 @@
       },
       {
          "Name": "public.regular_substand_reordered",
+         "ObjectType": 0
+      },
+      {
+         "Name": "public.rescreen_check_record",
          "ObjectType": 0
       },
       {
