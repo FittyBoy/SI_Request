@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+using SI24004.Services.Interfaces;
+using Microsoft.Extensions.Options;
 using SI24004.Models.DTOs;
 using SI24004.Models.PostgreSQL;
 using System.Net.Mail;
@@ -65,11 +66,11 @@ namespace SI24004.Services
 
         public Task StartAsync()
         {
-            _logger.LogInformation("🚀 Starting EmailScheduleManager");
+            _logger.LogInformation("?? Starting EmailScheduleManager");
 
             if (!_scheduleSettings.EnableSchedule)
             {
-                _logger.LogWarning("⚠️ Email schedule is disabled in configuration");
+                _logger.LogWarning("?? Email schedule is disabled in configuration");
                 return Task.CompletedTask;
             }
 
@@ -80,13 +81,13 @@ namespace SI24004.Services
             _scheduleTimer = new Timer(CheckScheduleCallback, null, TimeSpan.Zero, checkInterval);
             _keepAliveTimer = new Timer(KeepAliveCallback, null, TimeSpan.Zero, TimeSpan.FromMinutes(10));
 
-            _logger.LogInformation("✅ EmailScheduleManager started with {Interval}s interval", checkInterval.TotalSeconds);
+            _logger.LogInformation("? EmailScheduleManager started with {Interval}s interval", checkInterval.TotalSeconds);
             return Task.CompletedTask;
         }
 
         public Task StopAsync()
         {
-            _logger.LogInformation("🛑 Stopping EmailScheduleManager");
+            _logger.LogInformation("?? Stopping EmailScheduleManager");
             StopTimers();
             return Task.CompletedTask;
         }
@@ -126,7 +127,7 @@ namespace SI24004.Services
         {
             if (!Monitor.TryEnter(_lockObject, TimeSpan.FromSeconds(5)))
             {
-                _logger.LogDebug("⏸️ Schedule check already running, skipping");
+                _logger.LogDebug("?? Schedule check already running, skipping");
                 return;
             }
 
@@ -136,7 +137,7 @@ namespace SI24004.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error in schedule check callback");
+                _logger.LogError(ex, "? Error in schedule check callback");
             }
             finally
             {
@@ -147,7 +148,7 @@ namespace SI24004.Services
         private void KeepAliveCallback(object? state)
         {
             _lastKeepAlive = DateTime.Now;
-            _logger.LogDebug("❤️ Keep-alive ping at {Time}", _lastKeepAlive.ToString("HH:mm:ss"));
+            _logger.LogDebug("?? Keep-alive ping at {Time}", _lastKeepAlive.ToString("HH:mm:ss"));
 
             _ = Task.Run(async () =>
             {
@@ -171,7 +172,7 @@ namespace SI24004.Services
         {
             if (_isRunning)
             {
-                _logger.LogDebug("📧 Email task already running, skipping");
+                _logger.LogDebug("?? Email task already running, skipping");
                 return;
             }
 
@@ -182,7 +183,7 @@ namespace SI24004.Services
             // Log status every 10 minutes
             if (currentMinute % 10 == 0 && currentMinute < 2)
             {
-                _logger.LogInformation("🕐 Status Check - Time: {Time}, IsScheduledHour: {IsScheduled}, LastSent: {LastSent}",
+                _logger.LogInformation("?? Status Check - Time: {Time}, IsScheduledHour: {IsScheduled}, LastSent: {LastSent}",
                     currentTime.ToString("yyyy-MM-dd HH:mm:ss"),
                     _scheduleSettings.ScheduleHours.Contains(currentHour),
                     _lastRunTime == DateTime.MinValue ? "Never" : _lastRunTime.ToString("yyyy-MM-dd HH:mm:ss"));
@@ -221,7 +222,7 @@ namespace SI24004.Services
             var timeSinceLastRun = currentTime - _lastRunTime;
             if (timeSinceLastRun.TotalMinutes < 50)
             {
-                _logger.LogDebug("⏸️ Already ran recently: {Minutes} minutes ago", timeSinceLastRun.TotalMinutes);
+                _logger.LogDebug("?? Already ran recently: {Minutes} minutes ago", timeSinceLastRun.TotalMinutes);
                 return false;
             }
 
@@ -235,7 +236,7 @@ namespace SI24004.Services
                 throw new InvalidOperationException("Email task is already running");
             }
 
-            _logger.LogInformation("🎯 Executing email task on demand");
+            _logger.LogInformation("?? Executing email task on demand");
             await ExecuteEmailTaskInternal();
         }
 
@@ -247,7 +248,7 @@ namespace SI24004.Services
 
             try
             {
-                _logger.LogInformation("📧 Starting email task #{Count} at {Time}",
+                _logger.LogInformation("?? Starting email task #{Count} at {Time}",
                     _executionCount, startTime.ToString("yyyy-MM-dd HH:mm:ss"));
 
                 await SendScheduledEmailWithRetry(startTime);
@@ -256,7 +257,7 @@ namespace SI24004.Services
                 _lastSentByHour[startTime.Hour] = startTime;
 
                 var duration = DateTime.Now - startTime;
-                _logger.LogInformation("✅ Email task #{Count} completed in {Duration}ms",
+                _logger.LogInformation("? Email task #{Count} completed in {Duration}ms",
                     _executionCount, duration.TotalMilliseconds);
 
                 if (_scheduleSettings.DelayAfterSendSeconds > 0)
@@ -266,7 +267,7 @@ namespace SI24004.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Email task #{Count} failed", _executionCount);
+                _logger.LogError(ex, "? Email task #{Count} failed", _executionCount);
 
                 if (_scheduleSettings.SendErrorNotifications)
                 {
@@ -286,21 +287,21 @@ namespace SI24004.Services
             {
                 try
                 {
-                    _logger.LogInformation("📧 Sending email attempt {Attempt}/{MaxAttempts}",
+                    _logger.LogInformation("?? Sending email attempt {Attempt}/{MaxAttempts}",
                         attempt, _scheduleSettings.MaxRetryAttempts);
 
                     await SendScheduledEmailAsync(currentTime);
-                    _logger.LogInformation("✅ Email sent successfully on attempt {Attempt}", attempt);
+                    _logger.LogInformation("? Email sent successfully on attempt {Attempt}", attempt);
                     return true;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "⚠️ Email sending failed on attempt {Attempt}/{MaxAttempts}: {Error}",
+                    _logger.LogWarning(ex, "?? Email sending failed on attempt {Attempt}/{MaxAttempts}: {Error}",
                         attempt, _scheduleSettings.MaxRetryAttempts, ex.Message);
 
                     if (attempt < _scheduleSettings.MaxRetryAttempts)
                     {
-                        _logger.LogInformation("⏳ Waiting {Delay}s before retry...", _scheduleSettings.RetryDelaySeconds);
+                        _logger.LogInformation("? Waiting {Delay}s before retry...", _scheduleSettings.RetryDelaySeconds);
                         await Task.Delay(TimeSpan.FromSeconds(_scheduleSettings.RetryDelaySeconds));
                     }
                 }
@@ -498,7 +499,7 @@ namespace SI24004.Services
         }
         public async Task SendTestEmailAsync()
         {
-            _logger.LogInformation("🧪 Sending test email...");
+            _logger.LogInformation("?? Sending test email...");
             await SendScheduledEmailWithRetry(GetThailandTime());
         }
 
@@ -506,7 +507,7 @@ namespace SI24004.Services
         {
             try
             {
-                _logger.LogInformation("📧 Sending error notification");
+                _logger.LogInformation("?? Sending error notification");
 
                 using var scope = _serviceProvider.CreateScope();
                 var errorBody = GenerateErrorReportBody(ex, GetThailandTime());
@@ -515,7 +516,7 @@ namespace SI24004.Services
             }
             catch (Exception emailEx)
             {
-                _logger.LogError(emailEx, "❌ Failed to send error notification");
+                _logger.LogError(emailEx, "? Failed to send error notification");
             }
         }
 
@@ -575,13 +576,13 @@ namespace SI24004.Services
                     throw new InvalidOperationException("No valid email recipients configured");
                 }
 
-                _logger.LogInformation("📧 Email will be sent to {TotalRecipients} recipients", totalRecipients);
+                _logger.LogInformation("?? Email will be sent to {TotalRecipients} recipients", totalRecipients);
             }
             else
             {
                 // Fallback to default recipient
                 mailMessage.To.Add("anupong.ohok@agc.com");
-                _logger.LogWarning("⚠️ EmailRecipientsService not available, using default recipient");
+                _logger.LogWarning("?? EmailRecipientsService not available, using default recipient");
             }
 
             mailMessage.Subject = subject;
@@ -590,7 +591,7 @@ namespace SI24004.Services
             mailMessage.Priority = MailPriority.Normal;
 
             await smtpClient.SendMailAsync(mailMessage);
-            _logger.LogInformation("✅ Email sent successfully");
+            _logger.LogInformation("? Email sent successfully");
         }
 
         // Enhanced email body generation methods
@@ -831,12 +832,12 @@ namespace SI24004.Services
             sb.AppendLine("<body style='font-family: Arial, sans-serif; margin: 20px;'>");
 
             var timeSlot = GetTimeSlotName(reportTime.Hour);
-            sb.AppendLine($"<h2 style='color: #4caf50;'>✅ Polishing Report - All Clear ({timeSlot})</h2>");
+            sb.AppendLine($"<h2 style='color: #4caf50;'>? Polishing Report - All Clear ({timeSlot})</h2>");
             sb.AppendLine($"<p><strong>Report Time:</strong> {reportTime:yyyy-MM-dd HH:mm:ss}</p>");
             sb.AppendLine($"<p><strong>Period:</strong> {fromTime:yyyy-MM-dd HH:mm} - {toTime:yyyy-MM-dd HH:mm}</p>");
-            sb.AppendLine("<p style='color: #4caf50; font-size: 16px;'><strong>🎉 No issues found in this period</strong></p>");
+            sb.AppendLine("<p style='color: #4caf50; font-size: 16px;'><strong>?? No issues found in this period</strong></p>");
             sb.AppendLine("<p>All Polishing processes are running normally with no Rescreen, Hold, or Scrap items.</p>");
-            sb.AppendLine("<hr><p><small>📧 Automated Report - Polishing System</small></p>");
+            sb.AppendLine("<hr><p><small>?? Automated Report - Polishing System</small></p>");
             sb.AppendLine("</body></html>");
 
             return sb.ToString();
@@ -848,12 +849,12 @@ namespace SI24004.Services
             sb.AppendLine("<!DOCTYPE html>");
             sb.AppendLine("<html><head><meta charset='UTF-8'></head>");
             sb.AppendLine("<body style='font-family: Arial, sans-serif; margin: 20px;'>");
-            sb.AppendLine($"<h2 style='color: #f44336;'>❌ Polishing System Error</h2>");
+            sb.AppendLine($"<h2 style='color: #f44336;'>? Polishing System Error</h2>");
             sb.AppendLine($"<p><strong>Error Time:</strong> {errorTime:yyyy-MM-dd HH:mm:ss}</p>");
             sb.AppendLine($"<p><strong>Error Message:</strong> {ex.Message}</p>");
-            sb.AppendLine("<p style='color: #f44336;'><strong>⚠️ Please check the Email Scheduler system</strong></p>");
+            sb.AppendLine("<p style='color: #f44336;'><strong>?? Please check the Email Scheduler system</strong></p>");
             sb.AppendLine($"<details><summary>Technical Details</summary><pre>{ex}</pre></details>");
-            sb.AppendLine("<hr><p><small>📧 Error Alert - Polishing System</small></p>");
+            sb.AppendLine("<hr><p><small>?? Error Alert - Polishing System</small></p>");
             sb.AppendLine("</body></html>");
 
             return sb.ToString();
@@ -1012,7 +1013,7 @@ namespace SI24004.Services
                 throw new InvalidOperationException("Email task is already running");
             }
 
-            _logger.LogInformation("🚀 Force executing email task");
+            _logger.LogInformation("?? Force executing email task");
             await ExecuteEmailTaskInternal();
         }
 
@@ -1022,7 +1023,7 @@ namespace SI24004.Services
             if (newHours?.Any() == true && newHours.All(h => h >= 0 && h <= 23))
             {
                 _scheduleSettings.ScheduleHours = newHours;
-                _logger.LogInformation("📅 Schedule hours updated to: [{Hours}]", string.Join(", ", newHours));
+                _logger.LogInformation("?? Schedule hours updated to: [{Hours}]", string.Join(", ", newHours));
             }
             else
             {
@@ -1034,12 +1035,12 @@ namespace SI24004.Services
         public void SetScheduleEnabled(bool enabled)
         {
             _scheduleSettings.EnableSchedule = enabled;
-            _logger.LogInformation("⚙️ Schedule enabled set to: {Enabled}", enabled);
+            _logger.LogInformation("?? Schedule enabled set to: {Enabled}", enabled);
 
             if (!enabled)
             {
                 StopTimers();
-                _logger.LogInformation("🛑 Timers stopped due to schedule disable");
+                _logger.LogInformation("?? Timers stopped due to schedule disable");
             }
             else if (_scheduleTimer == null)
             {
@@ -1068,3 +1069,4 @@ namespace SI24004.Services
             : -1;
     }
 }
+

@@ -31,12 +31,12 @@ public partial class PoCheckFlow
     /// <summary>
     /// Check Status (true = OK, false = NG)
     /// </summary>
-    public bool CheckSt { get; set; }
+    public bool? CheckSt { get; set; }
 
     /// <summary>
     /// วันที่ตรวจสอบ
     /// </summary>
-    public DateTime? CheckDate { get; set; }
+    public DateOnly? CheckDate { get; set; }
 
     /// <summary>
     /// Machine Number
@@ -47,4 +47,6 @@ public partial class PoCheckFlow
     /// จำนวน LOT
     /// </summary>
     public int? LotQty { get; set; }
+
+    public string? Cassetteno { get; set; }
 }

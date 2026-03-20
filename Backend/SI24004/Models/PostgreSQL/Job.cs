@@ -7,9 +7,9 @@ public partial class Job
 {
     public long Id { get; set; }
 
-    public string Queue { get; set; }
+    public string Queue { get; set; } = null!;
 
-    public string Payload { get; set; }
+    public string Payload { get; set; } = null!;
 
     public short Attempts { get; set; }
 

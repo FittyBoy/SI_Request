@@ -31,7 +31,7 @@ public partial class RescreenCheckRecord
     /// <summary>
     /// Imobile LOT Number (Unique)
     /// </summary>
-    public string? ImobileLot { get; set; }
+    public string ImobileLot { get; set; } = null!;
 
     /// <summary>
     /// Status: OK, HOLD, PENDING

@@ -7,7 +7,7 @@ public partial class Materialtype
 {
     public Guid Id { get; set; }
 
-    public string? Typename { get; set; }
+    public string Typename { get; set; } = null!;
 
     public string? Description { get; set; }
 

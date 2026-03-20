@@ -7,11 +7,11 @@ public partial class ItemInventoryStat
 {
     public Guid Id { get; set; }
 
-    public string ItemCode { get; set; }
+    public string ItemCode { get; set; } = null!;
 
     public DateOnly PeriodDate { get; set; }
 
-    public string PeriodType { get; set; }
+    public string PeriodType { get; set; } = null!;
 
     public decimal? OpeningBalance { get; set; }
 

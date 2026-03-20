@@ -1,4 +1,5 @@
-﻿namespace SI24004.Services
+using SI24004.Services.Interfaces;
+namespace SI24004.Services
 {
     public class IISCompatibleEmailService : BackgroundService
     {
@@ -107,3 +108,4 @@
 
 
 }
+

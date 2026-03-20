@@ -7,7 +7,7 @@ public partial class Shiftmaster
 {
     public Guid Id { get; set; }
 
-    public string? Shiftcode { get; set; }
+    public string Shiftcode { get; set; } = null!;
 
     public string? Shiftname { get; set; }
 

@@ -7,9 +7,9 @@ public partial class Productmaster
 {
     public Guid Id { get; set; }
 
-    public string? Productcode { get; set; }
+    public string Productcode { get; set; } = null!;
 
-    public string? Productname { get; set; }
+    public string Productname { get; set; } = null!;
 
     public string? Description { get; set; }
 

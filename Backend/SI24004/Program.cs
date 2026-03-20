@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -27,14 +27,14 @@ using SI24004.Models.Special;
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
 
-// IIS Configuration - สำคัญสำหรับ Background Services
+// IIS Configuration - ??????????? Background Services
 builder.Services.Configure<IISOptions>(options =>
 {
     options.AutomaticAuthentication = false;
     options.ForwardClientCertificate = false;
 });
 
-// เพิ่มการกำหนดค่าสำหรับ IIS Integration และ Background Services
+// ?????????????????????? IIS Integration ??? Background Services
 builder.Services.Configure<HostOptions>(options =>
 {
     options.ShutdownTimeout = TimeSpan.FromSeconds(30);
@@ -70,7 +70,7 @@ builder.Services.AddDbContext<SpecialContext>(options =>
             mySqlOptions.EnableRetryOnFailure(
                 maxRetryCount: 3,
                 maxRetryDelay: TimeSpan.FromSeconds(30),
-                errorNumbersToAdd: null); // ✅ MySQL (Pomelo) ใช้ errorNumbersToAdd
+                errorNumbersToAdd: null); // ? MySQL (Pomelo) ??? errorNumbersToAdd
         })
 );
 builder.Services.AddDbContext<SI24004.Models.MySQL.SqlServerContext>(options =>
@@ -82,7 +82,7 @@ builder.Services.AddDbContext<SI24004.Models.MySQL.SqlServerContext>(options =>
             mySqlOptions.EnableRetryOnFailure(
                 maxRetryCount: 3,
                 maxRetryDelay: TimeSpan.FromSeconds(30),
-                errorNumbersToAdd: null); // ✅ MySQL (Pomelo) ใช้ errorNumbersToAdd
+                errorNumbersToAdd: null); // ? MySQL (Pomelo) ??? errorNumbersToAdd
         })
 );
 
@@ -98,7 +98,7 @@ builder.Services.AddDbContext<ThicknessContext>(options =>
 builder.Services.AddDbContext<SI24004.Models.SqlServer1.OutputContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer1"));
-    // ไม่ต้องทำ migration เพราะ database มีอยู่แล้ว
+    // ????????? migration ????? database ??????????
 }, ServiceLifetime.Scoped);
 
 // Configure SMTP and Email settings
@@ -144,22 +144,22 @@ builder.Services.Configure<SI24004.Models.DTOs.EmailRecipients>(options =>
     options.Bcc = emailSection.GetSection("Bcc").Get<List<string>>() ?? new List<string>();
 });
 
-// ✅ FIXED: ใช้แค่ EmailScheduleManager เพียงอันเดียว - ลบ duplicate registrations
-// ลบบรรทัดนี้: builder.Services.AddEmailScheduleWithManualAccess(); 
+// ? FIXED: ?????? EmailScheduleManager ????????????? - ?? duplicate registrations
+// ???????????: builder.Services.AddEmailScheduleWithManualAccess(); 
 builder.Services.AddSingleton<SI24004.Services.Interfaces.IEmailRecipientsService, SI24004.Services.EmailRecipientsService>();
 
-// ✅ FIXED: แก้ไข EmailScheduleManager registration 
-// วิธีที่ 1: หาก EmailScheduleManager implement IHostedService
+// ? FIXED: ????? EmailScheduleManager registration 
+// ??????? 1: ??? EmailScheduleManager implement IHostedService
 builder.Services.AddSingleton<SI24004.Services.EmailScheduleManager>();
 builder.Services.AddSingleton<SI24004.Services.Interfaces.IEmailScheduleManager>(provider =>
     provider.GetRequiredService<SI24004.Services.EmailScheduleManager>());
 
 
-// วิธีที่ 2: หาก EmailScheduleManager ไม่ implement IHostedService ให้ใช้บรรทัดด้านล่างแทน
+// ??????? 2: ??? EmailScheduleManager ??? implement IHostedService ???????????????????????
 // builder.Services.AddSingleton<SI24004.Services.Interfaces.IEmailScheduleManager, SI24004.Services.EmailScheduleManager>();
 // builder.Services.AddHostedService<SI24004.Services.IISCompatibleEmailService>();
 
-// Keep-alive service (แยกจาก email service)
+// Keep-alive service (?????? email service)
 builder.Services.AddSingleton<SI24004.Services.IISKeepAliveService>();
 builder.Services.AddHostedService<SI24004.Services.IISKeepAliveService>(provider =>
     provider.GetRequiredService<SI24004.Services.IISKeepAliveService>());
@@ -169,7 +169,7 @@ builder.Services.AddScoped<SI24004AVIService>();
 builder.Services.AddScoped<SI25007Service>();
 
 builder.Services.AddScoped<IChemicalSearchRepository, ChemicalSearchRepository>();
-builder.Services.AddScoped<IChemicalSearchService, ChemicalSearchService>();
+builder.Services.AddScoped<IChemicalSearchService, SI24004.Services.ChemicalSearchService>();
 builder.Services.AddScoped<IRegularSubstanceService, RegularSubstanceService>();
 builder.Services.AddScoped<ISvhcSubstanceService, SvhcSubstanceService>();
 
@@ -314,16 +314,16 @@ builder.Services.AddSwaggerGen(options =>
 ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
 // ========================================
-// 🔧 FIX: PostgreSQL DateTime Timezone Error
+// ?? FIX: PostgreSQL DateTime Timezone Error
 // ========================================
-// แก้ไข error: "Cannot write DateTime with Kind=UTC to PostgreSQL type 'timestamp without time zone'"
-// วิธีนี้จะทำให้ DateTime.UtcNow สามารถบันทึกลง PostgreSQL ได้โดยไม่มี error
+// ????? error: "Cannot write DateTime with Kind=UTC to PostgreSQL type 'timestamp without time zone'"
+// ?????????????? DateTime.UtcNow ?????????????? PostgreSQL ??????????? error
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 // ========================================
 
 var app = builder.Build();
 
-// ✅ FIXED: เพิ่ม endpoint เพื่อ debug services
+// ? FIXED: ????? endpoint ????? debug services
 app.MapGet("/debug-services", (IServiceProvider serviceProvider, ILogger<Program> logger) =>
 {
     try
@@ -333,8 +333,8 @@ app.MapGet("/debug-services", (IServiceProvider serviceProvider, ILogger<Program
             s.GetType().Name.Contains("Email") ||
             s.GetType().Name.Contains("Schedule")).ToList();
 
-        logger.LogInformation("🔍 Total Hosted Services: {Count}", hostedServices.Count);
-        logger.LogInformation("📧 Email-related Services: {Count}", emailServices.Count);
+        logger.LogInformation("?? Total Hosted Services: {Count}", hostedServices.Count);
+        logger.LogInformation("?? Email-related Services: {Count}", emailServices.Count);
 
         foreach (var service in emailServices)
         {
@@ -355,7 +355,7 @@ app.MapGet("/debug-services", (IServiceProvider serviceProvider, ILogger<Program
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "🚨 Error in debug-services");
+        logger.LogError(ex, "?? Error in debug-services");
         return Results.Problem($"Debug failed: {ex.Message}");
     }
 });
@@ -365,7 +365,7 @@ app.MapPost("/trigger-email", async (IEmailScheduleManager emailManager, ILogger
 {
     try
     {
-        logger.LogInformation("📧 Manual email trigger requested");
+        logger.LogInformation("?? Manual email trigger requested");
 
         if (emailManager.IsRunning)
         {
@@ -388,7 +388,7 @@ app.MapPost("/trigger-email", async (IEmailScheduleManager emailManager, ILogger
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "🚨 Manual email trigger failed");
+        logger.LogError(ex, "?? Manual email trigger failed");
         return Results.Problem($"Failed to trigger email: {ex.Message}");
     }
 });
@@ -402,7 +402,7 @@ app.MapGet("/warmup", (IEmailScheduleManager emailManager, IServiceProvider serv
         var emailServiceCount = hostedServices.Count(s => s.GetType().Name.Contains("Email"));
         var emailStatus = emailManager.GetStatus();
 
-        logger.LogInformation("🔥 Warmup requested - EmailServices: {Count}", emailServiceCount);
+        logger.LogInformation("?? Warmup requested - EmailServices: {Count}", emailServiceCount);
 
         return Results.Ok(new
         {
@@ -416,7 +416,7 @@ app.MapGet("/warmup", (IEmailScheduleManager emailManager, IServiceProvider serv
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "🚨 Warmup failed");
+        logger.LogError(ex, "?? Warmup failed");
         return Results.Problem($"Warmup failed: {ex.Message}");
     }
 });
@@ -432,7 +432,7 @@ app.MapGet("/email-service-status", (IEmailScheduleManager emailManager, IServic
 {
     try
     {
-        logger.LogInformation("📊 Email service status requested");
+        logger.LogInformation("?? Email service status requested");
 
         var status = emailManager.GetStatus();
         var hostedServices = serviceProvider.GetServices<IHostedService>();
@@ -449,7 +449,7 @@ app.MapGet("/email-service-status", (IEmailScheduleManager emailManager, IServic
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "🚨 Error getting service status");
+        logger.LogError(ex, "?? Error getting service status");
         return Results.Problem($"Error getting service status: {ex.Message}");
     }
 });
@@ -459,7 +459,7 @@ app.MapPost("/test-email", async (IEmailScheduleManager emailManager, IServicePr
 {
     try
     {
-        logger.LogInformation("📧 Manual test email requested");
+        logger.LogInformation("?? Manual test email requested");
 
         await emailManager.SendTestEmailAsync();
 
@@ -472,7 +472,7 @@ app.MapPost("/test-email", async (IEmailScheduleManager emailManager, IServicePr
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "🚨 Failed to send test email: {Message}", ex.Message);
+        logger.LogError(ex, "?? Failed to send test email: {Message}", ex.Message);
         return Results.Problem($"Failed to send test email: {ex.Message}");
     }
 });
@@ -482,7 +482,7 @@ app.MapPost("/test-smtp", async (IServiceProvider serviceProvider, ILogger<Progr
 {
     try
     {
-        logger.LogInformation("🔌 Testing SMTP connection");
+        logger.LogInformation("?? Testing SMTP connection");
 
         using var scope = serviceProvider.CreateScope();
         var smtpSettings = scope.ServiceProvider.GetRequiredService<IOptions<SmtpSettings>>().Value;
@@ -506,7 +506,7 @@ app.MapPost("/test-smtp", async (IServiceProvider serviceProvider, ILogger<Progr
 
         await smtpClient.SendMailAsync(message);
 
-        logger.LogInformation("✅ SMTP test successful");
+        logger.LogInformation("? SMTP test successful");
 
         return Results.Ok(new
         {
@@ -521,7 +521,7 @@ app.MapPost("/test-smtp", async (IServiceProvider serviceProvider, ILogger<Progr
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "🚨 SMTP test failed: {Message}", ex.Message);
+        logger.LogError(ex, "?? SMTP test failed: {Message}", ex.Message);
         return Results.Problem($"SMTP test failed: {ex.Message}");
     }
 });
@@ -555,7 +555,7 @@ app.UseSwaggerUI(c =>
 
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
-// ✅ FIXED: แสดง email configuration พร้อม service count
+// ? FIXED: ???? email configuration ????? service count
 try
 {
     var smtpOptions = app.Services.GetRequiredService<IOptions<SmtpSettings>>();
@@ -570,7 +570,7 @@ try
 }
 catch (Exception ex)
 {
-    logger.LogError(ex, "🚨 Error displaying configuration");
+    logger.LogError(ex, "?? Error displaying configuration");
 }
 
 app.Run();
@@ -587,7 +587,7 @@ public class FileUploadOperationFilter : Swashbuckle.AspNetCore.SwaggerGen.IOper
 
         foreach (var parameter in parameters)
         {
-            // ตรวจสอบ IFormFile โดยตรง (ไม่ว่าจะมี [FromForm] หรือไม่)
+            // ??????? IFormFile ?????? (?????????? [FromForm] ???????)
             if (parameter.ParameterType == typeof(IFormFile))
             {
                 hasFileParameter = true;
@@ -599,7 +599,7 @@ public class FileUploadOperationFilter : Swashbuckle.AspNetCore.SwaggerGen.IOper
                     Description = $"Upload file for {parameter.Name}"
                 };
             }
-            // ตรวจสอบ IFormFileCollection
+            // ??????? IFormFileCollection
             else if (parameter.ParameterType == typeof(IFormFileCollection))
             {
                 hasFileParameter = true;
@@ -614,7 +614,7 @@ public class FileUploadOperationFilter : Swashbuckle.AspNetCore.SwaggerGen.IOper
                     }
                 };
             }
-            // ตรวจสอบ Model class ที่มี IFormFile properties
+            // ??????? Model class ????? IFormFile properties
             else if (IsComplexType(parameter.ParameterType))
             {
                 var hasFromFormAttribute = HasFromFormAttribute(parameter);
@@ -655,7 +655,7 @@ public class FileUploadOperationFilter : Swashbuckle.AspNetCore.SwaggerGen.IOper
                     }
                 }
             }
-            // Handle other [FromForm] parameters (แต่ไม่ใช่ IFormFile)
+            // Handle other [FromForm] parameters (????????? IFormFile)
             else if (HasFromFormAttribute(parameter) && IsSimpleType(parameter.ParameterType))
             {
                 parametersToRemove.Add(parameter.Name);
@@ -680,7 +680,7 @@ public class FileUploadOperationFilter : Swashbuckle.AspNetCore.SwaggerGen.IOper
                 }
             };
 
-            // ลบ parameters ที่เป็น file หรือ form data ออกจาก operation parameters
+            // ?? parameters ??????? file ???? form data ?????? operation parameters
             if (operation.Parameters != null)
             {
                 var paramsToRemove = operation.Parameters

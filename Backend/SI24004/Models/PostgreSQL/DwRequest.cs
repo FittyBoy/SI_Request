@@ -7,11 +7,11 @@ public partial class DwRequest
 {
     public Guid Id { get; set; }
 
-    public string? DrawingCode { get; set; }
+    public string DrawingCode { get; set; } = null!;
 
-    public string? RequestCode { get; set; }
+    public string RequestCode { get; set; } = null!;
 
-    public string? DrawingName { get; set; }
+    public string DrawingName { get; set; } = null!;
 
     public Guid SectionId { get; set; }
 
@@ -21,7 +21,7 @@ public partial class DwRequest
 
     public DateTime? CreatedDate { get; set; }
 
-    public string? CreatedBy { get; set; }
+    public string CreatedBy { get; set; } = null!;
 
     public DateTime? UpdateDate { get; set; }
 
@@ -38,14 +38,4 @@ public partial class DwRequest
     public bool IsDelete { get; set; }
 
     public bool? DrawingRevise { get; set; }
-
-    public virtual Attachment Attachment { get; set; }
-
-    public virtual Drawing DrawingType { get; set; }
-
-    public virtual Section Section { get; set; }
-
-    public virtual Status Status { get; set; }
-
-    public virtual User User { get; set; }
 }

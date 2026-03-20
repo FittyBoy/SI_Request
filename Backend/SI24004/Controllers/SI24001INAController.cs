@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SI24004.Models.DTOs;
@@ -62,8 +62,8 @@ namespace SI24004.Controllers
                 {
                     Id = x.Id,
                     RequestCode = x.RequestCode,
-                    // ลบ RequestName ออก
-                    RequestPurpose = x.RequestPurpose, // ย้าย Purpose มาช่องแรก
+                    // ?? RequestName ???
+                    RequestPurpose = x.RequestPurpose, // ???? Purpose ?????????
                     RequestDescription = x.RequestDescription,
                     StatusId = x.StatusId,
                     AttachmentId = x.AttachmentId,
@@ -111,7 +111,7 @@ namespace SI24004.Controllers
                         Ordinal = x.Status.Ordinal
                     } : null,
 
-                    // เพิ่ม LotNumbers ในการตอบกลับ
+                    // ????? LotNumbers ????????????
                     LotNumbers = lotsByRequest.TryGetValue(x.Id, out var lots)
                         ? lots.Select(l => l.LotNo).ToList()
                         : new List<string>(),
@@ -124,7 +124,7 @@ namespace SI24004.Controllers
                                         .ToList<object>()
                             : new List<object>(),
 
-                        // Other Programs - รองรับหลายตัว
+                        // Other Programs - ?????????????
                         OtherPrograms = attachmentsByRequest.TryGetValue(x.Id, out var attachments2)
                             ? attachments2.Where(a => a.Category?.ToLower() == "otherprograms")
                                          .Select(a => new { a.Id, a.AttachmentName, a.AttachementPath, a.AttachementType, a.Category, a.UploadDate, a.AttachmentSize, a.AttachmentFileLocation })
@@ -175,8 +175,8 @@ namespace SI24004.Controllers
                 {
                     Id = inaRequest.Id,
                     RequestCode = inaRequest.RequestCode,
-                    // ลบ RequestName ออก
-                    RequestPurpose = inaRequest.RequestPurpose, // ย้าย Purpose มาช่องแรก
+                    // ?? RequestName ???
+                    RequestPurpose = inaRequest.RequestPurpose, // ???? Purpose ?????????
                     RequestDescription = inaRequest.RequestDescription,
                     StatusId = inaRequest.StatusId,
                     AttachmentId = inaRequest.AttachmentId,
@@ -223,7 +223,7 @@ namespace SI24004.Controllers
                         Ordinal = inaRequest.Status.Ordinal
                     } : null,
 
-                    // เพิ่ม LotNumbers ในการตอบกลับ
+                    // ????? LotNumbers ????????????
                     LotNumbers = lots.Select(l => l.LotNo).ToList(),
 
                     Attachments = new
@@ -242,7 +242,7 @@ namespace SI24004.Controllers
                                 a.AttachmentFileLocation
                             }).ToList(),
 
-                        // Other Programs - รองรับหลายตัว
+                        // Other Programs - ?????????????
                         OtherPrograms = attachments
                             .Where(a => a.Category != null && a.Category.ToLower() == "otherprograms")
                             .Select(a => new
@@ -318,27 +318,27 @@ namespace SI24004.Controllers
                     [FromForm] InaRequestDto requestDto,
                     [FromForm] List<AttachmentDto> attachments,
                     [FromForm] List<LotInaDto> lots,
-                    [FromForm] List<string> otherPrograms) // เพิ่มรองรับ other programs array
+                    [FromForm] List<string> otherPrograms) // ??????????? other programs array
         {
             // Validation
             if (requestDto == null)
                 return BadRequest("Request data is required.");
 
-            // ลบการ validate RequestName เพราะไม่มีแล้ว
+            // ????? validate RequestName ??????????????
             if (string.IsNullOrWhiteSpace(requestDto.RequestPurpose))
                 return BadRequest("Request purpose is required.");
 
             if (requestDto.UserId == Guid.Empty)
                 return BadRequest("User ID is required.");
 
-            // Validate lots - ใช้ validation แบบ required เฉยๆ
+            // Validate lots - ??? validation ??? required ????
             if (lots == null || !lots.Any())
                 return BadRequest("At least one lot is required.");
 
             if (lots.Count > 10)
                 return BadRequest("Maximum 10 lots allowed per request.");
 
-            // Validate lot numbers - แค่ check ว่าไม่ว่าง
+            // Validate lot numbers - ??? check ??????????
             var lotNumbers = lots.Where(l => !string.IsNullOrWhiteSpace(l.LotNo)).Select(l => l.LotNo.Trim()).ToList();
             if (lotNumbers.Count != lotNumbers.Distinct().Count())
                 return BadRequest("Duplicate lot numbers are not allowed.");
@@ -365,15 +365,15 @@ namespace SI24004.Controllers
 
                 Guid? firstAttachmentId = null;
                 Guid? recipeAttachmentId = null;
-                var otherProgramsAttachmentIds = new List<Guid>(); // เปลี่ยนเป็น list
+                var otherProgramsAttachmentIds = new List<Guid>(); // ??????????? list
 
-                // Handle attachments - ปรับปรุงให้รองรับ other programs หลายตัว
+                // Handle attachments - ????????????????? other programs ???????
                 if (attachments != null && attachments.Any())
                 {
                     foreach (var attachment in attachments.Where(a => !string.IsNullOrWhiteSpace(a.AttachmentName) && !string.IsNullOrWhiteSpace(a.AttachementPath)))
                     {
                         var attachmentId = Guid.NewGuid();
-                        var newAttachment = new Models.Attachment
+                        var newAttachment = new SI24004.Models.PostgreSQL.Attachment
                         {
                             Id = attachmentId,
                             AttachmentName = attachment.AttachmentName,
@@ -397,7 +397,7 @@ namespace SI24004.Controllers
                         }
                         else if (attachment.Category?.ToLower() == "otherprograms")
                         {
-                            otherProgramsAttachmentIds.Add(attachmentId); // เก็บ multiple IDs
+                            otherProgramsAttachmentIds.Add(attachmentId); // ???? multiple IDs
                         }
 
                         // Set first attachment ID if not set
@@ -410,10 +410,10 @@ namespace SI24004.Controllers
                 {
                     Id = newRequestId,
                     RequestCode = await _service.GenerateRequestCodeIna(),
-                    // ลบ RequestName ออก
-                    RequestPurpose = requestDto.RequestPurpose, // ย้าย Purpose มาช่องแรก
+                    // ?? RequestName ???
+                    RequestPurpose = requestDto.RequestPurpose, // ???? Purpose ?????????
                     UserId = requestDto.UserId,
-                    RequestDescription = requestDto.RequestDescription ?? "", // อนุญาตให้ blank ได้
+                    RequestDescription = requestDto.RequestDescription ?? "", // ????????? blank ???
                     StatusId = defaultStatus.Id,
                     RequestDate = requestDto.RequestDate ?? DateTime.UtcNow,
                     RequestMachine = requestDto.RequestMachine,
@@ -424,7 +424,7 @@ namespace SI24004.Controllers
                     RequestComment2 = requestDto.RequestComment2,
                     RequestComment3 = requestDto.RequestComment3,
                     Recipe = recipeAttachmentId,
-                    // OtherPrograms สามารถเก็บ array ได้ หรือจะเก็บเป็น JSON string
+                    // OtherPrograms ?????????? array ??? ?????????????? JSON string
                     OtherPrograms = null,
                     RequestBy = requestDto.RequestBy,
                     RequestProcess = requestDto.RequestProcess,
@@ -478,7 +478,7 @@ namespace SI24004.Controllers
                     RequestCode = newRequest.RequestCode,
                     AttachmentId = firstAttachmentId,
                     RecipeId = recipeAttachmentId,
-                    OtherProgramsIds = otherProgramsAttachmentIds, // ส่งกลับ multiple IDs
+                    OtherProgramsIds = otherProgramsAttachmentIds, // ??????? multiple IDs
                     Lots = createdLots,
                     Message = "Request added successfully"
                 });
@@ -499,7 +499,7 @@ namespace SI24004.Controllers
             [FromForm] InaRequestDto requestDto,
             [FromForm] List<AttachmentDto> attachments,
             [FromForm] List<LotInaDto> lots,
-            [FromForm] List<string> otherPrograms, // เพิ่มรองรับ other programs array
+            [FromForm] List<string> otherPrograms, // ??????????? other programs array
             [FromForm] bool isApproved = false)
         {
             if (requestDto == null || requestDto.Id == Guid.Empty)
@@ -545,10 +545,10 @@ namespace SI24004.Controllers
                     updateRequest.StatusId = requestDto.StatusId;
                 }
 
-                // Update Request data - ลบ RequestName และใช้ Purpose แทน
+                // Update Request data - ?? RequestName ?????? Purpose ???
                 updateRequest.RequestPurpose = requestDto.RequestPurpose ?? updateRequest.RequestPurpose;
                 updateRequest.UserId = requestDto.UserId != Guid.Empty ? requestDto.UserId : updateRequest.UserId;
-                updateRequest.RequestDescription = requestDto.RequestDescription ?? updateRequest.RequestDescription; // อนุญาตให้ blank
+                updateRequest.RequestDescription = requestDto.RequestDescription ?? updateRequest.RequestDescription; // ????????? blank
                 updateRequest.RequestDate = requestDto.RequestDate?.ToUniversalTime() ?? updateRequest.RequestDate?.ToUniversalTime();
                 updateRequest.RequestMachine = requestDto.RequestMachine ?? updateRequest.RequestMachine;
                 updateRequest.RequestProduct = requestDto.RequestProduct ?? updateRequest.RequestProduct;
@@ -605,7 +605,7 @@ namespace SI24004.Controllers
                     }
                 }
 
-                // Handle attachments - ปรับปรุงให้รองรับ other programs หลายตัว
+                // Handle attachments - ????????????????? other programs ???????
                 var otherProgramsIds = new List<Guid>();
 
                 if (attachments != null && attachments.Any())
@@ -662,7 +662,7 @@ namespace SI24004.Controllers
                         }
                         else if (!string.IsNullOrWhiteSpace(attachment.AttachementPath))
                         {
-                            // Add new attachment only if it doesn't already exist
+                            // Add new SI24004.Models.PostgreSQL.Attachment only if it doesn't already exist
                             var isDuplicate = existingAttachments.Any(ea =>
                                 ea.AttachmentName == attachment.AttachmentName &&
                                 ea.Category == attachment.Category);
@@ -670,7 +670,7 @@ namespace SI24004.Controllers
                             if (!isDuplicate)
                             {
                                 var newAttachmentId = Guid.NewGuid();
-                                var newAttachment = new Models.Attachment
+                                var newAttachment = new SI24004.Models.PostgreSQL.Attachment
                                 {
                                     Id = newAttachmentId,
                                     AttachmentName = attachment.AttachmentName,
@@ -712,7 +712,7 @@ namespace SI24004.Controllers
                         .Where(l => l.RequestId == updateRequest.Id && l.IsDeleted == false)
                         .ToListAsync();
 
-                    // Get lot numbers from request (clean data) - แค่ check ว่าไม่ว่าง
+                    // Get lot numbers from request (clean data) - ??? check ??????????
                     var requestLotNumbers = lots.Where(l => !string.IsNullOrWhiteSpace(l.LotNo))
                         .Select(l => l.LotNo.Trim())
                         .Distinct()
@@ -741,7 +741,7 @@ namespace SI24004.Controllers
                         {
                             // Add new lot
                             var lotId = Guid.NewGuid();
-                            var newLot = new Models.LotRequest
+                            var newLot = new LotRequest
                             {
                                 Id = lotId,
                                 LotNo = requestLotNumber,

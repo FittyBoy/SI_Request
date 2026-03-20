@@ -7,17 +7,17 @@ public partial class Suppliermaster
 {
     public Guid Id { get; set; }
 
-    public string Suppliercode { get; set; }
+    public string Suppliercode { get; set; } = null!;
 
-    public string Suppliername { get; set; }
+    public string Suppliername { get; set; } = null!;
 
-    public string Contactperson { get; set; }
+    public string? Contactperson { get; set; }
 
-    public string Phone { get; set; }
+    public string? Phone { get; set; }
 
-    public string Email { get; set; }
+    public string? Email { get; set; }
 
-    public string Address { get; set; }
+    public string? Address { get; set; }
 
     public bool? Isactive { get; set; }
 

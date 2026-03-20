@@ -5,31 +5,19 @@ namespace SI24004.Models.PostgreSQL;
 
 public partial class User
 {
-    public Guid Id { get; set; }
+    public long Id { get; set; }
 
-    public string UserId { get; set; }
+    public string Name { get; set; } = null!;
 
-    public string UserPassword { get; set; }
+    public string Email { get; set; } = null!;
 
-    public Guid? RoleId { get; set; }
+    public DateTime? EmailVerifiedAt { get; set; }
 
-    public bool? IsDeleted { get; set; }
+    public string Password { get; set; } = null!;
 
-    public bool? Active { get; set; }
+    public string? RememberToken { get; set; }
 
-    public string UserName { get; set; }
+    public DateTime? CreatedAt { get; set; }
 
-    public string UserLastname { get; set; }
-
-    public Guid? SectionId { get; set; }
-
-    public virtual ICollection<AviRequest> AviRequests { get; set; } = new List<AviRequest>();
-
-    public virtual ICollection<DwRequest> DwRequests { get; set; } = new List<DwRequest>();
-
-    public virtual ICollection<InaRequest> InaRequests { get; set; } = new List<InaRequest>();
-
-    public virtual Role Role { get; set; }
-
-    public virtual Section Section { get; set; }
+    public DateTime? UpdatedAt { get; set; }
 }

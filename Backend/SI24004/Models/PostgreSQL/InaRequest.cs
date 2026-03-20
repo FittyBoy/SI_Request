@@ -17,7 +17,7 @@ public partial class InaRequest
 
     public bool? IsDeleted { get; set; }
 
-    public string? RequestCode { get; set; }
+    public string RequestCode { get; set; } = null!;
 
     public Guid? StatusId { get; set; }
 
@@ -95,11 +95,5 @@ public partial class InaRequest
 
     public Guid? RequestObject { get; set; }
 
-    public virtual Attachment Attachment { get; set; }
-
     public virtual ICollection<LotRequest> LotRequests { get; set; } = new List<LotRequest>();
-
-    public virtual Status Status { get; set; }
-
-    public virtual User User { get; set; }
 }

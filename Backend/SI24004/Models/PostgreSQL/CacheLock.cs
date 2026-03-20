@@ -5,9 +5,9 @@ namespace SI24004.Models.PostgreSQL;
 
 public partial class CacheLock
 {
-    public string Key { get; set; }
+    public string Key { get; set; } = null!;
 
-    public string Owner { get; set; }
+    public string Owner { get; set; } = null!;
 
     public int Expiration { get; set; }
 }

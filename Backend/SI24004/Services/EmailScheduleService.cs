@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Hosting;
+using SI24004.Services.Interfaces;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -14,7 +15,7 @@ using SI24004.Models.SqlServer;
 namespace SI24004.Services
 {
     // EmailRecipients Service
-    public class EmailRecipientsService : IEmailRecipientsService
+    public class EmailRecipientsService : SI24004.Services.Interfaces.IEmailRecipientsService
     {
         private readonly IOptions<EmailRecipients> _emailRecipients;
         private readonly ILogger<EmailRecipientsService> _logger;
@@ -54,7 +55,7 @@ namespace SI24004.Services
             }
         }
     }
-    // EmailRecipients class สำหรับจัดการรายชื่อผู้รับ
+    // EmailRecipients class ?????????????????????????
     public class EmailRecipients
     {
         public List<string> To { get; set; } = new();
@@ -71,10 +72,10 @@ namespace SI24004.Services
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<EmailScheduleService> _logger;
         private readonly SmtpSettings _smtpSettings;
-        private readonly ScheduleSettings _scheduleSettings; // ✅ เพิ่ม Schedule Settings
+        private readonly ScheduleSettings _scheduleSettings; // ? ????? Schedule Settings
         private readonly TimeZoneInfo _thailandTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
-        private DateTime _lastSentTime = DateTime.MinValue; // ✅ เก็บเวลาส่งครั้งล่าสุด
-        private readonly Dictionary<int, DateTime> _lastSentByHour = new(); // ✅ ป้องกันส่งซ้ำแต่ละชั่วโมง
+        private DateTime _lastSentTime = DateTime.MinValue; // ? ??????????????????????
+        private readonly Dictionary<int, DateTime> _lastSentByHour = new(); // ? ?????????????????????????
 
         public EmailScheduleService(
             IServiceProvider serviceProvider,
@@ -85,18 +86,18 @@ namespace SI24004.Services
             _serviceProvider = serviceProvider;
             _logger = logger;
 
-            // ✅ ป้องกัน null configuration
+            // ? ??????? null configuration
             _smtpSettings = smtpSettings?.Value ?? throw new ArgumentNullException(nameof(smtpSettings));
             _scheduleSettings = scheduleSettings?.Value ?? throw new ArgumentNullException(nameof(scheduleSettings));
 
-            // ✅ ป้องกัน TimeZone error
+            // ? ??????? TimeZone error
             try
             {
                 _thailandTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
             }
             catch (Exception)
             {
-                // Fallback สำหรับ Linux/Mac
+                // Fallback ?????? Linux/Mac
                 try
                 {
                     _thailandTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Bangkok");
@@ -110,7 +111,7 @@ namespace SI24004.Services
         }
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("🚀 EmailScheduleService Starting...");
+            _logger.LogInformation("?? EmailScheduleService Starting...");
             _logger.LogInformation("Configuration:");
             _logger.LogInformation("- EnableSchedule: {EnableSchedule}", _scheduleSettings.EnableSchedule);
             _logger.LogInformation("- ScheduleHours: [{Hours}]", string.Join(", ", _scheduleSettings.ScheduleHours));
@@ -119,13 +120,13 @@ namespace SI24004.Services
             _logger.LogInformation("- SMTP: {Host}:{Port}", _smtpSettings.Host, _smtpSettings.Port);
 
             await base.StartAsync(cancellationToken);
-            _logger.LogInformation("✅ EmailScheduleService Started Successfully");
+            _logger.LogInformation("? EmailScheduleService Started Successfully");
         }
         public override async Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("🛑 EmailScheduleService Stopping...");
+            _logger.LogInformation("?? EmailScheduleService Stopping...");
             await base.StopAsync(cancellationToken);
-            _logger.LogInformation("✅ EmailScheduleService Stopped");
+            _logger.LogInformation("? EmailScheduleService Stopped");
         }
         private DateTime GetThailandTime()
         {
@@ -148,17 +149,17 @@ namespace SI24004.Services
             var currentHour = currentTime.Hour;
             var currentMinute = currentTime.Minute;
 
-            // ต้องเป็นชั่วโมงที่กำหนดและนาทีต้องเป็น 0
+            // ?????????????????????????????????????? 0
             if (!IsScheduledTime(currentHour) || currentMinute != 0)
                 return false;
 
-            // ตรวจสอบว่าส่งไปแล้วในชั่วโมงนี้หรือยัง
+            // ??????????????????????????????????????
             if (_lastSentByHour.ContainsKey(currentHour))
             {
                 var lastSentForThisHour = _lastSentByHour[currentHour];
                 var timeDiff = currentTime - lastSentForThisHour;
 
-                // ถ้าส่งไปแล้วในชั่วโมงนี้และยังไม่ครบ 50 นาที ไม่ต้องส่งอีก
+                // ???????????????????????????????????? 50 ???? ?????????????
                 if (timeDiff.TotalMinutes < 50)
                 {
                     return false;
@@ -173,21 +174,21 @@ namespace SI24004.Services
             {
                 try
                 {
-                    _logger.LogInformation("📧 Sending email attempt {Attempt}/{MaxAttempts}",
+                    _logger.LogInformation("?? Sending email attempt {Attempt}/{MaxAttempts}",
                         attempt, _scheduleSettings.MaxRetryAttempts);
 
                     await SendScheduledEmail(currentTime);
-                    _logger.LogInformation("✅ Email sent successfully on attempt {Attempt}", attempt);
+                    _logger.LogInformation("? Email sent successfully on attempt {Attempt}", attempt);
                     return true;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "⚠️ Email sending failed on attempt {Attempt}/{MaxAttempts}: {Error}",
+                    _logger.LogWarning(ex, "?? Email sending failed on attempt {Attempt}/{MaxAttempts}: {Error}",
                         attempt, _scheduleSettings.MaxRetryAttempts, ex.Message);
 
                     if (attempt < _scheduleSettings.MaxRetryAttempts)
                     {
-                        _logger.LogInformation("⏳ Waiting {Delay}s before retry...", _scheduleSettings.RetryDelaySeconds);
+                        _logger.LogInformation("? Waiting {Delay}s before retry...", _scheduleSettings.RetryDelaySeconds);
                         await Task.Delay(TimeSpan.FromSeconds(_scheduleSettings.RetryDelaySeconds));
                     }
                 }
@@ -200,17 +201,17 @@ namespace SI24004.Services
             // Validation
             if (!_scheduleSettings.EnableSchedule)
             {
-                _logger.LogInformation("📴 EmailScheduleService Disabled - Exiting");
+                _logger.LogInformation("?? EmailScheduleService Disabled - Exiting");
                 return;
             }
 
             if (_scheduleSettings.ScheduleHours == null || !_scheduleSettings.ScheduleHours.Any())
             {
-                _logger.LogError("❌ No schedule hours configured - Service cannot run");
+                _logger.LogError("? No schedule hours configured - Service cannot run");
                 return;
             }
 
-            _logger.LogInformation("⚡ EmailScheduleService Main Loop Started");
+            _logger.LogInformation("? EmailScheduleService Main Loop Started");
 
             // Main Loop
             while (!stoppingToken.IsCancellationRequested)
@@ -221,19 +222,19 @@ namespace SI24004.Services
                     var currentHour = currentThailandTime.Hour;
                     var currentMinute = currentThailandTime.Minute;
 
-                    // ✅ Log status ทุก 10 นาที
-                    if (currentMinute % 10 == 0 && currentMinute < 2) // ป้องกัน log spam
+                    // ? Log status ??? 10 ????
+                    if (currentMinute % 10 == 0 && currentMinute < 2) // ??????? log spam
                     {
-                        _logger.LogInformation("🕐 Status Check - Time: {Time}, IsScheduledHour: {IsScheduled}, LastSent: {LastSent}",
+                        _logger.LogInformation("?? Status Check - Time: {Time}, IsScheduledHour: {IsScheduled}, LastSent: {LastSent}",
                             currentThailandTime.ToString("yyyy-MM-dd HH:mm:ss"),
                             IsScheduledTime(currentHour),
                             _lastSentTime == DateTime.MinValue ? "Never" : _lastSentTime.ToString("yyyy-MM-dd HH:mm:ss"));
                     }
 
-                    // ✅ ตรวจสอบเงื่อนไขการส่งเมล
+                    // ? ????????????????????????
                     if (ShouldSendEmail(currentThailandTime))
                     {
-                        _logger.LogInformation("⏰ Triggering scheduled email at {Time} for hour {Hour}",
+                        _logger.LogInformation("? Triggering scheduled email at {Time} for hour {Hour}",
                             currentThailandTime.ToString("yyyy-MM-dd HH:mm:ss"), currentHour);
 
                         var success = await SendScheduledEmailWithRetry(currentThailandTime);
@@ -243,44 +244,44 @@ namespace SI24004.Services
                             _lastSentTime = currentThailandTime;
                             _lastSentByHour[currentHour] = currentThailandTime;
 
-                            _logger.LogInformation("✅ Email sent successfully, waiting {Delay}s before next check",
+                            _logger.LogInformation("? Email sent successfully, waiting {Delay}s before next check",
                                 _scheduleSettings.DelayAfterSendSeconds);
 
                             await Task.Delay(TimeSpan.FromSeconds(_scheduleSettings.DelayAfterSendSeconds), stoppingToken);
                         }
                         else
                         {
-                            _logger.LogError("❌ Failed to send email after all retry attempts");
-                            await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken); // รอ 5 นาทีก่อน retry
+                            _logger.LogError("? Failed to send email after all retry attempts");
+                            await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken); // ?? 5 ???????? retry
                         }
                     }
                     else
                     {
-                        // รอตาม interval ปกติ
+                        // ????? interval ????
                         await Task.Delay(TimeSpan.FromSeconds(_scheduleSettings.CheckIntervalSeconds), stoppingToken);
                     }
                 }
                 catch (OperationCanceledException)
                 {
-                    _logger.LogInformation("🏁 EmailScheduleService Cancelled");
+                    _logger.LogInformation("?? EmailScheduleService Cancelled");
                     break;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "💥 Unexpected error in EmailScheduleService main loop");
-                    await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken); // รอ 1 นาทีแล้วลองใหม่
+                    _logger.LogError(ex, "?? Unexpected error in EmailScheduleService main loop");
+                    await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken); // ?? 1 ???????????????
                 }
             }
 
-            _logger.LogInformation("🏁 EmailScheduleService Main Loop Ended");
+            _logger.LogInformation("?? EmailScheduleService Main Loop Ended");
         }
-        // ✅ เพิ่ม method ตรวจสอบว่าเพิ่งส่งไปหรือไม่ (ป้องกันส่งซ้ำ)
+        // ? ????? method ??????????????????????????? (?????????????)
         private bool IsRecentlySent(DateTime currentTime)
         {
             if (_lastSentTime == DateTime.MinValue) return false;
 
             var timeDifference = currentTime - _lastSentTime;
-            // ถ้าส่งไปแล้วไม่ถึง 50 นาที ให้ถือว่าเพิ่งส่งไป
+            // ?????????????????? 50 ???? ???????????????????
             return timeDifference.TotalMinutes < 50;
         }
         private DateTime? CombineDateAndTime(DateTime? dateProcess, DateTime? timeProcess)
@@ -302,7 +303,7 @@ namespace SI24004.Services
                 return null;
             }
         }
-        // ✅ ปรับปรุง SendScheduledEmail ให้รับ parameter
+        // ? ???????? SendScheduledEmail ?????? parameter
         private async Task SendScheduledEmail(DateTime? currentTime = null)
         {
             using var scope = _serviceProvider.CreateScope();
@@ -447,7 +448,7 @@ namespace SI24004.Services
 
             return (avg, max, min, diff);
         }
-        // ✅ ปรับปรุง Email Body Generation
+        // ? ???????? Email Body Generation
         private string GenerateEnhancedEmailBody(IEnumerable<(ThRecord record, bool isRescreenCompleted)> records, DateTime reportTime, DateTime fromTime, DateTime toTime)
         {
             var sb = new StringBuilder();
@@ -610,14 +611,14 @@ namespace SI24004.Services
             return sb.ToString();
         }
 
-        // ✅ เพิ่ม method สำหรับกำหนดชื่อรอบเวลา
+        // ? ????? method ??????????????????????
         private string GetTimeSlotName(int hour)
         {
             return hour switch
             {
-                0 => "Midnight Shift (00:00)", // เพิ่มเที่ยงคืน
+                0 => "Midnight Shift (00:00)", // ??????????????
                 >= 6 and < 12 => "Morning Shift (06:00)",
-                12 => "Noon Shift (12:00)", // ระบุเที่ยงชัด
+                12 => "Noon Shift (12:00)", // ?????????????
                 >= 18 and < 24 => "Evening Shift (18:00)",
                 >= 1 and < 6 => "Early Morning Shift",
                 >= 13 and < 18 => "Afternoon Shift",
@@ -635,10 +636,10 @@ namespace SI24004.Services
             sb.AppendLine("<body style='font-family: Arial, sans-serif; margin: 20px;'>");
 
             var timeSlot = GetTimeSlotName(reportTime.Hour);
-            sb.AppendLine($"<h2 style='color: #4caf50;'>✅ Polishing Report - All Clear ({timeSlot})</h2>");
+            sb.AppendLine($"<h2 style='color: #4caf50;'>? Polishing Report - All Clear ({timeSlot})</h2>");
             sb.AppendLine($"<p><strong>Report Time:</strong> {reportTime:yyyy-MM-dd HH:mm:ss}</p>");
             sb.AppendLine($"<p><strong>Period:</strong> {fromTime:yyyy-MM-dd HH:mm} - {toTime:yyyy-MM-dd HH:mm}</p>");
-            sb.AppendLine("<p style='color: #4caf50; font-size: 16px;'><strong>🎉 No issues found in this period</strong></p>");
+            sb.AppendLine("<p style='color: #4caf50; font-size: 16px;'><strong>?? No issues found in this period</strong></p>");
             sb.AppendLine("<p>All Polishing processes are running normally with no Rescreen, Hold, or Scrap items.</p>");
             sb.AppendLine("<hr><p><small>Automated Report - Polishing System</small></p>");
             sb.AppendLine("</body></html>");
@@ -654,7 +655,7 @@ namespace SI24004.Services
             sb.AppendLine("<html>");
             sb.AppendLine("<head><meta charset='UTF-8'></head>");
             sb.AppendLine("<body style='font-family: Arial, sans-serif; margin: 20px;'>");
-            sb.AppendLine($"<h2 style='color: #f44336;'>❌ Polishing Report System Error</h2>");
+            sb.AppendLine($"<h2 style='color: #f44336;'>? Polishing Report System Error</h2>");
             sb.AppendLine($"<p><strong>Error Time:</strong> {errorTime:yyyy-MM-dd HH:mm:ss}</p>");
             sb.AppendLine($"<p><strong>Error Message:</strong> {ex.Message}</p>");
             sb.AppendLine("<p style='color: #f44336;'><strong>Please check the Email Scheduler system</strong></p>");
@@ -670,7 +671,7 @@ namespace SI24004.Services
             using var smtpClient = new SmtpClient(_smtpSettings.Host, _smtpSettings.Port);
             smtpClient.EnableSsl = _smtpSettings.EnableSsl;
             smtpClient.UseDefaultCredentials = _smtpSettings.UseDefaultCredentials;
-            smtpClient.Timeout = 30000; // ✅ เพิ่ม timeout 30 วินาที
+            smtpClient.Timeout = 30000; // ? ????? timeout 30 ??????
 
             if (!_smtpSettings.UseDefaultCredentials)
             {
@@ -726,16 +727,16 @@ namespace SI24004.Services
             mailMessage.Priority = MailPriority.Normal;
 
             await smtpClient.SendMailAsync(mailMessage);
-            _logger.LogInformation("📧 Email sent to {TotalRecipients} recipients", totalRecipients);
+            _logger.LogInformation("?? Email sent to {TotalRecipients} recipients", totalRecipients);
         }
 
-        // ✅ เพิ่ม method สำหรับส่งเมลทดสอบ manual
+        // ? ????? method ????????????????? manual
         public async Task SendTestEmailAsync()
         {
-            _logger.LogInformation("🧪 Sending manual test email...");
+            _logger.LogInformation("?? Sending manual test email...");
             await SendScheduledEmailWithRetry(GetThailandTime());
         }
-        // ✅ เพิ่ม method สำหรับดูสถานะ service
+        // ? ????? method ????????????? service
         public ServiceStatus GetServiceStatus()
         {
             var currentTime = GetThailandTime();
@@ -763,13 +764,13 @@ namespace SI24004.Services
         }
 
 
-        // ✅ เพิ่ม method สำหรับคำนวณเวลาส่งครั้งต่อไป
+        // ? ????? method ????????????????????????????
         private List<DateTime> GetNextScheduledTimes(DateTime currentTime)
         {
             var nextTimes = new List<DateTime>();
             var today = currentTime.Date;
 
-            // หาเวลาที่เหลือในวันนี้
+            // ??????????????????????
             foreach (var hour in _scheduleSettings.ScheduleHours.OrderBy(h => h))
             {
                 var scheduledTime = today.AddHours(hour);
@@ -779,7 +780,7 @@ namespace SI24004.Services
                 }
             }
 
-            // ถ้าไม่มีเวลาที่เหลือในวันนี้ ให้เอาจากวันพรุ่งนี้
+            // ???????????????????????????? ????????????????????
             if (!nextTimes.Any())
             {
                 var tomorrow = today.AddDays(1);
@@ -792,7 +793,7 @@ namespace SI24004.Services
 
     }
 
-    // ✅ เพิ่ม class สำหรับ Service Status
+    // ? ????? class ?????? Service Status
     //public class ServiceStatus
     //{
     //    public bool IsEnabled { get; set; }
@@ -802,13 +803,13 @@ namespace SI24004.Services
     //    public List<int> ScheduleHours { get; set; } = new();
     //    public Dictionary<string, object> Configuration { get; set; } = new();
     //}
-    // ✅ ปรับปรุง Extension method สำหรับ register service
+    // ? ???????? Extension method ?????? register service
     public static class EmailServiceExtensions
     {
         public static IServiceCollection AddEmailScheduleService(this IServiceCollection services)
         {// Register EmailRecipientsService first
             services.AddSingleton<IEmailRecipientsService, EmailRecipientsService>();
-            // Register เฉพาะ Hosted Service เท่านั้น
+            // Register ????? Hosted Service ????????
             services.AddHostedService<EmailScheduleService>();
             return services;
         }
@@ -818,7 +819,7 @@ namespace SI24004.Services
         {
             services.Configure<ScheduleSettings>(settings =>
             {
-                // Default values - เพิ่มเที่ยงคืน
+                // Default values - ??????????????
                 settings.EnableSchedule = true;
                 settings.ScheduleHours = new List<int> { 0, 6, 12, 18 }; // 00:00, 06:00, 12:00, 18:00
                 settings.CheckIntervalSeconds = 60;
@@ -855,3 +856,4 @@ namespace SI24004.Services
 
     }
 }
+

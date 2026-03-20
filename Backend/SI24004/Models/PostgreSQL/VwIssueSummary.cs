@@ -5,15 +5,15 @@ namespace SI24004.Models.PostgreSQL;
 
 public partial class VwIssueSummary
 {
-    public string IssueId { get; set; }
+    public string? IssueId { get; set; }
 
-    public string CurrentStatus { get; set; }
+    public string? CurrentStatus { get; set; }
 
     public DateTime? IssuedDate { get; set; }
 
     public DateTime? ReceivedDate { get; set; }
 
-    public string SectionId { get; set; }
+    public string? SectionId { get; set; }
 
     public int? TotalItems { get; set; }
 
@@ -31,5 +31,5 @@ public partial class VwIssueSummary
 
     public DateTime? UpdatedAt { get; set; }
 
-    public string UpdatedBy { get; set; }
+    public string? UpdatedBy { get; set; }
 }

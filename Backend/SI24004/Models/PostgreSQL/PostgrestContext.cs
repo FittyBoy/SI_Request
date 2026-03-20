@@ -11,7 +11,9 @@ public partial class PostgrestContext : DbContext
     {
     }
 
-    public virtual DbSet<Attachment> Attachments { get; set; }
+    public virtual DbSet<Admin> Admins { get; set; }
+
+    public virtual DbSet<Admin1> Admins1 { get; set; }
 
     public virtual DbSet<AviRequest> AviRequests { get; set; }
 
@@ -19,13 +21,41 @@ public partial class PostgrestContext : DbContext
 
     public virtual DbSet<CacheLock> CacheLocks { get; set; }
 
-    public virtual DbSet<DownloadLogDrawing> DownloadLogDrawings { get; set; }
+    public virtual DbSet<CompareDifference> CompareDifferences { get; set; }
 
-    public virtual DbSet<Drawing> Drawings { get; set; }
+    public virtual DbSet<CompareResult> CompareResults { get; set; }
+
+    public virtual DbSet<CompareRun> CompareRuns { get; set; }
+
+    public virtual DbSet<ComparisonResult> ComparisonResults { get; set; }
+
+    public virtual DbSet<ComparisonResult1> ComparisonResults1 { get; set; }
+
+    public virtual DbSet<ControlPlanEntry> ControlPlanEntries { get; set; }
+
+    public virtual DbSet<ControlPlanEntry1> ControlPlanEntries1 { get; set; }
+
+    public virtual DbSet<Department> Departments { get; set; }
+
+    public virtual DbSet<Department1> Departments1 { get; set; }
+
+    public virtual DbSet<Department2> Departments2 { get; set; }
+
+    public virtual DbSet<Division> Divisions { get; set; }
+
+    public virtual DbSet<Division1> Divisions1 { get; set; }
+
+    public virtual DbSet<DownloadLogDrawing> DownloadLogDrawings { get; set; }
 
     public virtual DbSet<DwRequest> DwRequests { get; set; }
 
+    public virtual DbSet<Employee> Employees { get; set; }
+
     public virtual DbSet<Employeemaster> Employeemasters { get; set; }
+
+    public virtual DbSet<ExamQuestion> ExamQuestions { get; set; }
+
+    public virtual DbSet<Factory> Factories { get; set; }
 
     public virtual DbSet<FailedJob> FailedJobs { get; set; }
 
@@ -45,11 +75,21 @@ public partial class PostgrestContext : DbContext
 
     public virtual DbSet<JobBatch> JobBatches { get; set; }
 
-    public virtual DbSet<ListItem> ListItems { get; set; }
+    public virtual DbSet<License> Licenses { get; set; }
+
+    public virtual DbSet<LicenseExam> LicenseExams { get; set; }
+
+    public virtual DbSet<LicenseMaterial> LicenseMaterials { get; set; }
+
+    public virtual DbSet<LicenseRecord> LicenseRecords { get; set; }
+
+    public virtual DbSet<LicenseSo> LicenseSos { get; set; }
 
     public virtual DbSet<Locationmaster> Locationmasters { get; set; }
 
     public virtual DbSet<LotRequest> LotRequests { get; set; }
+
+    public virtual DbSet<MachineNameMismatch> MachineNameMismatches { get; set; }
 
     public virtual DbSet<Materalinventory> Materalinventories { get; set; }
 
@@ -61,11 +101,15 @@ public partial class PostgrestContext : DbContext
 
     public virtual DbSet<Migration> Migrations { get; set; }
 
-    public virtual DbSet<Objective> Objectives { get; set; }
+    public virtual DbSet<ParameterDifference> ParameterDifferences { get; set; }
+
+    public virtual DbSet<ParameterDifference1> ParameterDifferences1 { get; set; }
 
     public virtual DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
 
     public virtual DbSet<PoCheckFlow> PoCheckFlows { get; set; }
+
+    public virtual DbSet<Process> Processes { get; set; }
 
     public virtual DbSet<Productmaster> Productmasters { get; set; }
 
@@ -75,13 +119,17 @@ public partial class PostgrestContext : DbContext
 
     public virtual DbSet<RegularSubstandReordered> RegularSubstandReordereds { get; set; }
 
-    public virtual DbSet<RequestMachine> RequestMachines { get; set; }
+    public virtual DbSet<Request> Requests { get; set; }
 
     public virtual DbSet<RescreenCheckRecord> RescreenCheckRecords { get; set; }
 
     public virtual DbSet<RescreenCheckRecord1> RescreenCheckRecords1 { get; set; }
 
     public virtual DbSet<Role> Roles { get; set; }
+
+    public virtual DbSet<RunSession> RunSessions { get; set; }
+
+    public virtual DbSet<RunSession1> RunSessions1 { get; set; }
 
     public virtual DbSet<Section> Sections { get; set; }
 
@@ -99,6 +147,20 @@ public partial class PostgrestContext : DbContext
 
     public virtual DbSet<User1> Users1 { get; set; }
 
+    public virtual DbSet<VDailySummary> VDailySummaries { get; set; }
+
+    public virtual DbSet<VNgSummary> VNgSummaries { get; set; }
+
+    public virtual DbSet<VParamDiffDetail> VParamDiffDetails { get; set; }
+
+    public virtual DbSet<VProblematicMachine> VProblematicMachines { get; set; }
+
+    public virtual DbSet<VSessionSummary> VSessionSummaries { get; set; }
+
+    public virtual DbSet<VTrend30d> VTrend30ds { get; set; }
+
+    public virtual DbSet<VWeeklySummary> VWeeklySummaries { get; set; }
+
     public virtual DbSet<VwIssueSummary> VwIssueSummaries { get; set; }
 
     public virtual DbSet<VwItemCurrentStatus> VwItemCurrentStatuses { get; set; }
@@ -112,38 +174,74 @@ public partial class PostgrestContext : DbContext
             .HasPostgresExtension("pgcrypto")
             .HasPostgresExtension("uuid-ossp");
 
-        modelBuilder.Entity<Attachment>(entity =>
+        modelBuilder.Entity<Admin>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("attrachment_pk");
+            entity.HasKey(e => e.Id).HasName("admins_pkey");
 
-            entity.ToTable("attachment", "master");
+            entity.ToTable("admins", "PI", tb => tb.HasComment("Admin users for the centralized data system"));
 
-            entity.Property(e => e.Id)
-                .HasDefaultValueSql("uuid_generate_v4()")
-                .HasColumnName("id");
-            entity.Property(e => e.AttachementFileData).HasColumnName("attachement_file_data");
-            entity.Property(e => e.AttachementPath)
-                .HasColumnType("character varying")
-                .HasColumnName("attachement_path");
-            entity.Property(e => e.AttachementType)
-                .HasColumnType("character varying")
-                .HasColumnName("attachement_type");
-            entity.Property(e => e.AttachmentFileLocation)
-                .HasColumnType("character varying")
-                .HasColumnName("attachment_file_location");
-            entity.Property(e => e.AttachmentName)
-                .IsRequired()
-                .HasColumnType("character varying")
-                .HasColumnName("attachment_name");
-            entity.Property(e => e.AttachmentSize)
-                .HasColumnType("character varying")
-                .HasColumnName("attachment_size");
-            entity.Property(e => e.Category)
-                .HasColumnType("character varying")
-                .HasColumnName("category");
-            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
-            entity.Property(e => e.RequestId).HasColumnName("request_id");
-            entity.Property(e => e.UploadDate).HasColumnName("upload_date");
+            entity.HasIndex(e => e.Username, "admins_username_key").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Email)
+                .HasMaxLength(200)
+                .HasColumnName("email");
+            entity.Property(e => e.FullName)
+                .HasMaxLength(200)
+                .HasColumnName("full_name");
+            entity.Property(e => e.Password)
+                .HasMaxLength(255)
+                .HasColumnName("password");
+            entity.Property(e => e.Role)
+                .HasMaxLength(50)
+                .HasDefaultValueSql("'admin'::character varying")
+                .HasColumnName("role");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updated_at");
+            entity.Property(e => e.Username)
+                .HasMaxLength(100)
+                .HasColumnName("username");
+        });
+
+        modelBuilder.Entity<Admin1>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("admins_pkey");
+
+            entity.ToTable("admins", "pi", tb => tb.HasComment("Admin users for the centralized data system"));
+
+            entity.HasIndex(e => e.Username, "admins_username_key").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Email)
+                .HasMaxLength(200)
+                .HasColumnName("email");
+            entity.Property(e => e.FullName)
+                .HasMaxLength(200)
+                .HasColumnName("full_name");
+            entity.Property(e => e.Password)
+                .HasMaxLength(255)
+                .HasColumnName("password");
+            entity.Property(e => e.Role)
+                .HasMaxLength(50)
+                .HasDefaultValueSql("'admin'::character varying")
+                .HasColumnName("role");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updated_at");
+            entity.Property(e => e.Username)
+                .HasMaxLength(100)
+                .HasColumnName("username");
         });
 
         modelBuilder.Entity<AviRequest>(entity =>
@@ -163,7 +261,6 @@ public partial class PostgrestContext : DbContext
             entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
             entity.Property(e => e.RequestApprove).HasColumnName("request_approve");
             entity.Property(e => e.RequestCode)
-                .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("request_code");
             entity.Property(e => e.RequestDate)
@@ -173,19 +270,9 @@ public partial class PostgrestContext : DbContext
                 .HasColumnType("character varying")
                 .HasColumnName("request_description");
             entity.Property(e => e.RequestName)
-                .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("request_name");
             entity.Property(e => e.UserId).HasColumnName("user_id");
-
-            entity.HasOne(d => d.Attachment).WithMany(p => p.AviRequests)
-                .HasForeignKey(d => d.AttachmentId)
-                .HasConstraintName("avi_request_attachment_fk");
-
-            entity.HasOne(d => d.User).WithMany(p => p.AviRequests)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("avi_request_users_fk");
         });
 
         modelBuilder.Entity<Cache>(entity =>
@@ -198,9 +285,7 @@ public partial class PostgrestContext : DbContext
                 .HasMaxLength(255)
                 .HasColumnName("key");
             entity.Property(e => e.Expiration).HasColumnName("expiration");
-            entity.Property(e => e.Value)
-                .IsRequired()
-                .HasColumnName("value");
+            entity.Property(e => e.Value).HasColumnName("value");
         });
 
         modelBuilder.Entity<CacheLock>(entity =>
@@ -214,9 +299,611 @@ public partial class PostgrestContext : DbContext
                 .HasColumnName("key");
             entity.Property(e => e.Expiration).HasColumnName("expiration");
             entity.Property(e => e.Owner)
-                .IsRequired()
                 .HasMaxLength(255)
                 .HasColumnName("owner");
+        });
+
+        modelBuilder.Entity<CompareDifference>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("compare_differences_pkey");
+
+            entity.ToTable("compare_differences", "QC", tb => tb.HasComment("รายละเอียดความแตกต่างในแต่ละ cell/sheet"));
+
+            entity.HasIndex(e => e.ResultId, "idx_diffs_result_id");
+
+            entity.HasIndex(e => e.SheetName, "idx_diffs_sheet");
+
+            entity.HasIndex(e => e.DiffType, "idx_diffs_type");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("uuid_generate_v4()")
+                .HasColumnName("id");
+            entity.Property(e => e.CellRef)
+                .HasMaxLength(20)
+                .HasColumnName("cell_ref");
+            entity.Property(e => e.CompareValue).HasColumnName("compare_value");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("created_at");
+            entity.Property(e => e.DiffType)
+                .HasMaxLength(30)
+                .HasColumnName("diff_type");
+            entity.Property(e => e.Dimension)
+                .HasMaxLength(10)
+                .HasColumnName("dimension");
+            entity.Property(e => e.MasterValue).HasColumnName("master_value");
+            entity.Property(e => e.ResultId).HasColumnName("result_id");
+            entity.Property(e => e.SheetName)
+                .HasMaxLength(100)
+                .HasColumnName("sheet_name");
+
+            entity.HasOne(d => d.Result).WithMany(p => p.CompareDifferences)
+                .HasForeignKey(d => d.ResultId)
+                .HasConstraintName("compare_differences_result_id_fkey");
+        });
+
+        modelBuilder.Entity<CompareResult>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("compare_results_pkey");
+
+            entity.ToTable("compare_results", "QC", tb => tb.HasComment("ผลการเปรียบเทียบแต่ละคู่ไฟล์"));
+
+            entity.HasIndex(e => e.MachineName, "idx_compare_results_machine");
+
+            entity.HasIndex(e => e.RunId, "idx_compare_results_run_id");
+
+            entity.HasIndex(e => e.RunId, "idx_compare_results_rundate");
+
+            entity.HasIndex(e => e.Status, "idx_compare_results_status");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("uuid_generate_v4()")
+                .HasColumnName("id");
+            entity.Property(e => e.CompareFilename).HasColumnName("compare_filename");
+            entity.Property(e => e.CompareUrl).HasColumnName("compare_url");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("created_at");
+            entity.Property(e => e.DiffCount)
+                .HasDefaultValue(0)
+                .HasColumnName("diff_count");
+            entity.Property(e => e.ErrorMessage).HasColumnName("error_message");
+            entity.Property(e => e.MachineName)
+                .HasMaxLength(100)
+                .HasColumnName("machine_name");
+            entity.Property(e => e.MachineNameOk)
+                .HasDefaultValue(true)
+                .HasColumnName("machine_name_ok");
+            entity.Property(e => e.MasterFilename).HasColumnName("master_filename");
+            entity.Property(e => e.MasterUrl).HasColumnName("master_url");
+            entity.Property(e => e.ProductName)
+                .HasMaxLength(100)
+                .HasColumnName("product_name");
+            entity.Property(e => e.RunId).HasColumnName("run_id");
+            entity.Property(e => e.SeqNo).HasColumnName("seq_no");
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasColumnName("status");
+
+            entity.HasOne(d => d.Run).WithMany(p => p.CompareResults)
+                .HasForeignKey(d => d.RunId)
+                .HasConstraintName("compare_results_run_id_fkey");
+        });
+
+        modelBuilder.Entity<CompareRun>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("compare_runs_pkey");
+
+            entity.ToTable("compare_runs", "QC", tb => tb.HasComment("บันทึกแต่ละ session การรันเปรียบเทียบ AR/UVIR"));
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("uuid_generate_v4()")
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("created_at");
+            entity.Property(e => e.EmailSent)
+                .HasDefaultValue(false)
+                .HasColumnName("email_sent");
+            entity.Property(e => e.EmailTo).HasColumnName("email_to");
+            entity.Property(e => e.HasIssues)
+                .HasDefaultValue(false)
+                .HasColumnName("has_issues");
+            entity.Property(e => e.MachineNameMismatches)
+                .HasDefaultValue(0)
+                .HasColumnName("machine_name_mismatches");
+            entity.Property(e => e.ReportFile).HasColumnName("report_file");
+            entity.Property(e => e.RunAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("run_at");
+            entity.Property(e => e.RunDate).HasColumnName("run_date");
+            entity.Property(e => e.RunType)
+                .HasMaxLength(10)
+                .HasColumnName("run_type");
+            entity.Property(e => e.RunWeekday)
+                .HasMaxLength(10)
+                .HasColumnName("run_weekday");
+            entity.Property(e => e.TotalChecked)
+                .HasDefaultValue(0)
+                .HasColumnName("total_checked");
+            entity.Property(e => e.TotalDiffs)
+                .HasDefaultValue(0)
+                .HasColumnName("total_diffs");
+            entity.Property(e => e.TotalError)
+                .HasDefaultValue(0)
+                .HasColumnName("total_error");
+            entity.Property(e => e.TotalMatch)
+                .HasDefaultValue(0)
+                .HasColumnName("total_match");
+            entity.Property(e => e.TotalMismatch)
+                .HasDefaultValue(0)
+                .HasColumnName("total_mismatch");
+        });
+
+        modelBuilder.Entity<ComparisonResult>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("comparison_results_pkey");
+
+            entity.ToTable("comparison_results", "QC", tb => tb.HasComment("ผลเปรียบเทียบแต่ละคู่ folder"));
+
+            entity.HasIndex(e => new { e.Machine, e.ModelType }, "idx_cr_machine");
+
+            entity.HasIndex(e => e.RunAt, "idx_cr_run_at").IsDescending();
+
+            entity.HasIndex(e => e.SessionId, "idx_cr_session");
+
+            entity.HasIndex(e => e.Status, "idx_cr_status");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CommonFileCount)
+                .HasDefaultValue(0)
+                .HasColumnName("common_file_count");
+            entity.Property(e => e.CompareFileCount)
+                .HasDefaultValue(0)
+                .HasColumnName("compare_file_count");
+            entity.Property(e => e.CompareFolder).HasColumnName("compare_folder");
+            entity.Property(e => e.ContentNgFiles)
+                .HasDefaultValue(0)
+                .HasColumnName("content_ng_files");
+            entity.Property(e => e.ContentNgParams)
+                .HasDefaultValue(0)
+                .HasColumnName("content_ng_params");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Machine).HasColumnName("machine");
+            entity.Property(e => e.MasterFileCount)
+                .HasDefaultValue(0)
+                .HasColumnName("master_file_count");
+            entity.Property(e => e.MasterFolder).HasColumnName("master_folder");
+            entity.Property(e => e.Message).HasColumnName("message");
+            entity.Property(e => e.MissingInCompare)
+                .HasDefaultValue(0)
+                .HasColumnName("missing_in_compare");
+            entity.Property(e => e.MissingInMaster)
+                .HasDefaultValue(0)
+                .HasColumnName("missing_in_master");
+            entity.Property(e => e.ModelType).HasColumnName("model_type");
+            entity.Property(e => e.No).HasColumnName("no");
+            entity.Property(e => e.RunAt)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("run_at");
+            entity.Property(e => e.SessionId).HasColumnName("session_id");
+            entity.Property(e => e.Status).HasColumnName("status");
+
+            entity.HasOne(d => d.Session).WithMany(p => p.ComparisonResults)
+                .HasForeignKey(d => d.SessionId)
+                .HasConstraintName("comparison_results_session_id_fkey");
+        });
+
+        modelBuilder.Entity<ComparisonResult1>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("comparison_results_pkey");
+
+            entity.ToTable("comparison_results", "qc");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CommonFileCount)
+                .HasDefaultValue(0)
+                .HasColumnName("common_file_count");
+            entity.Property(e => e.CompareFileCount)
+                .HasDefaultValue(0)
+                .HasColumnName("compare_file_count");
+            entity.Property(e => e.CompareFolder).HasColumnName("compare_folder");
+            entity.Property(e => e.ContentNgFiles)
+                .HasDefaultValue(0)
+                .HasColumnName("content_ng_files");
+            entity.Property(e => e.ContentNgParams)
+                .HasDefaultValue(0)
+                .HasColumnName("content_ng_params");
+            entity.Property(e => e.Machine).HasColumnName("machine");
+            entity.Property(e => e.MasterFileCount)
+                .HasDefaultValue(0)
+                .HasColumnName("master_file_count");
+            entity.Property(e => e.MasterFolder).HasColumnName("master_folder");
+            entity.Property(e => e.Message).HasColumnName("message");
+            entity.Property(e => e.MissingInCompare)
+                .HasDefaultValue(0)
+                .HasColumnName("missing_in_compare");
+            entity.Property(e => e.MissingInMaster)
+                .HasDefaultValue(0)
+                .HasColumnName("missing_in_master");
+            entity.Property(e => e.ModelType).HasColumnName("model_type");
+            entity.Property(e => e.No).HasColumnName("no");
+            entity.Property(e => e.RunAt)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("run_at");
+            entity.Property(e => e.SessionId).HasColumnName("session_id");
+            entity.Property(e => e.Status).HasColumnName("status");
+
+            entity.HasOne(d => d.Session).WithMany(p => p.ComparisonResult1s)
+                .HasForeignKey(d => d.SessionId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("comparison_results_session_id_fkey");
+        });
+
+        modelBuilder.Entity<ControlPlanEntry>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("control_plan_entries_pkey");
+
+            entity.ToTable("control_plan_entries", "PI", tb => tb.HasComment("Control Plan entries based on Excel CONTROL_PLAN format"));
+
+            entity.HasIndex(e => e.DepartmentId, "idx_control_plan_department");
+
+            entity.HasIndex(e => e.EntryNo, "idx_control_plan_no");
+
+            entity.HasIndex(e => e.SectionName, "idx_control_plan_section");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CheckSheet)
+                .HasMaxLength(300)
+                .HasColumnName("check_sheet");
+            entity.Property(e => e.ConfirmFrequency)
+                .HasMaxLength(200)
+                .HasColumnName("confirm_frequency");
+            entity.Property(e => e.ConfirmMethod)
+                .HasMaxLength(300)
+                .HasColumnName("confirm_method");
+            entity.Property(e => e.ControlItem)
+                .HasMaxLength(300)
+                .HasColumnName("control_item");
+            entity.Property(e => e.ControlPlanNo)
+                .HasMaxLength(100)
+                .HasColumnName("control_plan_no");
+            entity.Property(e => e.ControlValue).HasColumnName("control_value");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.CriticalItem)
+                .HasMaxLength(300)
+                .HasColumnName("critical_item");
+            entity.Property(e => e.DataFormat)
+                .HasMaxLength(300)
+                .HasColumnName("data_format");
+            entity.Property(e => e.DepartmentId).HasColumnName("department_id");
+            entity.Property(e => e.DocumentConcern)
+                .HasMaxLength(300)
+                .HasColumnName("document_concern");
+            entity.Property(e => e.EntryNo).HasColumnName("entry_no");
+            entity.Property(e => e.PathData).HasColumnName("path_data");
+            entity.Property(e => e.ProcessEquipmentName)
+                .HasMaxLength(300)
+                .HasColumnName("process_equipment_name");
+            entity.Property(e => e.Product)
+                .HasMaxLength(200)
+                .HasColumnName("product");
+            entity.Property(e => e.QcConfirmMethod)
+                .HasMaxLength(300)
+                .HasColumnName("qc_confirm_method");
+            entity.Property(e => e.QcControlItem)
+                .HasMaxLength(300)
+                .HasColumnName("qc_control_item");
+            entity.Property(e => e.QcDataFormat)
+                .HasMaxLength(300)
+                .HasColumnName("qc_data_format");
+            entity.Property(e => e.QcFrequency)
+                .HasMaxLength(200)
+                .HasColumnName("qc_frequency");
+            entity.Property(e => e.QcPathData).HasColumnName("qc_path_data");
+            entity.Property(e => e.QcResp)
+                .HasMaxLength(200)
+                .HasColumnName("qc_resp");
+            entity.Property(e => e.RespPerson)
+                .HasMaxLength(200)
+                .HasColumnName("resp_person");
+            entity.Property(e => e.Revision)
+                .HasMaxLength(50)
+                .HasColumnName("revision");
+            entity.Property(e => e.RevisionDate).HasColumnName("revision_date");
+            entity.Property(e => e.SectionName)
+                .HasMaxLength(200)
+                .HasColumnName("section_name");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updated_at");
+            entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
+
+            entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.ControlPlanEntryCreatedByNavigations)
+                .HasForeignKey(d => d.CreatedBy)
+                .HasConstraintName("control_plan_entries_created_by_fkey");
+
+            entity.HasOne(d => d.Department).WithMany(p => p.ControlPlanEntries)
+                .HasForeignKey(d => d.DepartmentId)
+                .HasConstraintName("control_plan_entries_department_id_fkey");
+
+            entity.HasOne(d => d.UpdatedByNavigation).WithMany(p => p.ControlPlanEntryUpdatedByNavigations)
+                .HasForeignKey(d => d.UpdatedBy)
+                .HasConstraintName("control_plan_entries_updated_by_fkey");
+        });
+
+        modelBuilder.Entity<ControlPlanEntry1>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("control_plan_entries_pkey");
+
+            entity.ToTable("control_plan_entries", "pi", tb => tb.HasComment("Control Plan entries based on Excel CONTROL_PLAN format"));
+
+            entity.HasIndex(e => e.DepartmentId, "idx_control_plan_department");
+
+            entity.HasIndex(e => e.EntryNo, "idx_control_plan_no");
+
+            entity.HasIndex(e => e.SectionName, "idx_control_plan_section");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ControlPlanNo)
+                .HasMaxLength(100)
+                .HasColumnName("control_plan_no");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.CriticalItem)
+                .HasMaxLength(300)
+                .HasColumnName("critical_item");
+            entity.Property(e => e.DepartmentId).HasColumnName("department_id");
+            entity.Property(e => e.EntryNo).HasColumnName("entry_no");
+            entity.Property(e => e.KpivCharacteristic)
+                .HasMaxLength(300)
+                .HasColumnName("kpiv_characteristic");
+            entity.Property(e => e.KpivCheckSheet)
+                .HasMaxLength(300)
+                .HasColumnName("kpiv_check_sheet");
+            entity.Property(e => e.KpivDataFormat)
+                .HasMaxLength(300)
+                .HasColumnName("kpiv_data_format");
+            entity.Property(e => e.KpivDocument)
+                .HasMaxLength(300)
+                .HasColumnName("kpiv_document");
+            entity.Property(e => e.KpivFrequency)
+                .HasMaxLength(200)
+                .HasColumnName("kpiv_frequency");
+            entity.Property(e => e.KpivMethod)
+                .HasMaxLength(300)
+                .HasColumnName("kpiv_method");
+            entity.Property(e => e.KpivPathData).HasColumnName("kpiv_path_data");
+            entity.Property(e => e.KpivResp)
+                .HasMaxLength(200)
+                .HasColumnName("kpiv_resp");
+            entity.Property(e => e.KpivSpec).HasColumnName("kpiv_spec");
+            entity.Property(e => e.KpovCharacteristic)
+                .HasMaxLength(300)
+                .HasColumnName("kpov_characteristic");
+            entity.Property(e => e.KpovDataFormat)
+                .HasMaxLength(300)
+                .HasColumnName("kpov_data_format");
+            entity.Property(e => e.KpovFrequency)
+                .HasMaxLength(200)
+                .HasColumnName("kpov_frequency");
+            entity.Property(e => e.KpovMethod)
+                .HasMaxLength(300)
+                .HasColumnName("kpov_method");
+            entity.Property(e => e.KpovPathData).HasColumnName("kpov_path_data");
+            entity.Property(e => e.KpovResp)
+                .HasMaxLength(200)
+                .HasColumnName("kpov_resp");
+            entity.Property(e => e.ProcessEquipmentName)
+                .HasMaxLength(300)
+                .HasColumnName("process_equipment_name");
+            entity.Property(e => e.Product)
+                .HasMaxLength(200)
+                .HasColumnName("product");
+            entity.Property(e => e.Revision)
+                .HasMaxLength(50)
+                .HasColumnName("revision");
+            entity.Property(e => e.RevisionDate).HasColumnName("revision_date");
+            entity.Property(e => e.SectionName)
+                .HasMaxLength(200)
+                .HasColumnName("section_name");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updated_at");
+            entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
+
+            entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.ControlPlanEntry1CreatedByNavigations)
+                .HasForeignKey(d => d.CreatedBy)
+                .HasConstraintName("control_plan_entries_created_by_fkey");
+
+            entity.HasOne(d => d.Department).WithMany(p => p.ControlPlanEntry1s)
+                .HasForeignKey(d => d.DepartmentId)
+                .HasConstraintName("control_plan_entries_department_id_fkey");
+
+            entity.HasOne(d => d.UpdatedByNavigation).WithMany(p => p.ControlPlanEntry1UpdatedByNavigations)
+                .HasForeignKey(d => d.UpdatedBy)
+                .HasConstraintName("control_plan_entries_updated_by_fkey");
+        });
+
+        modelBuilder.Entity<Department>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("departments_pkey");
+
+            entity.ToTable("departments", "PI", tb => tb.HasComment("Departments within each division, e.g. PO (Polishing) in Front-end"));
+
+            entity.HasIndex(e => e.Code, "departments_code_key").IsUnique();
+
+            entity.HasIndex(e => e.DivisionId, "idx_departments_division");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Code)
+                .HasMaxLength(50)
+                .HasColumnName("code");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.DivisionId).HasColumnName("division_id");
+            entity.Property(e => e.Name)
+                .HasMaxLength(200)
+                .HasColumnName("name");
+            entity.Property(e => e.SortOrder)
+                .HasDefaultValue(0)
+                .HasColumnName("sort_order");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Division).WithMany(p => p.Departments)
+                .HasForeignKey(d => d.DivisionId)
+                .HasConstraintName("departments_division_id_fkey");
+        });
+
+        modelBuilder.Entity<Department1>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("departments_pkey");
+
+            entity.ToTable("departments", "pi", tb => tb.HasComment("Departments within each division, e.g. PO (Polishing) in Front-end"));
+
+            entity.HasIndex(e => e.Code, "departments_code_key").IsUnique();
+
+            entity.HasIndex(e => e.DivisionId, "idx_departments_division");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Code)
+                .HasMaxLength(50)
+                .HasColumnName("code");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.DivisionId).HasColumnName("division_id");
+            entity.Property(e => e.Name)
+                .HasMaxLength(200)
+                .HasColumnName("name");
+            entity.Property(e => e.SortOrder)
+                .HasDefaultValue(0)
+                .HasColumnName("sort_order");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Division).WithMany(p => p.Department1s)
+                .HasForeignKey(d => d.DivisionId)
+                .HasConstraintName("departments_division_id_fkey");
+        });
+
+        modelBuilder.Entity<Department2>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("department_pkey");
+
+            entity.ToTable("department", "master");
+
+            entity.HasIndex(e => e.Code, "department_code_key").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.Code)
+                .HasMaxLength(20)
+                .HasColumnName("code");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true)
+                .HasColumnName("is_active");
+            entity.Property(e => e.Name)
+                .HasMaxLength(100)
+                .HasColumnName("name");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updated_at");
+        });
+
+        modelBuilder.Entity<Division>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("divisions_pkey");
+
+            entity.ToTable("divisions", "PI", tb => tb.HasComment("Production divisions: Front-end, Middle-end, Back-end, Support"));
+
+            entity.HasIndex(e => e.Code, "divisions_code_key").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Code)
+                .HasMaxLength(50)
+                .HasColumnName("code");
+            entity.Property(e => e.Color)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'#3B82F6'::character varying")
+                .HasColumnName("color");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.Name)
+                .HasMaxLength(200)
+                .HasColumnName("name");
+            entity.Property(e => e.SortOrder)
+                .HasDefaultValue(0)
+                .HasColumnName("sort_order");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updated_at");
+        });
+
+        modelBuilder.Entity<Division1>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("divisions_pkey");
+
+            entity.ToTable("divisions", "pi", tb => tb.HasComment("Production divisions: Front-end, Middle-end, Back-end, Support"));
+
+            entity.HasIndex(e => e.Code, "divisions_code_key").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Code)
+                .HasMaxLength(50)
+                .HasColumnName("code");
+            entity.Property(e => e.Color)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'#3B82F6'::character varying")
+                .HasColumnName("color");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.Name)
+                .HasMaxLength(200)
+                .HasColumnName("name");
+            entity.Property(e => e.SortOrder)
+                .HasDefaultValue(0)
+                .HasColumnName("sort_order");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updated_at");
         });
 
         modelBuilder.Entity<DownloadLogDrawing>(entity =>
@@ -240,30 +927,6 @@ public partial class PostgrestContext : DbContext
                 .HasColumnName("user_username");
         });
 
-        modelBuilder.Entity<Drawing>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("drawing_pk");
-
-            entity.ToTable("drawing", "master");
-
-            entity.Property(e => e.Id)
-                .HasDefaultValueSql("uuid_generate_v4()")
-                .HasColumnName("id");
-            entity.Property(e => e.DrawingCode)
-                .IsRequired()
-                .HasColumnType("character varying")
-                .HasColumnName("drawing_code");
-            entity.Property(e => e.DrawingName)
-                .HasColumnType("character varying")
-                .HasColumnName("drawing_name");
-            entity.Property(e => e.ListItemId).HasColumnName("list_item_id");
-
-            entity.HasOne(d => d.ListItem).WithMany(p => p.Drawings)
-                .HasForeignKey(d => d.ListItemId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("drawing_list_item_fk");
-        });
-
         modelBuilder.Entity<DwRequest>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("dw_request_pk");
@@ -276,26 +939,22 @@ public partial class PostgrestContext : DbContext
             entity.Property(e => e.Active).HasColumnName("active");
             entity.Property(e => e.AttachmentId).HasColumnName("attachment_id");
             entity.Property(e => e.CreatedBy)
-                .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("created_by");
             entity.Property(e => e.CreatedDate).HasColumnName("created_date");
             entity.Property(e => e.DrawingCode)
-                .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("drawing_code");
             entity.Property(e => e.DrawingDescription)
                 .HasColumnType("character varying")
                 .HasColumnName("drawing_description");
             entity.Property(e => e.DrawingName)
-                .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("drawing_name");
             entity.Property(e => e.DrawingRevise).HasColumnName("drawing_revise");
             entity.Property(e => e.DrawingTypeId).HasColumnName("drawing_type_id");
             entity.Property(e => e.IsDelete).HasColumnName("is_delete");
             entity.Property(e => e.RequestCode)
-                .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("request_code");
             entity.Property(e => e.SectionId).HasColumnName("section_id");
@@ -305,29 +964,68 @@ public partial class PostgrestContext : DbContext
                 .HasColumnName("update_by");
             entity.Property(e => e.UpdateDate).HasColumnName("update_date");
             entity.Property(e => e.UserId).HasColumnName("user_id");
+        });
 
-            entity.HasOne(d => d.Attachment).WithMany(p => p.DwRequests)
-                .HasForeignKey(d => d.AttachmentId)
-                .HasConstraintName("dw_request_attachment_fk");
+        modelBuilder.Entity<Employee>(entity =>
+        {
+            entity.HasKey(e => e.OptId).HasName("employee_pkey");
 
-            entity.HasOne(d => d.DrawingType).WithMany(p => p.DwRequests)
-                .HasForeignKey(d => d.DrawingTypeId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("dw_request_drawing_fk");
+            entity.ToTable("employee", "RW");
 
-            entity.HasOne(d => d.Section).WithMany(p => p.DwRequests)
-                .HasForeignKey(d => d.SectionId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("dw_request_section_fk");
+            entity.HasIndex(e => e.OptCode, "employee_opt_code_key").IsUnique();
 
-            entity.HasOne(d => d.Status).WithMany(p => p.DwRequests)
-                .HasForeignKey(d => d.StatusId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("dw_request_status_fk");
+            entity.Property(e => e.OptId)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("opt_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.OptCode)
+                .HasMaxLength(20)
+                .HasColumnName("opt_code");
+            entity.Property(e => e.OptDep)
+                .HasMaxLength(100)
+                .HasColumnName("opt_dep");
+            entity.Property(e => e.OptDepId).HasColumnName("opt_dep_id");
+            entity.Property(e => e.OptEmpType)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'contract'::character varying")
+                .HasColumnName("opt_emp_type");
+            entity.Property(e => e.OptEnddate).HasColumnName("opt_enddate");
+            entity.Property(e => e.OptFac)
+                .HasMaxLength(100)
+                .HasColumnName("opt_fac");
+            entity.Property(e => e.OptFacId).HasColumnName("opt_fac_id");
+            entity.Property(e => e.OptName)
+                .HasMaxLength(100)
+                .HasColumnName("opt_name");
+            entity.Property(e => e.OptPosition)
+                .HasMaxLength(100)
+                .HasColumnName("opt_position");
+            entity.Property(e => e.OptShift)
+                .HasMaxLength(20)
+                .HasColumnName("opt_shift");
+            entity.Property(e => e.OptStartdate).HasColumnName("opt_startdate");
+            entity.Property(e => e.OptStatus)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'active'::character varying")
+                .HasColumnName("opt_status");
+            entity.Property(e => e.OptSurname)
+                .HasMaxLength(100)
+                .HasColumnName("opt_surname");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updated_at");
 
-            entity.HasOne(d => d.User).WithMany(p => p.DwRequests)
-                .HasForeignKey(d => d.UserId)
-                .HasConstraintName("dw_request_users_fk");
+            entity.HasOne(d => d.OptDepNavigation).WithMany(p => p.Employees)
+                .HasForeignKey(d => d.OptDepId)
+                .HasConstraintName("employee_opt_dep_id_fkey");
+
+            entity.HasOne(d => d.OptFacNavigation).WithMany(p => p.Employees)
+                .HasForeignKey(d => d.OptFacId)
+                .HasConstraintName("employee_opt_fac_id_fkey");
         });
 
         modelBuilder.Entity<Employeemaster>(entity =>
@@ -352,7 +1050,6 @@ public partial class PostgrestContext : DbContext
                 .HasMaxLength(50)
                 .HasColumnName("department");
             entity.Property(e => e.Employeeid)
-                .IsRequired()
                 .HasMaxLength(20)
                 .HasColumnName("employeeid");
             entity.Property(e => e.Employeename)
@@ -375,6 +1072,63 @@ public partial class PostgrestContext : DbContext
                 .HasConstraintName("employeemaster_shift_fkey");
         });
 
+        modelBuilder.Entity<ExamQuestion>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("exam_question_pkey");
+
+            entity.ToTable("exam_question", "RW");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.AnswerKey)
+                .HasMaxLength(5)
+                .HasColumnName("answer_key");
+            entity.Property(e => e.Choices)
+                .HasColumnType("jsonb")
+                .HasColumnName("choices");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.ExamCode)
+                .HasMaxLength(50)
+                .HasColumnName("exam_code");
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true)
+                .HasColumnName("is_active");
+            entity.Property(e => e.LicenseCode)
+                .HasMaxLength(50)
+                .HasColumnName("license_code");
+            entity.Property(e => e.QuestionNo).HasColumnName("question_no");
+            entity.Property(e => e.QuestionText).HasColumnName("question_text");
+            entity.Property(e => e.Rev)
+                .HasDefaultValue(0)
+                .HasColumnName("rev");
+            entity.Property(e => e.ScoreWeight)
+                .HasDefaultValueSql("1")
+                .HasColumnName("score_weight");
+        });
+
+        modelBuilder.Entity<Factory>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("factory_pkey");
+
+            entity.ToTable("factory", "master");
+
+            entity.HasIndex(e => e.FacCode, "factory_fac_code_key").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.FacCode)
+                .HasMaxLength(20)
+                .HasColumnName("fac_code");
+            entity.Property(e => e.FacName)
+                .HasMaxLength(100)
+                .HasColumnName("fac_name");
+        });
+
         modelBuilder.Entity<FailedJob>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("failed_jobs_pkey");
@@ -384,24 +1138,15 @@ public partial class PostgrestContext : DbContext
             entity.HasIndex(e => e.Uuid, "failed_jobs_uuid_unique").IsUnique();
 
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.Connection)
-                .IsRequired()
-                .HasColumnName("connection");
-            entity.Property(e => e.Exception)
-                .IsRequired()
-                .HasColumnName("exception");
+            entity.Property(e => e.Connection).HasColumnName("connection");
+            entity.Property(e => e.Exception).HasColumnName("exception");
             entity.Property(e => e.FailedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp(0) without time zone")
                 .HasColumnName("failed_at");
-            entity.Property(e => e.Payload)
-                .IsRequired()
-                .HasColumnName("payload");
-            entity.Property(e => e.Queue)
-                .IsRequired()
-                .HasColumnName("queue");
+            entity.Property(e => e.Payload).HasColumnName("payload");
+            entity.Property(e => e.Queue).HasColumnName("queue");
             entity.Property(e => e.Uuid)
-                .IsRequired()
                 .HasMaxLength(255)
                 .HasColumnName("uuid");
         });
@@ -461,7 +1206,6 @@ public partial class PostgrestContext : DbContext
             entity.Property(e => e.RequestClearDate).HasColumnName("request_clear_date");
             entity.Property(e => e.RequestClearProgram).HasColumnName("request_clear_program");
             entity.Property(e => e.RequestCode)
-                .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("request_code");
             entity.Property(e => e.RequestComment1)
@@ -498,19 +1242,6 @@ public partial class PostgrestContext : DbContext
             entity.Property(e => e.RequestTest).HasColumnName("request_test");
             entity.Property(e => e.StatusId).HasColumnName("status_id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
-
-            entity.HasOne(d => d.Attachment).WithMany(p => p.InaRequests)
-                .HasForeignKey(d => d.AttachmentId)
-                .HasConstraintName("ina_request_attachment_fk");
-
-            entity.HasOne(d => d.Status).WithMany(p => p.InaRequests)
-                .HasForeignKey(d => d.StatusId)
-                .HasConstraintName("ina_request_status_fk");
-
-            entity.HasOne(d => d.User).WithMany(p => p.InaRequests)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("ina_request_users_fk");
         });
 
         modelBuilder.Entity<InventoryTransaction>(entity =>
@@ -546,7 +1277,6 @@ public partial class PostgrestContext : DbContext
                 .HasMaxLength(20)
                 .HasColumnName("issue_id");
             entity.Property(e => e.ItemCode)
-                .IsRequired()
                 .HasMaxLength(20)
                 .HasColumnName("item_code");
             entity.Property(e => e.ItemName)
@@ -582,14 +1312,12 @@ public partial class PostgrestContext : DbContext
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("transaction_date");
             entity.Property(e => e.TransactionId)
-                .IsRequired()
                 .HasMaxLength(50)
                 .HasColumnName("transaction_id");
             entity.Property(e => e.TransactionSubtype)
                 .HasMaxLength(20)
                 .HasColumnName("transaction_subtype");
             entity.Property(e => e.TransactionType)
-                .IsRequired()
                 .HasMaxLength(20)
                 .HasColumnName("transaction_type");
             entity.Property(e => e.Unit)
@@ -622,7 +1350,6 @@ public partial class PostgrestContext : DbContext
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.CurrentStatus)
-                .IsRequired()
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'pending'::character varying")
                 .HasColumnName("current_status");
@@ -630,7 +1357,6 @@ public partial class PostgrestContext : DbContext
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("hold_date");
             entity.Property(e => e.IssueId)
-                .IsRequired()
                 .HasMaxLength(20)
                 .HasColumnName("issue_id");
             entity.Property(e => e.IssuedDate)
@@ -700,11 +1426,9 @@ public partial class PostgrestContext : DbContext
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("hold_until");
             entity.Property(e => e.IssueId)
-                .IsRequired()
                 .HasMaxLength(20)
                 .HasColumnName("issue_id");
             entity.Property(e => e.ItemCode)
-                .IsRequired()
                 .HasMaxLength(20)
                 .HasColumnName("item_code");
             entity.Property(e => e.ItemName)
@@ -780,7 +1504,6 @@ public partial class PostgrestContext : DbContext
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.ItemCode)
-                .IsRequired()
                 .HasMaxLength(20)
                 .HasColumnName("item_code");
             entity.Property(e => e.MaxDatetime)
@@ -801,7 +1524,6 @@ public partial class PostgrestContext : DbContext
                 .HasColumnName("opening_balance");
             entity.Property(e => e.PeriodDate).HasColumnName("period_date");
             entity.Property(e => e.PeriodType)
-                .IsRequired()
                 .HasMaxLength(10)
                 .HasColumnName("period_type");
             entity.Property(e => e.TotalHold)
@@ -848,11 +1570,9 @@ public partial class PostgrestContext : DbContext
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.IssueId)
-                .IsRequired()
                 .HasMaxLength(20)
                 .HasColumnName("issue_id");
             entity.Property(e => e.ItemCode)
-                .IsRequired()
                 .HasMaxLength(20)
                 .HasColumnName("item_code");
             entity.Property(e => e.ItemName)
@@ -910,11 +1630,8 @@ public partial class PostgrestContext : DbContext
             entity.Property(e => e.Attempts).HasColumnName("attempts");
             entity.Property(e => e.AvailableAt).HasColumnName("available_at");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
-            entity.Property(e => e.Payload)
-                .IsRequired()
-                .HasColumnName("payload");
+            entity.Property(e => e.Payload).HasColumnName("payload");
             entity.Property(e => e.Queue)
-                .IsRequired()
                 .HasMaxLength(255)
                 .HasColumnName("queue");
             entity.Property(e => e.ReservedAt).HasColumnName("reserved_at");
@@ -931,13 +1648,10 @@ public partial class PostgrestContext : DbContext
                 .HasColumnName("id");
             entity.Property(e => e.CancelledAt).HasColumnName("cancelled_at");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
-            entity.Property(e => e.FailedJobIds)
-                .IsRequired()
-                .HasColumnName("failed_job_ids");
+            entity.Property(e => e.FailedJobIds).HasColumnName("failed_job_ids");
             entity.Property(e => e.FailedJobs).HasColumnName("failed_jobs");
             entity.Property(e => e.FinishedAt).HasColumnName("finished_at");
             entity.Property(e => e.Name)
-                .IsRequired()
                 .HasMaxLength(255)
                 .HasColumnName("name");
             entity.Property(e => e.Options).HasColumnName("options");
@@ -945,23 +1659,208 @@ public partial class PostgrestContext : DbContext
             entity.Property(e => e.TotalJobs).HasColumnName("total_jobs");
         });
 
-        modelBuilder.Entity<ListItem>(entity =>
+        modelBuilder.Entity<License>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("list_item_pk");
+            entity.HasKey(e => e.Id).HasName("license_pkey");
 
-            entity.ToTable("list_item", "master");
+            entity.ToTable("license", "RW");
+
+            entity.HasIndex(e => e.LicenseCode, "license_license_code_key").IsUnique();
 
             entity.Property(e => e.Id)
-                .HasDefaultValueSql("uuid_generate_v4()")
+                .HasDefaultValueSql("gen_random_uuid()")
                 .HasColumnName("id");
-            entity.Property(e => e.ListItemCode)
-                .IsRequired()
-                .HasColumnType("character varying")
-                .HasColumnName("list_item_code");
-            entity.Property(e => e.ListItemName)
-                .IsRequired()
-                .HasColumnType("character varying")
-                .HasColumnName("list_item_name");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Criteria)
+                .HasMaxLength(20)
+                .HasColumnName("criteria");
+            entity.Property(e => e.Department)
+                .HasMaxLength(100)
+                .HasColumnName("department");
+            entity.Property(e => e.DepartmentId).HasColumnName("department_id");
+            entity.Property(e => e.EffectiveDate).HasColumnName("effective_date");
+            entity.Property(e => e.LicenseCode)
+                .HasMaxLength(50)
+                .HasColumnName("license_code");
+            entity.Property(e => e.LicenseName)
+                .HasMaxLength(200)
+                .HasColumnName("license_name");
+            entity.Property(e => e.Process)
+                .HasMaxLength(100)
+                .HasColumnName("process");
+            entity.Property(e => e.ProcessId).HasColumnName("process_id");
+            entity.Property(e => e.Rev)
+                .HasDefaultValue(0)
+                .HasColumnName("rev");
+            entity.Property(e => e.Section)
+                .HasMaxLength(100)
+                .HasColumnName("section");
+            entity.Property(e => e.SectionId).HasColumnName("section_id");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.DepartmentNavigation).WithMany(p => p.Licenses)
+                .HasForeignKey(d => d.DepartmentId)
+                .HasConstraintName("license_department_id_fkey");
+
+            entity.HasOne(d => d.ProcessNavigation).WithMany(p => p.Licenses)
+                .HasForeignKey(d => d.ProcessId)
+                .HasConstraintName("license_process_id_fkey");
+
+            entity.HasOne(d => d.SectionNavigation).WithMany(p => p.Licenses)
+                .HasForeignKey(d => d.SectionId)
+                .HasConstraintName("license_section_id_fkey");
+        });
+
+        modelBuilder.Entity<LicenseExam>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("license_exam_pkey");
+
+            entity.ToTable("license_exam", "RW");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.EffectiveDate).HasColumnName("effective_date");
+            entity.Property(e => e.ExamCode)
+                .HasMaxLength(50)
+                .HasColumnName("exam_code");
+            entity.Property(e => e.LicenseId).HasColumnName("license_id");
+            entity.Property(e => e.Rev)
+                .HasDefaultValue(0)
+                .HasColumnName("rev");
+
+            entity.HasOne(d => d.License).WithMany(p => p.LicenseExams)
+                .HasForeignKey(d => d.LicenseId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("license_exam_license_id_fkey");
+        });
+
+        modelBuilder.Entity<LicenseMaterial>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("license_material_pkey");
+
+            entity.ToTable("license_material", "RW");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.EffectiveDate).HasColumnName("effective_date");
+            entity.Property(e => e.LicenseId).HasColumnName("license_id");
+            entity.Property(e => e.MaterialCode)
+                .HasMaxLength(50)
+                .HasColumnName("material_code");
+            entity.Property(e => e.MaterialName)
+                .HasMaxLength(200)
+                .HasColumnName("material_name");
+            entity.Property(e => e.MaterialType)
+                .HasMaxLength(100)
+                .HasColumnName("material_type");
+            entity.Property(e => e.Rev)
+                .HasDefaultValue(0)
+                .HasColumnName("rev");
+
+            entity.HasOne(d => d.License).WithMany(p => p.LicenseMaterials)
+                .HasForeignKey(d => d.LicenseId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("license_material_license_id_fkey");
+        });
+
+        modelBuilder.Entity<LicenseRecord>(entity =>
+        {
+            entity.HasKey(e => e.RecordId).HasName("license_record_pkey");
+
+            entity.ToTable("license_record", "RW");
+
+            entity.Property(e => e.RecordId)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("record_id");
+            entity.Property(e => e.Answers)
+                .HasColumnType("jsonb")
+                .HasColumnName("answers");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.ExamPercent)
+                .HasDefaultValueSql("0")
+                .HasColumnName("exam_percent");
+            entity.Property(e => e.ExamScore)
+                .HasDefaultValueSql("0")
+                .HasColumnName("exam_score");
+            entity.Property(e => e.ExamTotal)
+                .HasDefaultValueSql("0")
+                .HasColumnName("exam_total");
+            entity.Property(e => e.RecordExpiredcer).HasColumnName("record_expiredcer");
+            entity.Property(e => e.RecordIssuecer).HasColumnName("record_issuecer");
+            entity.Property(e => e.RecordIssuetem).HasColumnName("record_issuetem");
+            entity.Property(e => e.RecordLevel)
+                .HasMaxLength(20)
+                .HasColumnName("record_level");
+            entity.Property(e => e.RecordLicensecode)
+                .HasMaxLength(50)
+                .HasColumnName("record_licensecode");
+            entity.Property(e => e.RecordOptcode)
+                .HasMaxLength(50)
+                .HasColumnName("record_optcode");
+            entity.Property(e => e.RecordStatus)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'pending'::character varying")
+                .HasColumnName("record_status");
+            entity.Property(e => e.RecordVercount)
+                .HasDefaultValue(0)
+                .HasColumnName("record_vercount");
+            entity.Property(e => e.RecordVerdate).HasColumnName("record_verdate");
+            entity.Property(e => e.RequestId).HasColumnName("request_id");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Request).WithMany(p => p.LicenseRecords)
+                .HasForeignKey(d => d.RequestId)
+                .HasConstraintName("license_record_request_id_fkey");
+        });
+
+        modelBuilder.Entity<LicenseSo>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("license_sos_pkey");
+
+            entity.ToTable("license_sos", "RW");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.EffectiveDate).HasColumnName("effective_date");
+            entity.Property(e => e.LicenseId).HasColumnName("license_id");
+            entity.Property(e => e.Rev)
+                .HasDefaultValue(0)
+                .HasColumnName("rev");
+            entity.Property(e => e.SosCode)
+                .HasMaxLength(50)
+                .HasColumnName("sos_code");
+
+            entity.HasOne(d => d.License).WithMany(p => p.LicenseSos)
+                .HasForeignKey(d => d.LicenseId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("license_sos_license_id_fkey");
         });
 
         modelBuilder.Entity<Locationmaster>(entity =>
@@ -986,7 +1885,6 @@ public partial class PostgrestContext : DbContext
                 .HasDefaultValue(true)
                 .HasColumnName("isactive");
             entity.Property(e => e.Locationcode)
-                .IsRequired()
                 .HasMaxLength(50)
                 .HasColumnName("locationcode");
             entity.Property(e => e.Locationname)
@@ -1015,7 +1913,6 @@ public partial class PostgrestContext : DbContext
                 .HasColumnName("id");
             entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
             entity.Property(e => e.LotNo)
-                .IsRequired()
                 .HasMaxLength(10)
                 .HasColumnName("lot_no");
             entity.Property(e => e.RequestId).HasColumnName("request_id");
@@ -1024,6 +1921,36 @@ public partial class PostgrestContext : DbContext
                 .HasForeignKey(d => d.RequestId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("lot_request_ina_request_fk");
+        });
+
+        modelBuilder.Entity<MachineNameMismatch>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("machine_name_mismatches_pkey");
+
+            entity.ToTable("machine_name_mismatches", "QC");
+
+            entity.HasIndex(e => e.RunId, "idx_machine_mismatches_run_id");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("uuid_generate_v4()")
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("created_at");
+            entity.Property(e => e.ErrorMessage).HasColumnName("error_message");
+            entity.Property(e => e.MachineName)
+                .HasMaxLength(100)
+                .HasColumnName("machine_name");
+            entity.Property(e => e.MasterUrl).HasColumnName("master_url");
+            entity.Property(e => e.ProductName)
+                .HasMaxLength(100)
+                .HasColumnName("product_name");
+            entity.Property(e => e.RowNumber).HasColumnName("row_number");
+            entity.Property(e => e.RunId).HasColumnName("run_id");
+
+            entity.HasOne(d => d.Run).WithMany(p => p.MachineNameMismatchesNavigation)
+                .HasForeignKey(d => d.RunId)
+                .HasConstraintName("machine_name_mismatches_run_id_fkey");
         });
 
         modelBuilder.Entity<Materalinventory>(entity =>
@@ -1134,15 +2061,12 @@ public partial class PostgrestContext : DbContext
                 .HasDefaultValueSql("CURRENT_DATE")
                 .HasColumnName("insertdate");
             entity.Property(e => e.Location)
-                .IsRequired()
                 .HasMaxLength(255)
                 .HasColumnName("location");
             entity.Property(e => e.Lotnumber)
-                .IsRequired()
                 .HasMaxLength(100)
                 .HasColumnName("lotnumber");
             entity.Property(e => e.Matname)
-                .IsRequired()
                 .HasMaxLength(255)
                 .HasColumnName("matname");
             entity.Property(e => e.Matquantity).HasColumnName("matquantity");
@@ -1202,7 +2126,6 @@ public partial class PostgrestContext : DbContext
                 .HasMaxLength(500)
                 .HasColumnName("description");
             entity.Property(e => e.Typename)
-                .IsRequired()
                 .HasMaxLength(255)
                 .HasColumnName("typename");
             entity.Property(e => e.Updatedat)
@@ -1228,7 +2151,6 @@ public partial class PostgrestContext : DbContext
                 .HasMaxLength(500)
                 .HasColumnName("description");
             entity.Property(e => e.Typename)
-                .IsRequired()
                 .HasMaxLength(255)
                 .HasColumnName("typename");
             entity.Property(e => e.Updatedat)
@@ -1246,29 +2168,84 @@ public partial class PostgrestContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Batch).HasColumnName("batch");
             entity.Property(e => e.Migration1)
-                .IsRequired()
                 .HasMaxLength(255)
                 .HasColumnName("migration");
         });
 
-        modelBuilder.Entity<Objective>(entity =>
+        modelBuilder.Entity<ParameterDifference>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("objective_pk");
+            entity.HasKey(e => e.Id).HasName("parameter_differences_pkey");
 
-            entity.ToTable("objective", "master");
+            entity.ToTable("parameter_differences", "QC", tb => tb.HasComment("รายละเอียด parameter ที่ต่างกัน"));
 
-            entity.Property(e => e.Id)
-                .HasDefaultValueSql("uuid_generate_v4()")
-                .HasColumnName("id");
-            entity.Property(e => e.ListItemId).HasColumnName("list_item_id");
-            entity.Property(e => e.ObjectName)
-                .HasColumnType("character varying")
-                .HasColumnName("object_name");
+            entity.HasIndex(e => new { e.Machine, e.DatFile }, "idx_pd_machine");
 
-            entity.HasOne(d => d.ListItem).WithMany(p => p.Objectives)
-                .HasForeignKey(d => d.ListItemId)
+            entity.HasIndex(e => e.ResultId, "idx_pd_result");
+
+            entity.HasIndex(e => e.SessionId, "idx_pd_session");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CompareLine).HasColumnName("compare_line");
+            entity.Property(e => e.CompareValue)
+                .HasComment("ค่าใน Production")
+                .HasColumnName("compare_value");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.DatFile).HasColumnName("dat_file");
+            entity.Property(e => e.Machine).HasColumnName("machine");
+            entity.Property(e => e.MasterLine).HasColumnName("master_line");
+            entity.Property(e => e.MasterValue)
+                .HasComment("ค่าใน QA (master)")
+                .HasColumnName("master_value");
+            entity.Property(e => e.ModelType).HasColumnName("model_type");
+            entity.Property(e => e.Parameter).HasColumnName("parameter");
+            entity.Property(e => e.ResultId).HasColumnName("result_id");
+            entity.Property(e => e.RunAt)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("run_at");
+            entity.Property(e => e.SessionId).HasColumnName("session_id");
+
+            entity.HasOne(d => d.Result).WithMany(p => p.ParameterDifferences)
+                .HasForeignKey(d => d.ResultId)
+                .HasConstraintName("parameter_differences_result_id_fkey");
+
+            entity.HasOne(d => d.Session).WithMany(p => p.ParameterDifferences)
+                .HasForeignKey(d => d.SessionId)
+                .HasConstraintName("parameter_differences_session_id_fkey");
+        });
+
+        modelBuilder.Entity<ParameterDifference1>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("parameter_differences_pkey");
+
+            entity.ToTable("parameter_differences", "qc");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CompareLine).HasColumnName("compare_line");
+            entity.Property(e => e.CompareValue).HasColumnName("compare_value");
+            entity.Property(e => e.DatFile).HasColumnName("dat_file");
+            entity.Property(e => e.Machine).HasColumnName("machine");
+            entity.Property(e => e.MasterLine).HasColumnName("master_line");
+            entity.Property(e => e.MasterValue).HasColumnName("master_value");
+            entity.Property(e => e.ModelType).HasColumnName("model_type");
+            entity.Property(e => e.Parameter).HasColumnName("parameter");
+            entity.Property(e => e.ResultId).HasColumnName("result_id");
+            entity.Property(e => e.RunAt)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("run_at");
+            entity.Property(e => e.SessionId).HasColumnName("session_id");
+
+            entity.HasOne(d => d.Result).WithMany(p => p.ParameterDifference1s)
+                .HasForeignKey(d => d.ResultId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("objective_list_item_fk");
+                .HasConstraintName("parameter_differences_result_id_fkey");
+
+            entity.HasOne(d => d.Session).WithMany(p => p.ParameterDifference1s)
+                .HasForeignKey(d => d.SessionId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("parameter_differences_session_id_fkey");
         });
 
         modelBuilder.Entity<PasswordResetToken>(entity =>
@@ -1284,7 +2261,6 @@ public partial class PostgrestContext : DbContext
                 .HasColumnType("timestamp(0) without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.Token)
-                .IsRequired()
                 .HasMaxLength(255)
                 .HasColumnName("token");
         });
@@ -1309,6 +2285,9 @@ public partial class PostgrestContext : DbContext
                 .HasDefaultValueSql("gen_random_uuid()")
                 .HasComment("Primary Key (UUID)")
                 .HasColumnName("id");
+            entity.Property(e => e.Cassetteno)
+                .HasMaxLength(50)
+                .HasColumnName("cassetteno");
             entity.Property(e => e.CheckDate)
                 .HasComment("วันที่ตรวจสอบ")
                 .HasColumnName("check_date");
@@ -1337,6 +2316,42 @@ public partial class PostgrestContext : DbContext
                 .HasColumnName("status_tn");
         });
 
+        modelBuilder.Entity<Process>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("process_pkey");
+
+            entity.ToTable("process", "master");
+
+            entity.HasIndex(e => e.Code, "process_code_key").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.Code)
+                .HasMaxLength(20)
+                .HasColumnName("code");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true)
+                .HasColumnName("is_active");
+            entity.Property(e => e.Name)
+                .HasMaxLength(100)
+                .HasColumnName("name");
+            entity.Property(e => e.SectionId).HasColumnName("section_id");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Section).WithMany(p => p.Processes)
+                .HasForeignKey(d => d.SectionId)
+                .HasConstraintName("process_section_id_fkey");
+        });
+
         modelBuilder.Entity<Productmaster>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("productmaster_pkey");
@@ -1358,11 +2373,9 @@ public partial class PostgrestContext : DbContext
                 .HasDefaultValue(true)
                 .HasColumnName("isactive");
             entity.Property(e => e.Productcode)
-                .IsRequired()
                 .HasMaxLength(50)
                 .HasColumnName("productcode");
             entity.Property(e => e.Productname)
-                .IsRequired()
                 .HasMaxLength(255)
                 .HasColumnName("productname");
             entity.Property(e => e.Updateddate)
@@ -1461,28 +2474,52 @@ public partial class PostgrestContext : DbContext
                 .HasColumnName("substance_threshold_limit");
         });
 
-        modelBuilder.Entity<RequestMachine>(entity =>
+        modelBuilder.Entity<Request>(entity =>
         {
-            entity
-                .HasNoKey()
-                .ToTable("request_machine", "master");
+            entity.HasKey(e => e.RequestId).HasName("request_pkey");
 
-            entity.Property(e => e.Active).HasColumnName("active");
-            entity.Property(e => e.Id)
-                .IsRequired()
-                .HasDefaultValueSql("uuid_generate_v4()")
-                .HasColumnType("character varying")
-                .HasColumnName("id");
-            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
-            entity.Property(e => e.ListItemId).HasColumnName("list_item_id");
-            entity.Property(e => e.RequestMachineName)
-                .HasColumnType("character varying")
-                .HasColumnName("request_machine_name");
+            entity.ToTable("request", "RW");
 
-            entity.HasOne(d => d.ListItem).WithMany()
-                .HasForeignKey(d => d.ListItemId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("request_machine_list_item_fk");
+            entity.Property(e => e.RequestId)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("request_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.RequestCode)
+                .HasMaxLength(50)
+                .HasColumnName("request_code");
+            entity.Property(e => e.RequestDate)
+                .HasDefaultValueSql("CURRENT_DATE")
+                .HasColumnName("request_date");
+            entity.Property(e => e.RequestFactory)
+                .HasMaxLength(100)
+                .HasColumnName("request_factory");
+            entity.Property(e => e.RequestLicensecode)
+                .HasMaxLength(100)
+                .HasColumnName("request_licensecode");
+            entity.Property(e => e.RequestOptcode)
+                .HasMaxLength(50)
+                .HasColumnName("request_optcode");
+            entity.Property(e => e.RequestReason)
+                .HasMaxLength(100)
+                .HasColumnName("request_reason");
+            entity.Property(e => e.RequestRemark).HasColumnName("request_remark");
+            entity.Property(e => e.RequestStatus)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'requesting'::character varying")
+                .HasColumnName("request_status");
+            entity.Property(e => e.RequestType)
+                .HasMaxLength(100)
+                .HasColumnName("request_type");
+            entity.Property(e => e.Requester)
+                .HasMaxLength(100)
+                .HasColumnName("requester");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updated_at");
         });
 
         modelBuilder.Entity<RescreenCheckRecord>(entity =>
@@ -1509,7 +2546,6 @@ public partial class PostgrestContext : DbContext
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("date_process");
             entity.Property(e => e.ImobileLot)
-                .IsRequired()
                 .HasMaxLength(100)
                 .HasComment("Imobile LOT Number (Unique)")
                 .HasColumnName("imobile_lot");
@@ -1556,6 +2592,9 @@ public partial class PostgrestContext : DbContext
                 .HasDefaultValueSql("gen_random_uuid()")
                 .HasComment("Primary Key (UUID)")
                 .HasColumnName("id");
+            entity.Property(e => e.ApprovedSource)
+                .HasMaxLength(50)
+                .HasColumnName("approved_source");
             entity.Property(e => e.CheckDate)
                 .HasComment("วันที่ตรวจสอบและบันทึก")
                 .HasColumnType("timestamp without time zone")
@@ -1573,7 +2612,6 @@ public partial class PostgrestContext : DbContext
                 .HasComment("Status สุดท้ายหลังตรวจสอบ (OK, HOLD, SCRAP, Rescreen, PENDING)")
                 .HasColumnName("final_status");
             entity.Property(e => e.ImobileLot)
-                .IsRequired()
                 .HasMaxLength(100)
                 .HasComment("Imobile LOT Number (Unique)")
                 .HasColumnName("imobile_lot");
@@ -1605,43 +2643,132 @@ public partial class PostgrestContext : DbContext
                 .HasMaxLength(50)
                 .HasComment("Status จาก TH100 Record")
                 .HasColumnName("th100_status");
-            entity.Property(e => e.ApprovedSource)           // ← เพิ่ม
-                .HasMaxLength(50)
-                .HasComment("แหล่งที่มาของ Approve: TH100 Confirm, Approved, Pending")
-                .HasColumnName("approved_source");
         });
 
         modelBuilder.Entity<Role>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("rule_pk");
+            entity.HasKey(e => e.Id).HasName("role_pkey");
 
             entity.ToTable("role", "master");
 
             entity.Property(e => e.Id)
-                .HasDefaultValueSql("uuid_generate_v4()")
+                .HasDefaultValueSql("gen_random_uuid()")
                 .HasColumnName("id");
             entity.Property(e => e.RoleName)
-                .HasColumnType("character varying")
+                .HasMaxLength(50)
                 .HasColumnName("role_name");
+        });
+
+        modelBuilder.Entity<RunSession>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("run_sessions_pkey");
+
+            entity.ToTable("run_sessions", "QC", tb => tb.HasComment("แต่ละครั้งที่รัน compare.py"));
+
+            entity.HasIndex(e => new { e.EmailSent, e.WeeklyEmailSent }, "idx_run_sessions_email");
+
+            entity.HasIndex(e => e.RunAt, "idx_run_sessions_run_at").IsDescending();
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.EmailSent)
+                .HasDefaultValue(false)
+                .HasColumnName("email_sent");
+            entity.Property(e => e.ExcelFile).HasColumnName("excel_file");
+            entity.Property(e => e.JsonFile).HasColumnName("json_file");
+            entity.Property(e => e.RunAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("run_at");
+            entity.Property(e => e.TotalChecked)
+                .HasDefaultValue(0)
+                .HasColumnName("total_checked");
+            entity.Property(e => e.TotalError)
+                .HasDefaultValue(0)
+                .HasColumnName("total_error");
+            entity.Property(e => e.TotalNg)
+                .HasDefaultValue(0)
+                .HasColumnName("total_ng");
+            entity.Property(e => e.TotalOk)
+                .HasDefaultValue(0)
+                .HasColumnName("total_ok");
+            entity.Property(e => e.TxtFile).HasColumnName("txt_file");
+            entity.Property(e => e.WeeklyEmailSent)
+                .HasDefaultValue(false)
+                .HasComment("ส่ง weekly summary แล้วหรือยัง (วันจันทร์)")
+                .HasColumnName("weekly_email_sent");
+        });
+
+        modelBuilder.Entity<RunSession1>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("run_sessions_pkey");
+
+            entity.ToTable("run_sessions", "qc");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.EmailSent)
+                .HasDefaultValue(false)
+                .HasColumnName("email_sent");
+            entity.Property(e => e.ExcelFile).HasColumnName("excel_file");
+            entity.Property(e => e.JsonFile).HasColumnName("json_file");
+            entity.Property(e => e.RunAt)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("run_at");
+            entity.Property(e => e.TotalChecked)
+                .HasDefaultValue(0)
+                .HasColumnName("total_checked");
+            entity.Property(e => e.TotalError)
+                .HasDefaultValue(0)
+                .HasColumnName("total_error");
+            entity.Property(e => e.TotalNg)
+                .HasDefaultValue(0)
+                .HasColumnName("total_ng");
+            entity.Property(e => e.TotalOk)
+                .HasDefaultValue(0)
+                .HasColumnName("total_ok");
+            entity.Property(e => e.TxtFile).HasColumnName("txt_file");
+            entity.Property(e => e.WeeklyEmailSent)
+                .HasDefaultValue(false)
+                .HasColumnName("weekly_email_sent");
         });
 
         modelBuilder.Entity<Section>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("section_pk");
+            entity.HasKey(e => e.Id).HasName("section_pkey");
 
             entity.ToTable("section", "master");
 
+            entity.HasIndex(e => e.Code, "section_code_key").IsUnique();
+
             entity.Property(e => e.Id)
-                .HasDefaultValueSql("uuid_generate_v4()")
+                .HasDefaultValueSql("gen_random_uuid()")
                 .HasColumnName("id");
-            entity.Property(e => e.SectionCode)
-                .IsRequired()
-                .HasColumnType("character varying")
-                .HasColumnName("section_code");
-            entity.Property(e => e.SectionName)
-                .IsRequired()
-                .HasColumnType("character varying")
-                .HasColumnName("section_name");
+            entity.Property(e => e.Code)
+                .HasMaxLength(20)
+                .HasColumnName("code");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.DepartmentId).HasColumnName("department_id");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true)
+                .HasColumnName("is_active");
+            entity.Property(e => e.Name)
+                .HasMaxLength(100)
+                .HasColumnName("name");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Department).WithMany(p => p.Sections)
+                .HasForeignKey(d => d.DepartmentId)
+                .HasConstraintName("section_department_id_fkey");
         });
 
         modelBuilder.Entity<Session>(entity =>
@@ -1661,30 +2788,23 @@ public partial class PostgrestContext : DbContext
                 .HasMaxLength(45)
                 .HasColumnName("ip_address");
             entity.Property(e => e.LastActivity).HasColumnName("last_activity");
-            entity.Property(e => e.Payload)
-                .IsRequired()
-                .HasColumnName("payload");
+            entity.Property(e => e.Payload).HasColumnName("payload");
             entity.Property(e => e.UserAgent).HasColumnName("user_agent");
             entity.Property(e => e.UserId).HasColumnName("user_id");
         });
 
         modelBuilder.Entity<Shift>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("shif_pk");
+            entity.HasKey(e => e.Id).HasName("shift_pkey");
 
             entity.ToTable("shift", "master");
 
             entity.Property(e => e.Id)
-                .HasDefaultValueSql("uuid_generate_v4()")
+                .HasDefaultValueSql("gen_random_uuid()")
                 .HasColumnName("id");
-            entity.Property(e => e.ListItemId).HasColumnName("list_item_id");
             entity.Property(e => e.ShiftName)
-                .HasColumnType("character varying")
+                .HasMaxLength(20)
                 .HasColumnName("shift_name");
-
-            entity.HasOne(d => d.ListItem).WithMany(p => p.Shifts)
-                .HasForeignKey(d => d.ListItemId)
-                .HasConstraintName("shift_list_item_fk");
         });
 
         modelBuilder.Entity<Shiftmaster>(entity =>
@@ -1706,7 +2826,6 @@ public partial class PostgrestContext : DbContext
                 .HasDefaultValue(true)
                 .HasColumnName("isactive");
             entity.Property(e => e.Shiftcode)
-                .IsRequired()
                 .HasMaxLength(20)
                 .HasColumnName("shiftcode");
             entity.Property(e => e.Shiftname)
@@ -1720,23 +2839,16 @@ public partial class PostgrestContext : DbContext
 
         modelBuilder.Entity<Status>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("status_pk");
+            entity.HasKey(e => e.Id).HasName("status_pkey");
 
             entity.ToTable("status", "master");
 
             entity.Property(e => e.Id)
-                .HasDefaultValueSql("uuid_generate_v4()")
+                .HasDefaultValueSql("gen_random_uuid()")
                 .HasColumnName("id");
-            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
-            entity.Property(e => e.Ordinal).HasColumnName("ordinal");
             entity.Property(e => e.StatusName)
-                .HasColumnType("character varying")
+                .HasMaxLength(50)
                 .HasColumnName("status_name");
-            entity.Property(e => e.StatusTypeId).HasColumnName("status_type_id");
-
-            entity.HasOne(d => d.StatusType).WithMany(p => p.Statuses)
-                .HasForeignKey(d => d.StatusTypeId)
-                .HasConstraintName("status_list_item_fk");
         });
 
         modelBuilder.Entity<Suppliermaster>(entity =>
@@ -1769,11 +2881,9 @@ public partial class PostgrestContext : DbContext
                 .HasMaxLength(20)
                 .HasColumnName("phone");
             entity.Property(e => e.Suppliercode)
-                .IsRequired()
                 .HasMaxLength(50)
                 .HasColumnName("suppliercode");
             entity.Property(e => e.Suppliername)
-                .IsRequired()
                 .HasMaxLength(255)
                 .HasColumnName("suppliername");
             entity.Property(e => e.Updateddate)
@@ -1782,43 +2892,6 @@ public partial class PostgrestContext : DbContext
         });
 
         modelBuilder.Entity<User>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("users_pkey");
-
-            entity.ToTable("users", "master");
-
-            entity.Property(e => e.Id)
-                .HasDefaultValueSql("uuid_generate_v4()")
-                .HasColumnName("id");
-            entity.Property(e => e.Active).HasColumnName("active");
-            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
-            entity.Property(e => e.RoleId).HasColumnName("role_id");
-            entity.Property(e => e.SectionId).HasColumnName("section_id");
-            entity.Property(e => e.UserId)
-                .IsRequired()
-                .HasColumnType("character varying")
-                .HasColumnName("user_id");
-            entity.Property(e => e.UserLastname)
-                .HasColumnType("character varying")
-                .HasColumnName("user_lastname");
-            entity.Property(e => e.UserName)
-                .HasColumnType("character varying")
-                .HasColumnName("user_name");
-            entity.Property(e => e.UserPassword)
-                .IsRequired()
-                .HasColumnType("character varying")
-                .HasColumnName("user_password");
-
-            entity.HasOne(d => d.Role).WithMany(p => p.Users)
-                .HasForeignKey(d => d.RoleId)
-                .HasConstraintName("users_role_fk");
-
-            entity.HasOne(d => d.Section).WithMany(p => p.Users)
-                .HasForeignKey(d => d.SectionId)
-                .HasConstraintName("users_section_fk");
-        });
-
-        modelBuilder.Entity<User1>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("users_pkey");
 
@@ -1831,18 +2904,15 @@ public partial class PostgrestContext : DbContext
                 .HasColumnType("timestamp(0) without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.Email)
-                .IsRequired()
                 .HasMaxLength(255)
                 .HasColumnName("email");
             entity.Property(e => e.EmailVerifiedAt)
                 .HasColumnType("timestamp(0) without time zone")
                 .HasColumnName("email_verified_at");
             entity.Property(e => e.Name)
-                .IsRequired()
                 .HasMaxLength(255)
                 .HasColumnName("name");
             entity.Property(e => e.Password)
-                .IsRequired()
                 .HasMaxLength(255)
                 .HasColumnName("password");
             entity.Property(e => e.RememberToken)
@@ -1851,6 +2921,199 @@ public partial class PostgrestContext : DbContext
             entity.Property(e => e.UpdatedAt)
                 .HasColumnType("timestamp(0) without time zone")
                 .HasColumnName("updated_at");
+        });
+
+        modelBuilder.Entity<User1>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("users_pkey");
+
+            entity.ToTable("users", "master");
+
+            entity.HasIndex(e => e.UserId, "users_user_id_key").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.Active)
+                .HasDefaultValue(true)
+                .HasColumnName("active");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.IsDeleted)
+                .HasDefaultValue(false)
+                .HasColumnName("is_deleted");
+            entity.Property(e => e.RoleId).HasColumnName("role_id");
+            entity.Property(e => e.SectionId).HasColumnName("section_id");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("updated_at");
+            entity.Property(e => e.UserId)
+                .HasMaxLength(100)
+                .HasColumnName("user_id");
+            entity.Property(e => e.UserLastname)
+                .HasMaxLength(100)
+                .HasColumnName("user_lastname");
+            entity.Property(e => e.UserName)
+                .HasMaxLength(100)
+                .HasColumnName("user_name");
+            entity.Property(e => e.UserPassword)
+                .HasMaxLength(255)
+                .HasColumnName("user_password");
+
+            entity.HasOne(d => d.Role).WithMany(p => p.User1s)
+                .HasForeignKey(d => d.RoleId)
+                .HasConstraintName("users_role_id_fkey");
+
+            entity.HasOne(d => d.Section).WithMany(p => p.User1s)
+                .HasForeignKey(d => d.SectionId)
+                .HasConstraintName("users_section_id_fkey");
+        });
+
+        modelBuilder.Entity<VDailySummary>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("v_daily_summary", "QC");
+
+            entity.Property(e => e.HasIssues).HasColumnName("has_issues");
+            entity.Property(e => e.MachineNameMismatches).HasColumnName("machine_name_mismatches");
+            entity.Property(e => e.RunDate).HasColumnName("run_date");
+            entity.Property(e => e.RunType)
+                .HasMaxLength(10)
+                .HasColumnName("run_type");
+            entity.Property(e => e.TotalChecked).HasColumnName("total_checked");
+            entity.Property(e => e.TotalDiffs).HasColumnName("total_diffs");
+            entity.Property(e => e.TotalError).HasColumnName("total_error");
+            entity.Property(e => e.TotalMatch).HasColumnName("total_match");
+            entity.Property(e => e.TotalMismatch).HasColumnName("total_mismatch");
+            entity.Property(e => e.TotalRuns).HasColumnName("total_runs");
+        });
+
+        modelBuilder.Entity<VNgSummary>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("v_ng_summary", "QC");
+
+            entity.Property(e => e.CompareFolder).HasColumnName("compare_folder");
+            entity.Property(e => e.ContentNgFiles).HasColumnName("content_ng_files");
+            entity.Property(e => e.ContentNgParams).HasColumnName("content_ng_params");
+            entity.Property(e => e.JsonFile).HasColumnName("json_file");
+            entity.Property(e => e.Machine).HasColumnName("machine");
+            entity.Property(e => e.MasterFolder).HasColumnName("master_folder");
+            entity.Property(e => e.Message).HasColumnName("message");
+            entity.Property(e => e.MissingInMaster).HasColumnName("missing_in_master");
+            entity.Property(e => e.ModelType).HasColumnName("model_type");
+            entity.Property(e => e.RunAt)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("run_at");
+            entity.Property(e => e.Status).HasColumnName("status");
+            entity.Property(e => e.TxtFile).HasColumnName("txt_file");
+        });
+
+        modelBuilder.Entity<VParamDiffDetail>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("v_param_diff_detail", "QC");
+
+            entity.Property(e => e.DatFile).HasColumnName("dat_file");
+            entity.Property(e => e.Machine).HasColumnName("machine");
+            entity.Property(e => e.ModelType).HasColumnName("model_type");
+            entity.Property(e => e.Parameter).HasColumnName("parameter");
+            entity.Property(e => e.ProdLine).HasColumnName("prod_line");
+            entity.Property(e => e.ProdValue).HasColumnName("prod_value");
+            entity.Property(e => e.QaLine).HasColumnName("qa_line");
+            entity.Property(e => e.QaValue).HasColumnName("qa_value");
+            entity.Property(e => e.ResultId).HasColumnName("result_id");
+            entity.Property(e => e.RunAt)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("run_at");
+            entity.Property(e => e.SessionId).HasColumnName("session_id");
+        });
+
+        modelBuilder.Entity<VProblematicMachine>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("v_problematic_machines", "QC");
+
+            entity.Property(e => e.Errors).HasColumnName("errors");
+            entity.Property(e => e.LastSeen).HasColumnName("last_seen");
+            entity.Property(e => e.MachineName)
+                .HasMaxLength(100)
+                .HasColumnName("machine_name");
+            entity.Property(e => e.MatchRatePct).HasColumnName("match_rate_pct");
+            entity.Property(e => e.Matches).HasColumnName("matches");
+            entity.Property(e => e.Mismatches).HasColumnName("mismatches");
+            entity.Property(e => e.ProductName)
+                .HasMaxLength(100)
+                .HasColumnName("product_name");
+            entity.Property(e => e.RunType)
+                .HasMaxLength(10)
+                .HasColumnName("run_type");
+            entity.Property(e => e.TotalComparisons).HasColumnName("total_comparisons");
+            entity.Property(e => e.TotalDiffs).HasColumnName("total_diffs");
+        });
+
+        modelBuilder.Entity<VSessionSummary>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("v_session_summary", "QC");
+
+            entity.Property(e => e.EmailSent).HasColumnName("email_sent");
+            entity.Property(e => e.ExcelFile).HasColumnName("excel_file");
+            entity.Property(e => e.JsonFile).HasColumnName("json_file");
+            entity.Property(e => e.OkPercent).HasColumnName("ok_percent");
+            entity.Property(e => e.RunAt)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("run_at");
+            entity.Property(e => e.SessionId).HasColumnName("session_id");
+            entity.Property(e => e.TotalChecked).HasColumnName("total_checked");
+            entity.Property(e => e.TotalError).HasColumnName("total_error");
+            entity.Property(e => e.TotalNg).HasColumnName("total_ng");
+            entity.Property(e => e.TotalOk).HasColumnName("total_ok");
+            entity.Property(e => e.TxtFile).HasColumnName("txt_file");
+            entity.Property(e => e.WeeklyEmailSent).HasColumnName("weekly_email_sent");
+        });
+
+        modelBuilder.Entity<VTrend30d>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("v_trend_30d", "QC");
+
+            entity.Property(e => e.Checked).HasColumnName("checked");
+            entity.Property(e => e.Diffs).HasColumnName("diffs");
+            entity.Property(e => e.Errored).HasColumnName("errored");
+            entity.Property(e => e.MatchRatePct).HasColumnName("match_rate_pct");
+            entity.Property(e => e.Matched).HasColumnName("matched");
+            entity.Property(e => e.Mismatched).HasColumnName("mismatched");
+            entity.Property(e => e.RunDate).HasColumnName("run_date");
+            entity.Property(e => e.RunType)
+                .HasMaxLength(10)
+                .HasColumnName("run_type");
+        });
+
+        modelBuilder.Entity<VWeeklySummary>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("v_weekly_summary", "QC");
+
+            entity.Property(e => e.ErrorCount).HasColumnName("error_count");
+            entity.Property(e => e.MachinesChecked).HasColumnName("machines_checked");
+            entity.Property(e => e.NgCount).HasColumnName("ng_count");
+            entity.Property(e => e.OkCount).HasColumnName("ok_count");
+            entity.Property(e => e.TotalNgParams).HasColumnName("total_ng_params");
+            entity.Property(e => e.TotalRuns).HasColumnName("total_runs");
+            entity.Property(e => e.WeekStart)
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("week_start");
         });
 
         modelBuilder.Entity<VwIssueSummary>(entity =>

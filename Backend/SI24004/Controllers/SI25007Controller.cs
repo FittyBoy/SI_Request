@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -33,7 +33,7 @@ namespace SI24004.Controllers
         public async Task<ActionResult<IEnumerable<DwRequest>>> GetDwRequests()
         {
             var inaRequests = await _context.DwRequests
-                //.Where(x => x.IsDelete != true) // เปลี่ยนจาก IsDelete เป็น IsDeleted ให้ตรงกับ Model
+                //.Where(x => x.IsDelete != true) // ?????????? IsDelete ???? IsDeleted ????????? Model
                 .Include(x => x.Attachment)
                 .OrderBy(x => x.UpdateDate)
                 .ThenBy(x => x.RequestCode)
@@ -41,9 +41,9 @@ namespace SI24004.Controllers
                     {
                         Id = x.Id,
                         RequestCode = x.RequestCode,
-                        DrawingCode = x.DrawingCode, // เพิ่ม DrawingCode ให้ตรงกับ Model
-                        DrawingName = x.DrawingName, // เปลี่ยนจาก RequestName เป็น DrawingName
-                        DrawingDescription = x.DrawingDescription, // เปลี่ยนจาก RequestDescription
+                        DrawingCode = x.DrawingCode, // ????? DrawingCode ????????? Model
+                        DrawingName = x.DrawingName, // ?????????? RequestName ???? DrawingName
+                        DrawingDescription = x.DrawingDescription, // ?????????? RequestDescription
                         SectionId = x.SectionId,
                         DrawingTypeId = x.DrawingTypeId,
                         StatusId = x.StatusId,
@@ -56,7 +56,7 @@ namespace SI24004.Controllers
                         IsDelete = x.IsDelete,
                         UserId = x.UserId,
 
-                        // ✅ แก้ไขการ Map ข้อมูลของ Status
+                        // ? ???????? Map ????????? Status
                         Status = x.Status != null
                             ? new Status
                             {
@@ -64,8 +64,8 @@ namespace SI24004.Controllers
                                 StatusName = x.Status.StatusName,
                                 Ordinal = x.Status.Ordinal
                             }
-                            : null, // ป้องกันค่า null
-                        Section = x.Section != null ? new SI24004.Models.Section
+                            : null, // ?????????? null
+                        Section = x.Section != null ? new SI24004.Models.PostgreSQL.Section
                         {
                             Id = x.Section.Id,
                             SectionCode = x.Section.SectionCode,
@@ -77,16 +77,16 @@ namespace SI24004.Controllers
                             DrawingCode = x.DrawingCode,
                             DrawingName = x.DrawingName,
                         } : null,
-                        // ✅ แก้ไขการ Map ข้อมูลของ Attachment
+                        // ? ???????? Map ????????? Attachment
                         Attachment = x.Attachment != null
-                            ? new SI24004.Models.Attachment
+                            ? new SI24004.Models.PostgreSQL.Attachment
                             {
                                 Id = x.Attachment.Id,
                                 AttachmentName = x.Attachment.AttachmentName,
                                 AttachementPath = x.Attachment.AttachementPath,
                                 AttachementType = x.Attachment.AttachementType,
                             }
-                            : null // ป้องกันค่า null
+                            : null // ?????????? null
                     }).ToListAsync();
             return Ok(inaRequests);
         }
@@ -162,19 +162,19 @@ namespace SI24004.Controllers
 
             if (statusSteps.Any())
             {
-                // ลบสถานะที่ซ้ำตาม Ordinal
+                // ???????????????? Ordinal
                 statusSteps = statusSteps
                     .GroupBy(s => s.Ordinal)
                     .Select(g => g.First())
                     .ToList();
 
-                // ถ้าเป็น Revise
+                // ??????? Revise
                 if (request.StatusId == reviseId || request.DrawingRevise == true)
                 {
-                    // ลบ Revise และ Request ถ้ามี
+                    // ?? Revise ??? Request ?????
                     statusSteps.RemoveAll(s => s.Id == reviseId || s.Ordinal == 1);
 
-                    // เพิ่ม Revise เป็นลำดับแรก
+                    // ????? Revise ????????????
                     statusSteps.Insert(0, new StatusStepDto
                     {
                         Id = reviseId,
@@ -184,7 +184,7 @@ namespace SI24004.Controllers
                 }
                 else
                 {
-                    // เปลี่ยนชื่อ Ordinal == 1 เป็น "Request"
+                    // ??????????? Ordinal == 1 ???? "Request"
                     foreach (var step in statusSteps)
                     {
                         if (step.Ordinal == 1)
@@ -204,7 +204,7 @@ namespace SI24004.Controllers
 
         }
 
-        // ✅ เพิ่มเมธอดสำหรับส่งเมล
+        // ? ??????????????????????
         private async Task SendEmailToApprovers(DwRequest newRequest, string requesterName, string sectionName)
         {
             try
@@ -219,7 +219,7 @@ namespace SI24004.Controllers
                     return;
                 }
 
-                // ค้นหา approvers ที่เป็น admin และมี section_id เหมือนกับ user
+                // ????? approvers ??????? admin ????? section_id ????????? user
                 var approvers = await _context.Users
                     .Where(u => u.RoleId == RolesAdmin.Id && u.SectionId == newRequest.SectionId)
                     .ToListAsync();
@@ -230,18 +230,18 @@ namespace SI24004.Controllers
                     return;
                 }
 
-                // ✅ Skip SSL certificate validation for internal servers
+                // ? Skip SSL certificate validation for internal servers
                 ServicePointManager.ServerCertificateValidationCallback =
                     (sender, certificate, chain, sslPolicyErrors) => true;
 
-                // สร้าง SMTP Client
+                // ????? SMTP Client
                 var smtpClient = new SmtpClient(_smtpSettings.Host)
                 {
                     Port = _smtpSettings.Port,
                     EnableSsl = _smtpSettings.EnableSsl,
                 };
 
-                // ตรวจสอบว่าจะใช้ authentication หรือไม่
+                // ??????????????? authentication ???????
                 if (_smtpSettings.UseDefaultCredentials)
                 {
                     smtpClient.UseDefaultCredentials = true;
@@ -256,7 +256,7 @@ namespace SI24004.Controllers
                     smtpClient.UseDefaultCredentials = false;
                 }
 
-                // ส่งเมลให้แต่ละ approver
+                // ?????????????? approver
                 foreach (var approver in approvers)
                 {
                     if (string.IsNullOrEmpty(approver.UserName))
@@ -264,7 +264,7 @@ namespace SI24004.Controllers
 
                     var systemUrl = "http://172.18.106.100:9014";
 
-                    // สร้าง email format: user_name.user_lastname@agc.com
+                    // ????? email format: user_name.user_lastname@agc.com
                     string emailAddress = GenerateEmailAddress(approver.UserName, approver.UserLastname);
 
                     if (string.IsNullOrEmpty(emailAddress))
@@ -293,11 +293,11 @@ namespace SI24004.Controllers
                                 </div>
 
                                 <div class='content'>
-                                    <p>สวัสดี {approver.UserName} {approver.UserLastname},</p>
-                                    <p>มีคำขอแบบร่างใหม่ที่รอการอนุมัติจากคุณ</p>
+                                    <p>?????? {approver.UserName} {approver.UserLastname},</p>
+                                    <p>??????????????????????????????????????</p>
 
                                     <div class='details'>
-                                        <h3>รายละเอียดคำขอ:</h3>
+                                        <h3>??????????????:</h3>
                                         <p><strong>Request Code:</strong> {newRequest.RequestCode}</p>
                                         <p><strong>Drawing Code:</strong> {newRequest.DrawingCode}</p>
                                         <p><strong>Drawing Name:</strong> {newRequest.DrawingName}</p>
@@ -308,13 +308,13 @@ namespace SI24004.Controllers
                                         <p><strong>Created By:</strong> {newRequest.CreatedBy}</p>
                                     </div>
 
-                                    <p>กรุณาตรวจสอบและอนุมัติคำขอนี้ในระบบ</p>
-                                    <p><a href=""{systemUrl}/registerdac"" style=""color: #007bff; text-decoration: none;"">คลิกที่นี่เพื่อเข้าสู่ระบบ</a></p>
+                                    <p>???????????????????????????????????</p>
+                                    <p><a href=""{systemUrl}/registerdac"" style=""color: #007bff; text-decoration: none;"">??????????????????????????</a></p>
                                 </div>
 
                                 <div class='footer'>
                                     <p>This is an automated message. Please do not reply to this email.</p>
-                                    <p>ข้อความนี้เป็นการแจ้งเตือนอัตโนมัติ กรุณาอย่าตอบกลับอีเมลนี้</p>
+                                    <p>??????????????????????????????????? ????????????????????????</p>
                                 </div>
                             </body>
                             </html>";
@@ -358,35 +358,35 @@ namespace SI24004.Controllers
                 var statusId = requestDto.StatusId ?? Guid.Parse("64996b06-87cd-460d-a31e-92b985c976fb");
                 Guid? attachmentId = null;
 
-                // ✅ ตรวจสอบว่ามี DrawingCode ซ้ำหรือไม่
+                // ? ???????????? DrawingCode ??????????
                 if (!string.IsNullOrEmpty(requestDto.DrawingCode) && await IsDuplicateDrawingCode(requestDto.DrawingCode, newRequestId))
                 {
                     return BadRequest(new { message = "Duplicate DrawingCode. Please use a unique DrawingCode." });
                 }
 
-                // ✅ ถ้ามีไฟล์แนบ ให้บันทึกไป SMB และฐานข้อมูล
+                // ? ???????????? ??????????? SMB ????????????
                 if (attachmentFile != null)
                 {
                     attachmentId = Guid.NewGuid();
                     string fileExtension = Path.GetExtension(attachmentFile.FileName);
                     string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(attachmentFile.FileName);
-                    string fileName = $"{fileNameWithoutExtension}{fileExtension}"; // ✅ ใส่นามสกุลไฟล์
+                    string fileName = $"{fileNameWithoutExtension}{fileExtension}"; // ? ??????????????
 
                     string smbPath = @"\\172.18.106.100\d\TEST";
 
-                    // ✅ ตรวจสอบว่าโฟลเดอร์มีอยู่หรือไม่
+                    // ? ???????????????????????????????
                     if (!Directory.Exists(smbPath))
                         return StatusCode(500, "SMB path not found.");
 
                     string fullPath = Path.Combine(smbPath, fileName);
 
-                    // ✅ ใช้ FileStream + await using
+                    // ? ??? FileStream + await using
                     await using (var stream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None))
                     {
                         await attachmentFile.CopyToAsync(stream);
                     }
 
-                    // ✅ แปลงไฟล์เป็น byte[] เพื่อเก็บในฐานข้อมูล
+                    // ? ???????????? byte[] ????????????????????
                     byte[] fileData;
                     await using (var memoryStream = new MemoryStream())
                     {
@@ -394,11 +394,11 @@ namespace SI24004.Controllers
                         fileData = memoryStream.ToArray();
                     }
 
-                    // ✅ บันทึกไฟล์ลงฐานข้อมูล
-                    var newAttachment = new SI24004.Models.Attachment
+                    // ? ?????????????????????
+                    var newAttachment = new SI24004.Models.PostgreSQL.Attachment
                     {
                         Id = attachmentId.Value,
-                        AttachmentName = fileName, // ✅ ใช้ชื่อไฟล์ที่มีนามสกุล
+                        AttachmentName = fileName, // ? ???????????????????????
                         AttachementPath = fullPath,
                         AttachementType = fileExtension,
                         UploadDate = DateTime.UtcNow,
@@ -411,16 +411,16 @@ namespace SI24004.Controllers
 
                 var UserName = _context.Users.Where(x => x.Id == requestDto.UserId).FirstOrDefault();
 
-                // ✅ บันทึกข้อมูลคำขอ
+                // ? ????????????????
                 var newRequest = new DwRequest
                 {
                     Id = newRequestId,
                     DrawingCode = requestDto.DrawingCode,
-                    RequestCode = requestDto.RequestCode ?? await _service.GenerateDrawingCode(), // ใช้ RequestCode ที่ส่งมาหรือสร้างใหม่
+                    RequestCode = requestDto.RequestCode ?? await _service.GenerateDrawingCode(), // ??? RequestCode ?????????????????????
                     DrawingName = requestDto.DrawingName,
                     SectionId = requestDto.SectionId,
                     DrawingTypeId = requestDto.DrawingTypeId,
-                    StatusId = statusId, // ตั้งค่าสถานะให้กับคำขอ
+                    StatusId = statusId, // ??????????????????????
                     CreatedDate = DateTime.UtcNow,
                     CreatedBy = UserName.UserName,
                     UpdateDate = DateTime.UtcNow,
@@ -436,21 +436,21 @@ namespace SI24004.Controllers
                 await _context.DwRequests.AddAsync(newRequest);
                 await _context.SaveChangesAsync();
 
-                // ✅ เพิ่มการส่งเมลหลังจากบันทึกสำเร็จ
+                // ? ?????????????????????????????????
                 try
                 {
-                    // ดึงข้อมูล Section สำหรับใช้ในเมล
+                    // ????????? Section ??????????????
                     var section = await _context.Sections
                         .FirstOrDefaultAsync(s => s.Id == requestDto.SectionId);
 
                     string sectionName = section?.SectionName ?? "Unknown Section";
 
-                    // ส่งเมลให้ approvers
+                    // ????????? approvers
                     await SendEmailToApprovers(newRequest, UserName.UserName, sectionName);
                 }
                 catch (Exception emailEx)
                 {
-                    // Log email error แต่ไม่ให้ส่งผลกระทบต่อการสร้าง request
+                    // Log email error ?????????????????????????????? request
                     Console.WriteLine($"Email notification failed: {emailEx.Message}");
                 }
 
@@ -474,41 +474,41 @@ namespace SI24004.Controllers
 
             try
             {
-                // ค้นหาข้อมูลเดิมในฐานข้อมูล
+                // ??????????????????????????
                 var existingRequest = await _context.DwRequests
                     .FirstOrDefaultAsync(x => x.Id == requestDto.Id);
 
                 if (existingRequest == null)
                     return NotFound("Request not found.");
 
-                // ค้นหาผู้ใช้
+                // ???????????
                 var user = await _context.Users
                     .FirstOrDefaultAsync(x => x.Id == requestDto.UserId);
 
                 if (user == null)
                     return NotFound("User not found.");
 
-                // อัปเดตข้อมูล
+                // ????????????
                 existingRequest.DrawingCode = requestDto.DrawingCode ?? existingRequest.DrawingCode;
                 existingRequest.RequestCode = requestDto.RequestCode ?? existingRequest.RequestCode ?? await _service.GenerateDrawingCode();
                 existingRequest.DrawingName = requestDto.DrawingName ?? existingRequest.DrawingName;
                 existingRequest.SectionId = requestDto.SectionId;
                 existingRequest.DrawingTypeId = requestDto.DrawingTypeId;
                 existingRequest.UpdateDate = DateTime.UtcNow;
-                existingRequest.UpdateBy = user.UserName; // ใช้ชื่อผู้ใช้จากฐานข้อมูล
+                existingRequest.UpdateBy = user.UserName; // ?????????????????????????
                 existingRequest.DrawingDescription = requestDto.DrawingDescription ?? existingRequest.DrawingDescription;
                 existingRequest.Active = requestDto.Active;
                 existingRequest.IsDelete = requestDto.IsDeleted ?? existingRequest.IsDelete;
-                existingRequest.DrawingRevise = false; // ค่าคงที่
+                existingRequest.DrawingRevise = false; // ????????
 
                 if (requestDto.StatusId == Guid.Parse("c18ca7b2-e69c-4375-b9ba-372323ef0fce"))
                 {
                     existingRequest.StatusId = Guid.Parse("54415422-e4a1-4308-8a8f-bcfb2723ae3f");
                     existingRequest.Active = true;
                     existingRequest.IsDelete = false;
-                    existingRequest.DrawingRevise = true; // ค่าคงที่
+                    existingRequest.DrawingRevise = true; // ????????
                 }
-                // บันทึกการเปลี่ยนแปลง
+                // ????????????????????
                 _context.DwRequests.Update(existingRequest);
                 await _context.SaveChangesAsync();
 
@@ -516,10 +516,10 @@ namespace SI24004.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Update Error: {ex.Message}");
+                Console.WriteLine($"? Update Error: {ex.Message}");
                 if (ex.InnerException != null)
                 {
-                    Console.WriteLine($"🔍 Inner Exception: {ex.InnerException.Message}");
+                    Console.WriteLine($"?? Inner Exception: {ex.InnerException.Message}");
                 }
                 return StatusCode(500, "An error occurred while updating the request.");
             }
@@ -573,9 +573,9 @@ namespace SI24004.Controllers
                     // double imageHeight = image.PixelHeight * 72.0 / image.VerticalResolution;
 
                     // Position stamp at top-left corner
-                    // ย้ายลงมาหน่อย
+                    // ?????????????
                     double y = 50;
-                    // ย้ายเข้าไปในกรอบหน่อย  
+                    // ?????????????????????  
                     double x = newPage.Width - imageWidth - 50;
                     // Save current graphics state
                     var state = gfx.Save();
@@ -628,7 +628,7 @@ namespace SI24004.Controllers
         {
             try
             {
-                fileName = Path.GetFileName(fileName); // ป้องกัน path traversal
+                fileName = Path.GetFileName(fileName); // ??????? path traversal
                 string filePath = $@"\\172.18.106.100\d\TEST\{fileName}";
 
                 if (!System.IO.File.Exists(filePath))
@@ -637,7 +637,7 @@ namespace SI24004.Controllers
                 var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
                 string safeFileName = WebUtility.UrlEncode(fileName).Replace("+", "%20");
 
-                // ✅ Header สำหรับ iframe
+                // ? Header ?????? iframe
                 Response.Headers["Content-Disposition"] = $"inline; filename*=UTF-8''{safeFileName}";
                 Response.Headers["X-Content-Type-Options"] = "nosniff";
                 Response.Headers["X-Frame-Options"] = "ALLOWALL";
@@ -686,7 +686,7 @@ namespace SI24004.Controllers
 
                         if (nextStatusOrdinal > 3)
                         {
-                            // ถ้าถึงสถานะสุดท้ายให้ใช้ค่า StatusId ที่กำหนดไว้
+                            // ??????????????????????????? StatusId ???????????
                             nextStatusId = Guid.Parse("54415422-e4a1-4308-8a8f-bcfb2723ae3f");
                             nextStatusName = "Completed";
                         }
@@ -713,7 +713,7 @@ namespace SI24004.Controllers
                         _context.DwRequests.Update(existingRequest);
                         await _context.SaveChangesAsync();
 
-                        // ส่งอีเมลแจ้งเตือน
+                        // ?????????????????
                         await SendApprovalNotificationEmail(existingRequest);
                         await SendEmailToApprovers(existingRequest, user.UserName, nextStatusName);
 
@@ -735,7 +735,7 @@ namespace SI24004.Controllers
                         if (creator == null)
                             return;
 
-                        // สร้าง email format: user_name.user_lastname@agc.com
+                        // ????? email format: user_name.user_lastname@agc.com
                         string emailAddress = GenerateEmailAddress(creator.UserName, creator.UserLastname);
 
                         if (string.IsNullOrEmpty(emailAddress))
@@ -749,18 +749,18 @@ namespace SI24004.Controllers
 
                         string statusName = currentStatus?.StatusName ?? "Unknown";
 
-                        // ✅ Skip SSL certificate validation for internal servers
+                        // ? Skip SSL certificate validation for internal servers
                         ServicePointManager.ServerCertificateValidationCallback =
                             (sender, certificate, chain, sslPolicyErrors) => true;
 
-                        // สร้าง SMTP Client
+                        // ????? SMTP Client
                         var smtpClient = new SmtpClient(_smtpSettings.Host)
                         {
                             Port = _smtpSettings.Port,
                             EnableSsl = _smtpSettings.EnableSsl,
                         };
 
-                        // ตรวจสอบว่าจะใช้ authentication หรือไม่
+                        // ??????????????? authentication ???????
                         if (_smtpSettings.UseDefaultCredentials)
                         {
                             smtpClient.UseDefaultCredentials = true;
@@ -794,11 +794,11 @@ namespace SI24004.Controllers
                             </div>
 
                             <div class='content'>
-                                <p>สวัสดี {creator.UserName} {creator.UserLastname},</p>
-                                <p>คำขอแบบร่างของคุณได้รับการอนุมัติแล้ว</p>
+                                <p>?????? {creator.UserName} {creator.UserLastname},</p>
+                                <p>?????????????????????????????????????</p>
 
                                 <div class='details'>
-                                    <h3>รายละเอียดคำขอ:</h3>
+                                    <h3>??????????????:</h3>
                                     <p><strong>Drawing Code:</strong> {request.DrawingCode}</p>
                                     <p><strong>Request Code:</strong> {request.RequestCode}</p>
                                     <p><strong>Drawing Name:</strong> {request.DrawingName}</p>
@@ -809,12 +809,12 @@ namespace SI24004.Controllers
                                     <p><strong>Updated By:</strong> {request.UpdateBy}</p>
                                 </div>
 
-                                <p>คุณสามารถตรวจสอบสถานะล่าสุดของคำขอได้ในระบบ</p>
+                                <p>???????????????????????????????????????????</p>
                             </div>
 
                             <div class='footer'>
                                 <p>This is an automated message. Please do not reply to this email.</p>
-                                <p>ข้อความนี้เป็นการแจ้งเตือนอัตโนมัติ กรุณาอย่าตอบกลับอีเมลนี้</p>
+                                <p>??????????????????????????????????? ????????????????????????</p>
                             </div>
                         </body>
                         </html>";
@@ -844,18 +844,18 @@ namespace SI24004.Controllers
                     }
                 }
 
-                // Helper method สำหรับสร้าง email address
+                // Helper method ??????????? email address
                 private string GenerateEmailAddress(string userName, string lastName)
                 {
                     if (string.IsNullOrWhiteSpace(userName))
                         return string.Empty;
 
-                    // ทำความสะอาดชื่อ (ลบช่องว่าง, อักขระพิเศษ)
+                    // ??????????????? (??????????, ???????????)
                     userName = CleanEmailPart(userName);
 
                     if (string.IsNullOrWhiteSpace(lastName))
                     {
-                        // ถ้าไม่มีนามสกุล ให้ใช้แค่ชื่อ
+                        // ??????????????? ?????????????
                         return $"{userName}@agc.com";
                     }
 
@@ -863,13 +863,13 @@ namespace SI24004.Controllers
                     return $"{userName}.{lastName}@agc.com";
                 }
 
-                // Helper method สำหรับทำความสะอาดส่วนของ email
+                // Helper method ???????????????????????? email
                 private string CleanEmailPart(string input)
                 {
                     if (string.IsNullOrWhiteSpace(input))
                         return string.Empty;
 
-                    // ลบช่องว่าง, เปลี่ยนเป็นตัวพิมพ์เล็ก, ลบอักขระพิเศษ
+                    // ??????????, ???????????????????????, ?????????????
                     return input.Trim()
                                 .ToLower()
                                 .Replace(" ", "")

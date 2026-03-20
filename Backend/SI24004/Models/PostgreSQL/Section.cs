@@ -7,11 +7,27 @@ public partial class Section
 {
     public Guid Id { get; set; }
 
-    public string SectionCode { get; set; }
+    public Guid? DepartmentId { get; set; }
 
-    public string SectionName { get; set; }
+    public string? Code { get; set; }
 
-    public virtual ICollection<DwRequest> DwRequests { get; set; } = new List<DwRequest>();
+    public string? Name { get; set; }
 
-    public virtual ICollection<User> Users { get; set; } = new List<User>();
+    public string? Description { get; set; }
+
+    public bool? IsActive { get; set; }
+
+    public DateTime? CreatedAt { get; set; }
+
+    public DateTime? UpdatedAt { get; set; }
+
+    public virtual Department2? Department { get; set; }
+
+    public virtual ICollection<Employee> Employees { get; set; } = new List<Employee>();
+
+    public virtual ICollection<License> Licenses { get; set; } = new List<License>();
+
+    public virtual ICollection<Process> Processes { get; set; } = new List<Process>();
+
+    public virtual ICollection<User1> User1s { get; set; } = new List<User1>();
 }

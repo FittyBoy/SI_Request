@@ -5,7 +5,7 @@ namespace SI24004.Models.PostgreSQL;
 
 public partial class VwItemDailyMinmax
 {
-    public string ItemCode { get; set; }
+    public string? ItemCode { get; set; }
 
     public DateOnly? TransactionDate { get; set; }
 

@@ -5,9 +5,9 @@ namespace SI24004.Models.PostgreSQL;
 
 public partial class JobBatch
 {
-    public string Id { get; set; }
+    public string Id { get; set; } = null!;
 
-    public string Name { get; set; }
+    public string Name { get; set; } = null!;
 
     public int TotalJobs { get; set; }
 
@@ -15,9 +15,9 @@ public partial class JobBatch
 
     public int FailedJobs { get; set; }
 
-    public string FailedJobIds { get; set; }
+    public string FailedJobIds { get; set; } = null!;
 
-    public string Options { get; set; }
+    public string? Options { get; set; }
 
     public int? CancelledAt { get; set; }
 

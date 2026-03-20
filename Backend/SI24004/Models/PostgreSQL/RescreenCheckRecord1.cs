@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+
 namespace SI24004.Models.PostgreSQL;
 
 /// <summary>
@@ -30,7 +31,7 @@ public partial class RescreenCheckRecord1
     /// <summary>
     /// Imobile LOT Number (Unique)
     /// </summary>
-    public string? ImobileLot { get; set; }
+    public string ImobileLot { get; set; } = null!;
 
     /// <summary>
     /// Status จาก TH Record (Rescreen)
@@ -65,18 +66,12 @@ public partial class RescreenCheckRecord1
     /// <summary>
     /// สถานะการอนุมัติ (true = อนุมัติ, false = รอตรวจสอบ)
     /// </summary>
-    public bool IsApproved { get; set; }
-
-    /// <summary>
-    /// แหล่งที่มาของการ Approve:
-    /// "TH100 Confirm" = ผ่านจาก TH100,
-    /// "Approved"      = ผ่านจาก PO Check Flow,
-    /// "Pending"       = ยังไม่มีข้อมูล
-    /// </summary>
-    public string? ApprovedSource { get; set; }
+    public bool? IsApproved { get; set; }
 
     /// <summary>
     /// หมายเหตุเพิ่มเติม
     /// </summary>
     public string? Remarks { get; set; }
+
+    public string? ApprovedSource { get; set; }
 }
