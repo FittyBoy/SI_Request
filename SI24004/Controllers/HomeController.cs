@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using SI24004.Models.PostgreSQL;
-using SI24004.Models.DTOs;
-using SI24004.Models.PostgreSQL;
 using System.Diagnostics;
 
 namespace SI24004.Controllers

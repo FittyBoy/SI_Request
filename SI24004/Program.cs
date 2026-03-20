@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -19,7 +19,6 @@ using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using SI24004.Repositories;
 using SI24004.Repositories.Interfaces;
 using SI24004.Services.Interfaces;
-using SI24004.Services;
 using SI24004.Models.MySQL;
 using SI24004.Models.SqlServer1;
 using SI24004.Models.SqlServer;

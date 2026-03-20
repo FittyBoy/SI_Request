@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using SI24004.Controllers;
 using SI24004.Models.PostgreSQL;
 using SI24004.Models.DTOs;

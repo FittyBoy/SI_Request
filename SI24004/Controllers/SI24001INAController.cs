@@ -373,7 +373,7 @@ namespace SI24004.Controllers
                     foreach (var attachment in attachments.Where(a => !string.IsNullOrWhiteSpace(a.AttachmentName) && !string.IsNullOrWhiteSpace(a.AttachementPath)))
                     {
                         var attachmentId = Guid.NewGuid();
-                        var newAttachment = new Models.Attachment
+                        var newAttachment = new Attachment
                         {
                             Id = attachmentId,
                             AttachmentName = attachment.AttachmentName,
@@ -670,7 +670,7 @@ namespace SI24004.Controllers
                             if (!isDuplicate)
                             {
                                 var newAttachmentId = Guid.NewGuid();
-                                var newAttachment = new Models.Attachment
+                                var newAttachment = new Attachment
                                 {
                                     Id = newAttachmentId,
                                     AttachmentName = attachment.AttachmentName,
