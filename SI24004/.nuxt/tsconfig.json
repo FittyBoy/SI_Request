@@ -135,6 +135,6 @@
     "../node_modules/.pnpm/@nuxt+devtools@1.7.0_vite@5.1.4_vue@3.3.13/node_modules/@nuxt/devtools/runtime/server",
     "../node_modules/.pnpm/@nuxt+telemetry@2.6.6/node_modules/@nuxt/telemetry/runtime/server",
     "../dist",
-    "dev"
+    "../.output"
   ]
 }

@@ -60,17 +60,7 @@
         <div class="filter-section">
           <div class="input-group">
             <label>Date</label>
-            <!-- ✅ แก้: @change เรียก onDateChange แทน loadData ตรงๆ -->
             <input type="date" v-model="selectedDate" @change="onDateChange" class="input-modern"/>
-          </div>
-          <div class="input-group">
-            <label>LOT PO (วัน)</label>
-            <select v-model="selectedLotPo" @change="onLotPoChange" class="input-modern">
-              <option value="">ทั้งหมด</option>
-              <option v-for="lotPo in availableLotPos" :key="lotPo" :value="lotPo">
-                {{ lotPo }}
-              </option>
-            </select>
           </div>
           <button class="btn-refresh" @click="loadData" :disabled="isLoading">
             <svg v-if="!isLoading" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -147,6 +137,18 @@
             <span class="stat-value">{{ totalQuantity?.toLocaleString() }}</span>
           </div>
         </div>
+        <!-- ✅ REP stat card -->
+        <div class="stat-card rep">
+          <div class="stat-icon rep-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+          </div>
+          <div class="stat-content">
+            <span class="stat-label">REP LOTs</span>
+            <span class="stat-value">{{ repLotCount }}</span>
+          </div>
+        </div>
       </div>
 
       <!-- Loading -->
@@ -159,6 +161,7 @@
 
       <!-- Zone Layout -->
       <div v-else class="zones-container">
+        <!-- Normal zones (Zone A–I) -->
         <div v-for="zone in mainZones" :key="zone.name" class="zone-row">
           <div class="zone-section">
             <div class="zone-header">
@@ -219,6 +222,62 @@
             </div>
           </div>
         </div>
+
+        <!-- ✅ Zone REP — แถวล่างสุด -->
+        <div class="zone-row" v-if="repLots.length > 0 || true">
+          <div class="zone-section zone-section-rep">
+            <div class="zone-header zone-header-rep">
+              <div class="zone-header-left">
+                <span class="rep-zone-badge">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+                  REP
+                </span>
+                <h2>REP Product</h2>
+                <span class="rep-subtitle">Special Product — No ImobileLot Required</span>
+              </div>
+              <span class="zone-count rep-count">{{ repLots.length }} LOTs</span>
+            </div>
+
+            <!-- เนื้อหา: ถ้าไม่มี lot แสดง empty state -->
+            <div v-if="repLots.length === 0" class="rep-empty">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <p>ไม่มี REP LOT สำหรับวันที่เลือก</p>
+            </div>
+
+            <!-- Grid ของ REP lots แบ่งตาม prefix (0403O-REP, 0503O-REP, …) -->
+            <div v-else class="rep-groups">
+              <div v-for="(group, prefix) in repGrouped" :key="prefix" class="rep-group">
+                <div class="rep-group-header">
+                  <span class="rep-group-name">{{ prefix }}</span>
+                  <span class="rep-group-count">{{ group.length }} lots</span>
+                </div>
+                <div class="rep-lots-grid">
+                  <div v-for="lot in group" :key="lot.id || lot.poLot" class="rep-lot-item">
+                    <div class="rep-lot-top">
+                      <span class="rep-lot-name">{{ lot.poLot }}</span>
+                      <span class="lot-badge badge-ok">OK</span>
+                    </div>
+                    <div class="rep-lot-bottom">
+                      <span class="rep-lot-seq">
+                        #{{ getRepSeq(lot.poLot) }}
+                      </span>
+                      <span class="rep-lot-suffix" v-if="getRepSuffix(lot.poLot)">
+                        {{ getRepSuffix(lot.poLot) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -231,11 +290,11 @@ import { useFlowOutApi } from '~/composables/useFlowOutApi'
 interface LotData {
   id?: string
   poLot: string
-  imobileLot?: string
+  imobileLot?: string | null
   mcNo: string
   status?: string
   statusTn?: string
-  lotQty?: number
+  lotQty?: number | null
   check?: string
   checkSt?: boolean
   checkDate?: string
@@ -252,12 +311,10 @@ const emit = defineEmits<{ (e: 'goBack'): void }>()
 const api = useFlowOutApi()
 
 const selectedDate = ref<string>('')
-const selectedLotPo = ref<string>('')
 const isLoading = ref<boolean>(false)
 const showSummary = ref<boolean>(true)
-const isDarkMode = ref<boolean>(false)       // ✅ dark mode state
+const isDarkMode = ref<boolean>(false)
 const allLotData = ref<LotData[]>([])
-const availableLotPos = ref<string[]>([])
 
 // Zone Configuration
 const mainZones = ref<ZoneLayout[]>([
@@ -286,11 +343,50 @@ const zone9B = ref<ZoneLayout>({
   layout: [{ type:'machine',mc:'917'},{ type:'machine',mc:'918'},{ type:'machine',mc:'921'},{ type:'machine',mc:'920'},{ type:'machine',mc:'904'},{ type:'machine',mc:'905'}]
 })
 
-// ✅ Computed: กรอง LOT ตาม selectedLotPo
-const filteredLotData = computed(() => {
-  if (!selectedLotPo.value) return allLotData.value
-  return allLotData.value.filter(lot => lot.poLot?.split('-')[0] === selectedLotPo.value)
+// ✅ filteredLotData ไม่รวม REP (แสดงแยก)
+const filteredLotData = computed(() =>
+  allLotData.value.filter(lot => lot.mcNo?.toUpperCase() !== 'REP')
+)
+
+// ✅ REP lots แยกออกมา
+const repLots = computed(() =>
+  allLotData.value
+    .filter(lot => lot.mcNo?.toUpperCase() === 'REP')
+    .sort((a, b) => {
+      const partsA = a.poLot?.split('-') ?? []
+      const partsB = b.poLot?.split('-') ?? []
+      const prefixA = `${partsA[0]}-${partsA[1]}`
+      const prefixB = `${partsB[0]}-${partsB[1]}`
+      if (prefixA !== prefixB) return prefixA.localeCompare(prefixB)
+      const seqA = parseInt(partsA[2] ?? '0', 10)
+      const seqB = parseInt(partsB[2] ?? '0', 10)
+      return seqA - seqB
+    })
+)
+
+// ✅ จัดกลุ่ม REP lots ด้วย prefix (เช่น "0403O-REP")
+const repGrouped = computed(() => {
+  const groups: Record<string, LotData[]> = {}
+  repLots.value.forEach(lot => {
+    const parts = lot.poLot?.split('-') ?? []
+    const prefix = `${parts[0]}-${parts[1]}`
+    if (!groups[prefix]) groups[prefix] = []
+    groups[prefix].push(lot)
+  })
+  return groups
 })
+
+const repLotCount = computed(() => repLots.value.length)
+
+// ✅ helpers สำหรับ REP lot display
+const getRepSeq = (poLot: string): string => {
+  const parts = poLot?.split('-') ?? []
+  return parts[2] ?? ''
+}
+const getRepSuffix = (poLot: string): string => {
+  const parts = poLot?.split('-') ?? []
+  return parts[3] ?? ''
+}
 
 const totalMCs = computed(() => {
   const allMachines = [...mainZones.value.flatMap(z => z.machines), ...zone9B.value.machines]
@@ -315,80 +411,62 @@ const getMachineStatus = (mc: string): string => {
   return hasNG ? 'has-ng' : 'all-ok'
 }
 
-const getMachineLotCount = (mc: string): number => filteredLotData.value.filter(lot => lot.mcNo === mc).length
-const getMachineLots = (mc: string): LotData[] => filteredLotData.value.filter(lot => lot.mcNo === mc)
+const getMachineLotCount = (mc: string): number =>
+  filteredLotData.value.filter(lot => lot.mcNo === mc).length
+
+const getMachineLots = (mc: string): LotData[] => {
+  return filteredLotData.value
+    .filter(lot => lot.mcNo === mc)
+    .sort((a, b) => {
+      const partsA = a.poLot?.split('-') ?? []
+      const partsB = b.poLot?.split('-') ?? []
+      const prefixA = partsA[0] ?? ''
+      const prefixB = partsB[0] ?? ''
+      if (prefixA !== prefixB) return prefixA.localeCompare(prefixB)
+      const noPoA = parseInt(partsA[2]?.match(/^(\d+)/)?.[1] ?? '0', 10)
+      const noPoB = parseInt(partsB[2]?.match(/^(\d+)/)?.[1] ?? '0', 10)
+      if (noPoA !== noPoB) return noPoA - noPoB
+      const suffixA = partsA[3] ?? ''
+      const suffixB = partsB[3] ?? ''
+      return suffixA.localeCompare(suffixB)
+    })
+}
+
 const handleGoBack = (): void => emit('goBack')
-
-// ✅ แก้ปัญหาหลัก: เมื่อเปลี่ยนวันที่ ให้ reset lotPo แล้วโหลดใหม่
-const onDateChange = async (): Promise<void> => {
-  selectedLotPo.value = ''      // reset lotPo ก่อน
-  availableLotPos.value = []
-  await loadData()
-}
-
-// เมื่อเปลี่ยน lotPo ไม่ต้อง reload ข้อมูลใหม่ แค่ filter จาก allLotData
-const onLotPoChange = (): void => {
-  // filteredLotData computed จะ update อัตโนมัติ
-}
+const onDateChange = async (): Promise<void> => { await loadData() }
 
 const loadData = async (): Promise<void> => {
   isLoading.value = true
-
   try {
-    // Step 1: ดึง MC list ของวันนั้น
     const mcListResponse: any = await api.getMcList(selectedDate.value || undefined)
-
     if (!mcListResponse?.success || !mcListResponse?.data?.length) {
       allLotData.value = []
-      availableLotPos.value = []
       return
     }
-
-    // Step 2: ดึง lots ทุก MC พร้อมกัน
     const results = await Promise.all(
       mcListResponse.data.map((mcNo: string) =>
         api.getLotsByMc(mcNo, selectedDate.value || undefined)
       )
     )
-
     const combined: LotData[] = []
     results.forEach((res: any) => {
       if (res?.success && Array.isArray(res?.data)) {
         combined.push(...res.data)
       }
     })
-
     allLotData.value = combined
-
-    // ดึง LotPo ที่ไม่ซ้ำ
-    const lotPoSet = new Set<string>()
-    allLotData.value.forEach(lot => {
-      const lotPo = lot.poLot?.split('-')[0]
-      if (lotPo) lotPoSet.add(lotPo)
-    })
-
-    availableLotPos.value = Array.from(lotPoSet).sort((a, b) => a.localeCompare(b))
-
-    // ✅ auto-select lotPo ล่าสุดเมื่อโหลดครั้งแรก หรือถ้า selectedLotPo ว่างอยู่
-    if (!selectedLotPo.value && availableLotPos.value.length > 0) {
-      selectedLotPo.value = availableLotPos.value[availableLotPos.value.length - 1]
-    }
-
   } catch (err) {
     console.error('❌ Error loading data:', err)
     allLotData.value = []
-    availableLotPos.value = []
   } finally {
     isLoading.value = false
   }
 }
 
 onMounted(async () => {
-  // ✅ ตรวจ system dark mode preference
   if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
     isDarkMode.value = true
   }
-
   const today = new Date()
   selectedDate.value = today.toISOString().split('T')[0]
   await loadData()
@@ -553,7 +631,6 @@ onMounted(async () => {
   box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
 }
 
-/* ✅ Dark mode toggle button */
 .btn-dark {
   width: 40px;
   height: 40px;
@@ -604,6 +681,7 @@ onMounted(async () => {
 .input-group {
   flex: 1;
   min-width: 180px;
+  max-width: 300px;
 }
 
 .input-group label {
@@ -669,6 +747,14 @@ onMounted(async () => {
   transition: background 0.3s;
 }
 
+/* ✅ REP stat card */
+.stat-card.rep {
+  border: 2px solid #a78bfa;
+}
+.dark .stat-card.rep {
+  border-color: #5b21b6;
+}
+
 .stat-icon {
   width: 52px;
   height: 52px;
@@ -678,10 +764,11 @@ onMounted(async () => {
   justify-content: center;
 }
 
-.stat-icon.total { background: linear-gradient(135deg, #60a5fa, #3b82f6); color: white; }
-.stat-icon.ok    { background: linear-gradient(135deg, #86efac, #22c55e); color: white; }
-.stat-icon.ng    { background: linear-gradient(135deg, #fca5a5, #ef4444); color: white; }
-.stat-icon.qty   { background: linear-gradient(135deg, #c084fc, #a855f7); color: white; }
+.stat-icon.total   { background: linear-gradient(135deg, #60a5fa, #3b82f6); color: white; }
+.stat-icon.ok      { background: linear-gradient(135deg, #86efac, #22c55e); color: white; }
+.stat-icon.ng      { background: linear-gradient(135deg, #fca5a5, #ef4444); color: white; }
+.stat-icon.qty     { background: linear-gradient(135deg, #c084fc, #a855f7); color: white; }
+.stat-icon.rep-icon { background: linear-gradient(135deg, #a78bfa, #7c3aed); color: white; }
 
 .stat-content { display: flex; flex-direction: column; }
 .stat-label { font-size: 12px; color: var(--text-secondary); }
@@ -699,6 +786,16 @@ onMounted(async () => {
   transition: background 0.3s;
 }
 
+/* ✅ REP zone section — ขอบม่วง */
+.zone-section-rep {
+  border: 2px solid #a78bfa;
+  background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%);
+}
+.dark .zone-section-rep {
+  border-color: #5b21b6;
+  background: linear-gradient(135deg, #1e1b4b 0%, #2e1065 100%);
+}
+
 .zone-header {
   display: flex;
   justify-content: space-between;
@@ -706,6 +803,21 @@ onMounted(async () => {
   margin-bottom: 12px;
   padding-bottom: 10px;
   border-bottom: 2px solid var(--border-zone);
+}
+
+/* ✅ REP zone header */
+.zone-header-rep {
+  border-bottom-color: #ddd6fe;
+}
+.dark .zone-header-rep {
+  border-bottom-color: #4c1d95;
+}
+
+.zone-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .zone-header h2 {
@@ -723,6 +835,179 @@ onMounted(async () => {
   border-radius: 6px;
 }
 
+/* ✅ REP zone count */
+.rep-count {
+  background: linear-gradient(135deg, #a78bfa, #7c3aed);
+  color: white;
+  font-weight: 600;
+}
+
+/* ✅ REP zone badge */
+.rep-zone-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #a78bfa, #7c3aed);
+  color: white;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.rep-subtitle {
+  font-size: 12px;
+  color: #7c3aed;
+  font-style: italic;
+}
+.dark .rep-subtitle {
+  color: #c4b5fd;
+}
+
+/* ✅ REP empty state */
+.rep-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 0;
+  color: #a78bfa;
+  opacity: 0.6;
+}
+.rep-empty p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* ✅ REP groups */
+.rep-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.rep-group {
+  min-width: 220px;
+  flex: 1 1 220px;
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px solid #ddd6fe;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.dark .rep-group {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: #4c1d95;
+}
+
+.rep-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed #ddd6fe;
+}
+.dark .rep-group-header {
+  border-bottom-color: #4c1d95;
+}
+
+.rep-group-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6d28d9;
+  font-family: 'Courier New', monospace;
+}
+.dark .rep-group-name {
+  color: #c4b5fd;
+}
+
+.rep-group-count {
+  font-size: 11px;
+  color: #7c3aed;
+  background: #ede9fe;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.dark .rep-group-count {
+  background: #3b0764;
+  color: #c4b5fd;
+}
+
+/* ✅ REP lots grid */
+.rep-lots-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rep-lot-item {
+  background: white;
+  border: 1px solid #ddd6fe;
+  border-left: 3px solid #7c3aed;
+  border-radius: 6px;
+  padding: 6px 10px;
+  min-width: 140px;
+  flex: 1 1 140px;
+  transition: transform 0.15s;
+}
+.rep-lot-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.15);
+}
+.dark .rep-lot-item {
+  background: #1e1b4b;
+  border-color: #4c1d95;
+}
+
+.rep-lot-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.rep-lot-name {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rep-lot-bottom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rep-lot-seq {
+  font-size: 11px;
+  color: #7c3aed;
+  font-weight: 600;
+}
+.dark .rep-lot-seq {
+  color: #c4b5fd;
+}
+
+.rep-lot-suffix {
+  font-size: 10px;
+  background: #ede9fe;
+  color: #5b21b6;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+.dark .rep-lot-suffix {
+  background: #3b0764;
+  color: #e9d5ff;
+}
+
+/* ===== Machine Card ===== */
 .zone-machines-horizontal {
   display: flex;
   gap: 10px;
@@ -735,7 +1020,6 @@ onMounted(async () => {
 .zone-machines-horizontal::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 .dark .zone-machines-horizontal::-webkit-scrollbar-thumb { background: #475569; }
 
-/* ===== Machine Card ===== */
 .machine-wrapper { flex: 0 0 auto; width: 260px; }
 
 .machine-cell {
@@ -753,28 +1037,13 @@ onMounted(async () => {
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-.machine-cell.all-ok {
-  border-color: #86efac;
-  background: var(--bg-machine);
-}
-.dark .machine-cell.all-ok {
-  border-color: #166534;
-  background: linear-gradient(135deg, #052e16 0%, #14532d 100%);
-}
+.machine-cell.all-ok  { border-color: #86efac; }
+.dark .machine-cell.all-ok  { border-color: #166534; background: linear-gradient(135deg, #052e16 0%, #14532d 100%); }
 
-.machine-cell.has-ng {
-  border-color: #fca5a5;
-  background: var(--bg-machine);
-}
-.dark .machine-cell.has-ng {
-  border-color: #991b1b;
-  background: linear-gradient(135deg, #2d0000 0%, #450a0a 100%);
-}
+.machine-cell.has-ng  { border-color: #fca5a5; }
+.dark .machine-cell.has-ng  { border-color: #991b1b; background: linear-gradient(135deg, #2d0000 0%, #450a0a 100%); }
 
-.machine-cell.no-data {
-  border-color: var(--border-default);
-  opacity: 0.5;
-}
+.machine-cell.no-data { border-color: var(--border-default); opacity: 0.5; }
 
 .machine-header {
   display: flex;
@@ -799,9 +1068,14 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  max-height: 200px;
+  max-height: 480px;
   overflow-y: auto;
 }
+
+.machine-lots::-webkit-scrollbar { width: 4px; }
+.machine-lots::-webkit-scrollbar-track { background: transparent; }
+.machine-lots::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+.dark .machine-lots::-webkit-scrollbar-thumb { background: #475569; }
 
 /* ===== LOT Item ===== */
 .lot-item {
@@ -818,8 +1092,8 @@ onMounted(async () => {
 }
 
 .lot-item:hover { transform: scale(1.01); }
-.lot-item.ok   { border-left: 3px solid #22c55e; }
-.lot-item.ng   { border-left: 3px solid #ef4444; }
+.lot-item.ok    { border-left: 3px solid #22c55e; }
+.lot-item.ng    { border-left: 3px solid #ef4444; }
 .lot-item.scrap { border-left: 3px solid #f59e0b; }
 
 .lot-name {
@@ -897,5 +1171,8 @@ onMounted(async () => {
   .content { padding: 12px; }
   .machine-wrapper { width: 180px; }
   .stats-overview { grid-template-columns: 1fr 1fr; }
+  .input-group { max-width: 100%; }
+  .rep-lot-item { min-width: 120px; }
+  .rep-group { min-width: 100%; }
 }
 </style>

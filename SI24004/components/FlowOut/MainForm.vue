@@ -1,6 +1,5 @@
 <template>
     <div class="main-section" :class="{ 'dark': isDark }">
-        <!-- Dark Mode Toggle -->
         <button class="theme-toggle" @click="toggleDark" :title="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
             <svg v-if="isDark" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="5"/>
@@ -14,13 +13,11 @@
             </svg>
         </button>
 
-        <!-- Header -->
         <div class="header">
             <div class="header-content">
                 <div class="title-section">
                     <div class="icon-wrapper">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M9 11l3 3L22 4" />
                             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
                         </svg>
@@ -32,16 +29,14 @@
                 </div>
                 <div class="header-actions">
                     <button class="btn-rescreen" @click="handleGoToRescreen">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M9 11l3 3L22 4" />
                             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
                         </svg>
                         Rescreen Check
                     </button>
                     <button class="btn-summarise" @click="handleGoToSummary">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="3" width="7" height="7" />
                             <rect x="14" y="3" width="7" height="7" />
                             <rect x="14" y="14" width="7" height="7" />
@@ -54,7 +49,7 @@
 
             <div class="content">
                 <div class="layout-grid">
-                    <!-- LEFT: Dashboard/Table Section -->
+                    <!-- LEFT -->
                     <div class="card data-section">
                         <div class="mc-header">
                             <div class="mc-info">
@@ -67,14 +62,35 @@
                                 </div>
                             </div>
                             <div class="date-info">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                                    fill="none" stroke="currentColor" stroke-width="2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                                     <line x1="16" y1="2" x2="16" y2="6" />
                                     <line x1="8" y1="2" x2="8" y2="6" />
                                     <line x1="3" y1="10" x2="21" y2="10" />
                                 </svg>
                                 {{ currentDate }}
+                            </div>
+                        </div>
+
+                        <!-- Color Legend -->
+                        <div class="color-legend">
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background:#22c55e"></span><span>OK</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background:#ef4444"></span><span>NG / SCRAP</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background:#f97316"></span><span>Waiting Rescreen</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background:#eab308"></span><span>Rescreen Pending</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background:#3b82f6"></span><span>HOLD</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background:#8b5cf6"></span><span>REP Product</span>
                             </div>
                         </div>
 
@@ -90,34 +106,67 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="(item, index) in lotRecords" :key="item.id" class="data-row">
+                                    <tr v-for="(item, index) in lotRecords"
+                                        :key="item.id || (item.poLot + index)"
+                                        :class="[
+                                            'data-row',
+                                            item.rowColor === 'waiting_rescreen' ? 'row-waiting-rescreen' : '',
+                                            item.rowColor === 'rescreen_pending'  ? 'row-rescreen-pending'  : '',
+                                            item.rowColor === 'scrap'             ? 'row-skipped-scrap'     : '',
+                                            item.rowColor === 'hold'              ? 'row-skipped-hold'      : '',
+                                            isRepRecord(item)                     ? 'row-rep-product'       : '',
+                                        ]">
                                         <td>
-                                            <span :class="['lot-number', item.check !== 'OK' ? 'lot-ng' : '']">
+                                            <span :class="[
+                                                'lot-number',
+                                                item.rowColor === 'waiting_rescreen' ? 'lot-color-orange' : '',
+                                                item.rowColor === 'rescreen_pending'  ? 'lot-color-yellow' : '',
+                                                item.rowColor === 'scrap'             ? 'lot-color-red'    : '',
+                                                item.rowColor === 'hold'              ? 'lot-color-blue'   : '',
+                                                isRepRecord(item)                     ? 'lot-color-purple'  : '',
+                                                item.rowColor === 'default' && item.check !== 'OK' && !isRepRecord(item) ? 'lot-ng' : '',
+                                            ]">
                                                 {{ String(index + 1).padStart(2, '0') }}
                                             </span>
                                         </td>
                                         <td class="text-left">
-                                            <div class="po-lot-cell">{{ item.poLot }}</div>
+                                            <div class="po-lot-cell">
+                                                {{ item.poLot }}
+                                                <span v-if="isRepRecord(item)" class="rep-badge">REP</span>
+                                            </div>
                                         </td>
                                         <td>
-                                            <span :class="['status-badge', getStatusBadgeClass(item.statusTn)]">
-                                                {{ item.statusTn }}
+                                            <span :class="['status-badge', isRepRecord(item) ? 'status-badge-rep' : getStatusBadgeClass(item.statusTn)]">
+                                                {{ isRepRecord(item) ? 'OK' : item.statusTn }}
                                             </span>
                                         </td>
                                         <td>
-                                            <span :class="['check-badge', item.check === 'OK' ? 'badge-ok' : 'badge-ng']">
-                                                <svg v-if="item.check === 'OK'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                            <span :class="[
+                                                'check-badge',
+                                                item.rowColor === 'waiting_rescreen' ? 'badge-waiting-rescreen' : '',
+                                                item.rowColor === 'rescreen_pending'  ? 'badge-rescreen-pending'  : '',
+                                                item.rowColor === 'scrap'             ? 'badge-skipped-scrap'     : '',
+                                                item.rowColor === 'hold'              ? 'badge-skipped-hold'      : '',
+                                                isRepRecord(item)                     ? 'badge-ok'                : '',
+                                                item.rowColor === 'default' && item.check === 'OK' && !isRepRecord(item) ? 'badge-ok' : '',
+                                                item.rowColor === 'default' && item.check !== 'OK' && !isRepRecord(item) ? 'badge-ng' : '',
+                                            ]">
+                                                <svg v-if="item.check === 'OK' || isRepRecord(item)" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                                                     <polyline points="20 6 9 17 4 12" />
+                                                </svg>
+                                                <svg v-else-if="item.check === 'RESCREEN'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                                    <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
                                                 </svg>
                                                 <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                                                     <line x1="18" y1="6" x2="6" y2="18" />
                                                     <line x1="6" y1="6" x2="18" y2="18" />
                                                 </svg>
-                                                {{ item.check }}
+                                                {{ isRepRecord(item) ? 'OK' : item.check }}
                                             </span>
                                         </td>
                                         <td>
-                                            <span class="qty-text">{{ item.lotQty || '-' }}</span>
+                                            <span class="qty-text">{{ item.lotQty != null ? item.lotQty : '-' }}</span>
                                         </td>
                                     </tr>
                                     <tr v-if="lotRecords.length === 0" class="empty-state-row">
@@ -136,7 +185,6 @@
                             </table>
                         </div>
 
-                        <!-- Stats Footer -->
                         <div class="stats-section">
                             <div class="stat-card">
                                 <div class="stat-icon total">
@@ -178,7 +226,7 @@
                         </div>
                     </div>
 
-                    <!-- RIGHT: Scan Form Section -->
+                    <!-- RIGHT: Scan Form -->
                     <div class="card form-section">
                         <div class="card-header">
                             <h2>
@@ -202,13 +250,13 @@
                                     placeholder="Scan barcode or enter LOT number..." class="input-modern"
                                     ref="lotInput" />
                             </div>
-                            <p v-if="lotRecords.length >= 8" class="info-text">
+                            <p v-if="totalLots >= 8" class="info-text">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <circle cx="12" cy="12" r="10" />
                                     <line x1="12" y1="16" x2="12" y2="12" />
                                     <line x1="12" y1="8" x2="12.01" y2="8" />
                                 </svg>
-                                แสดงเฉพาะ 8 LOT ล่าสุดของ MC {{ selectedMc }} (มี {{ totalLots }} LOT ทั้งหมด)
+                                MC {{ selectedMc }} มี {{ totalLots }} LOT ทั้งหมด
                             </p>
                         </div>
 
@@ -222,7 +270,8 @@
                                 <strong>สำคัญ:</strong> จะต้องเรียง LOT ตามลำดับเท่านั้น เพื่อป้องกัน LOT ซ้ำและงานข้าม LOT<br>
                                 <small style="opacity: 0.8; margin-top: 4px; display: block;">
                                     • ถ้าไม่มี LOT เลย ต้องเริ่มด้วย 001 เท่านั้น<br>
-                                    • ถ้ามี LOT แล้ว ต้องเพิ่มตามลำดับต่อเนื่อง
+                                    • ถ้ามี LOT แล้ว ต้องเพิ่มตามลำดับต่อเนื่อง<br>
+                                    • <strong>REP Product</strong> (format: XXXXX-REP-001-N) บันทึกโดยไม่ต้องใส่ Qty
                                 </small>
                             </div>
                         </div>
@@ -272,13 +321,52 @@
 
                         <div class="modal-body">
                             <div class="lot-info-grid">
-                                <div class="info-item">
+                                <!-- REP: แสดง PO LOT แทน IMOBILE LOT -->
+                                <div class="info-item" v-if="!isRepProduct">
                                     <label>IMOBILE LOT</label>
                                     <div class="info-value">{{ modalData?.imobileLot }}</div>
                                 </div>
-                                <div class="info-item">
+                                <div class="info-item" :class="{ 'rep-full-width': isRepProduct }">
                                     <label>PO LOT</label>
-                                    <div class="info-value">{{ modalData?.poLot }}</div>
+                                    <div class="info-value">
+                                        {{ modalData?.poLot }}
+                                        <span v-if="isRepProduct" class="rep-badge" style="margin-left:8px">REP</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ✅ Duplicate Banner -->
+                            <div v-if="modalData?.isDuplicate" class="duplicate-banner">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                                </svg>
+                                <div>
+                                    <strong>LOT นี้เคยถูกบันทึกแล้ว</strong>
+                                    <span>การบันทึกใหม่จะอัปเดต Qty</span>
+                                </div>
+                            </div>
+
+                            <!-- ✅ Cassette Number — แสดงเสมอสำหรับ non-REP -->
+                            <div v-if="!isRepProduct" class="cassette-section">
+                                <div class="cassette-label">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="2" y="4" width="20" height="16" rx="2"/>
+                                        <circle cx="8" cy="12" r="2"/>
+                                        <circle cx="16" cy="12" r="2"/>
+                                        <path d="M10 12h4"/>
+                                    </svg>
+                                    Cassette No.
+                                </div>
+                                <div class="cassette-value">{{ modalData?.cassetteNo || '—' }}</div>
+                            </div>
+
+                            <!-- REP Product note -->
+                            <div v-if="isRepProduct" class="rep-info-banner">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                </svg>
+                                <div>
+                                    <strong>REP Product</strong> — บันทึกผ่าน PO LOT โดยตรง
                                 </div>
                             </div>
 
@@ -323,6 +411,7 @@
                                 </div>
                             </div>
 
+                            <!-- qty input แสดงทุก lot รวมถึง REP -->
                             <div v-if="canSaveLot()" class="qty-section">
                                 <h4>Lot Qty</h4>
                                 <div class="qty-input-group">
@@ -393,7 +482,6 @@
                                 </svg>
                                 <span>Status: {{ errorStatus }}</span>
                             </div>
-
                             <div v-if="errorData.currentLot" class="info-box-modern current">
                                 <div class="info-label">🔍 LOT ที่พยายามเพิ่ม</div>
                                 <div class="info-value">{{ errorData.currentLot }}</div>
@@ -402,7 +490,6 @@
                                 <div class="info-label">✅ ต้องเริ่มด้วย LOT</div>
                                 <div class="info-value">{{ errorData.requiredLot }}</div>
                             </div>
-
                             <div class="error-message-modern" :class="getErrorMessageBoxClass()">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
@@ -413,7 +500,6 @@
                                     <p>{{ getErrorDescription() }}</p>
                                 </div>
                             </div>
-
                             <div v-if="hasMissingLots()" class="lots-section missing">
                                 <div class="lots-header">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -430,7 +516,6 @@
                                     </li>
                                 </ul>
                             </div>
-
                             <div v-if="hasSkippedLots()" class="lots-section skipped">
                                 <div class="lots-header success">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -442,7 +527,7 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
                                     </svg>
-                                    <span>LOT เหล่านี้เป็น SCRAP/HOLD หรือมีใน Rescreen Check สามารถข้ามได้ไม่ต้องเพิ่ม</span>
+                                    <span>LOT เหล่านี้เป็น SCRAP/HOLD หรือมีใน Rescreen Check สามารถข้ามได้</span>
                                 </div>
                                 <ul class="lots-list">
                                     <li v-for="lot in errorData.scrapHoldLots" :key="lot" class="lot-item skipped">
@@ -479,23 +564,28 @@
 import { ref, onMounted, computed } from 'vue'
 
 interface LotRecord {
-    id: string
+    id: string | null
     poLot: string
-    imobileLot: string
+    imobileLot: string | null
     statusTn: string
     checkSt: boolean
     check: string
-    lotQty: number
+    lotQty: number | null
+    mcNo?: string
+    rowColor?: string
 }
 
 interface ModalData {
-    imobileLot: string
+    imobileLot: string | null
     poLot: string
     statusTn: string
     checkSt: boolean
     mcNo: string
+    isRepProduct?: boolean
     existingQty?: number
     quantity?: number
+    // ✅ NEW: Cassette Number จาก TH_Record.ca5_in9
+    cassetteNo?: string | null
 }
 
 const emit = defineEmits(['go-to-summary', 'go-to-rescreen', 'goToSummary', 'goToRescreen'])
@@ -531,6 +621,7 @@ const errorData = ref({
 })
 
 // Data from DB
+const allDisplayRecords = ref<LotRecord[]>([])
 const lotRecords = ref<LotRecord[]>([])
 const totalLots = ref(0)
 const okCount = ref(0)
@@ -552,6 +643,16 @@ const getTodayYMD = (): string => {
     const dd = String(today.getDate()).padStart(2, '0')
     return `${yyyy}-${mm}-${dd}`
 }
+
+// Helper: ตรวจว่าเป็น REP record หรือไม่
+const isRepRecord = (item: LotRecord): boolean => {
+    return item.mcNo === 'REP' || (item.poLot?.split('-')[1]?.toUpperCase() === 'REP')
+}
+
+// computed: ตรวจว่า modal ปัจจุบันเป็น REP product หรือไม่
+const isRepProduct = computed(() => {
+    return modalData.value?.mcNo === 'REP' || modalData.value?.isRepProduct === true
+})
 
 const handleGoToSummary = () => { emit('go-to-summary'); emit('goToSummary') }
 const handleGoToRescreen = () => { emit('go-to-rescreen'); emit('goToRescreen') }
@@ -609,10 +710,11 @@ const fetchLotData = async () => {
         const { data: response, error: fetchError } = await useFetch('/api/SI25031/get-lots-by-mc', {
             baseURL: useRuntimeConfig().public.apiBase,
             params: { mcNo: selectedMc.value, date: getTodayYMD() },
-            key: `lots-mc-${selectedMc.value}-${Date.now()}`
+            key: `lots-all-${selectedMc.value}-${Date.now()}`
         })
         if (!fetchError.value && response.value?.success) {
-            lotRecords.value = response.value.data || []
+            allDisplayRecords.value = response.value.data || []
+            lotRecords.value = allDisplayRecords.value
             totalLots.value = response.value.totalCount || 0
             okCount.value = response.value.okCount || 0
             ngCount.value = response.value.ngCount || 0
@@ -655,19 +757,26 @@ const searchLot = async () => {
 
 const closeModal = () => { showModal.value = false; modalData.value = null; lotQty.value = '' }
 
+// REP product บันทึกได้เสมอ
 const canSaveLot = () => {
     if (!modalData.value) return false
+    if (isRepProduct.value) return true
     const status = modalData.value.statusTn?.toLowerCase()
     if (status === 'ok') return true
     if (status === 'rescreen' && modalData.value.checkSt) return true
     return false
 }
 
-const showSubStatus = () => { if (!modalData.value) return false; return modalData.value.statusTn?.toLowerCase() === 'rescreen' }
+const showSubStatus = () => {
+    if (!modalData.value) return false
+    if (isRepProduct.value) return false
+    return modalData.value.statusTn?.toLowerCase() === 'rescreen'
+}
 const getSubStatusValue = () => { if (!modalData.value) return ''; return modalData.value.checkSt ? 'OK' : 'Pending' }
 
 const getStatusClass = () => {
     if (!modalData.value) return ''
+    if (isRepProduct.value) return 'status-ok'
     const status = modalData.value.statusTn?.toLowerCase()
     if (status === 'ok') return 'status-ok'
     if (status === 'rescreen') return 'status-rescreen'
@@ -680,6 +789,7 @@ const getSubStatusClass = () => { if (!modalData.value) return ''; return modalD
 
 const getModalHeaderClass = () => {
     if (!modalData.value) return ''
+    if (isRepProduct.value) return 'header-rep'
     const status = modalData.value.statusTn?.toLowerCase()
     if (status === 'ok') return 'header-ok'
     if (status === 'rescreen' && modalData.value.checkSt) return 'header-rescreen-ok'
@@ -691,6 +801,7 @@ const getModalHeaderClass = () => {
 
 const getStatusIcon = () => {
     if (!modalData.value) return 'check'
+    if (isRepProduct.value) return 'check'
     const status = modalData.value.statusTn?.toLowerCase()
     if (status === 'ok') return 'check'
     if (status === 'rescreen') return 'alert'
@@ -726,16 +837,24 @@ const getWarningMessage = () => {
     return 'ไม่สามารถบันทึก LOT นี้เข้าระบบได้'
 }
 
-const isQtyValid = () => (parseInt(lotQty.value) || 0) > 0
+// REP product ไม่ต้องตรวจ qty
+const isQtyValid = () => {
+    return (parseInt(lotQty.value) || 0) > 0
+}
 
 const handleSave = async () => {
     if (!isQtyValid()) { showErrorModalFunc('กรุณาระบุจำนวน Lot Qty'); return }
     isLoading.value = true
     try {
+        // REP: ส่ง poLot + lotQty  |  ปกติ: ส่ง imobileLot + lotQty
+        const body = isRepProduct.value
+            ? { poLot: modalData.value?.poLot, lotQty: parseInt(lotQty.value) || 0 }
+            : { imobileLot: modalData.value?.imobileLot, lotQty: parseInt(lotQty.value) || 0 }
+
         const { data: response, error: fetchError } = await useFetch('/api/SI25031/save-lot', {
             method: 'POST',
             baseURL: useRuntimeConfig().public.apiBase,
-            body: { imobileLot: modalData.value?.imobileLot, lotQty: parseInt(lotQty.value) || 0 }
+            body
         })
         if (fetchError.value) {
             showErrorModalFunc(fetchError.value.data?.message || 'เกิดข้อผิดพลาดในการบันทึก')
@@ -743,9 +862,13 @@ const handleSave = async () => {
         }
         if (response.value?.success && response.value?.data) {
             const savedData = response.value.data
-            if (savedData.mcNo && savedData.mcNo !== selectedMc.value) { selectedMc.value = savedData.mcNo; await fetchMcList() }
+            const mcNo = savedData.mcNo || 'REP'
+            if (mcNo !== selectedMc.value) {
+                await fetchMcList()
+                selectedMc.value = mcNo
+            }
             await fetchLotData()
-            successMessage.value = `✓ เพิ่ม LOT ${savedData.poLot} สำเร็จ (MC: ${savedData.mcNo})`
+            successMessage.value = `✓ เพิ่ม LOT ${savedData.poLot} สำเร็จ${isRepProduct.value ? ' (REP)' : ` (MC: ${mcNo})`}`
             playBeep()
             setTimeout(() => { successMessage.value = ''; lotNo.value = ''; closeModal(); focusInput() }, 2000)
         } else {
@@ -786,6 +909,7 @@ const playErrorBeep = () => {
 }
 
 const getErrorModalHeaderClass = () => {
+    if (errorStatus.value === 'DUPLICATE') return 'error-header-duplicate'
     if (errorStatus.value === 'HOLD') return 'error-header-hold'
     if (errorStatus.value === 'SCRAP') return 'error-header-scrap'
     if (errorData.value.missingLots && errorData.value.missingLots.length > 0) return 'error-header-sequence'
@@ -793,12 +917,14 @@ const getErrorModalHeaderClass = () => {
 }
 
 const getErrorStatusBadgeClass = () => {
+    if (errorStatus.value === 'DUPLICATE') return 'status-badge-duplicate'
     if (errorStatus.value === 'HOLD') return 'status-badge-hold'
     if (errorStatus.value === 'SCRAP') return 'status-badge-scrap'
     return 'status-badge-default'
 }
 
 const getErrorMessageBoxClass = () => {
+    if (errorStatus.value === 'DUPLICATE') return 'error-box-duplicate'
     if (errorStatus.value === 'HOLD') return 'error-box-hold'
     if (errorStatus.value === 'SCRAP') return 'error-box-scrap'
     if (errorData.value.missingLots && errorData.value.missingLots.length > 0) return 'error-box-sequence'
@@ -806,6 +932,7 @@ const getErrorMessageBoxClass = () => {
 }
 
 const getErrorButtonClass = () => {
+    if (errorStatus.value === 'DUPLICATE') return 'btn-error-duplicate'
     if (errorStatus.value === 'HOLD') return 'btn-error-hold'
     if (errorStatus.value === 'SCRAP') return 'btn-error-scrap'
     if (errorData.value.missingLots && errorData.value.missingLots.length > 0) return 'btn-error-sequence'
@@ -816,6 +943,7 @@ const hasMissingLots = () => errorData.value.missingLots && errorData.value.miss
 const hasSkippedLots = () => errorData.value.scrapHoldLots && errorData.value.scrapHoldLots.length > 0
 
 const getErrorTitle = () => {
+    if (errorStatus.value === 'DUPLICATE') return '🔁 LOT นี้เคยถูกบันทึกแล้ว'
     if (hasMissingLots()) return '❌ ไม่สามารถเพิ่ม LOT นี้ได้'
     if (errorData.value.requiredLot) return '⚠️ ไม่มี LOT ในระบบ'
     if (errorStatus.value === 'HOLD') return '🔒 LOT อยู่ในสถานะ HOLD'
@@ -824,6 +952,7 @@ const getErrorTitle = () => {
 }
 
 const getErrorDescription = () => {
+    if (errorStatus.value === 'DUPLICATE') return 'LOT นี้ถูกบันทึกเข้าระบบแล้ว ไม่สามารถเพิ่มซ้ำได้'
     if (hasMissingLots()) return 'ยังมี LOT ก่อนหน้าที่ยังไม่ได้เพิ่ม กรุณาเพิ่ม LOT ตามลำดับก่อน'
     if (errorData.value.requiredLot) return 'ไม่มี LOT ใด ๆ ในระบบ กรุณาเริ่มต้นด้วย LOT แรก'
     if (errorStatus.value === 'HOLD') return 'LOT นี้อยู่ในสถานะ HOLD ไม่สามารถบันทึกเข้าระบบได้'
@@ -832,12 +961,10 @@ const getErrorDescription = () => {
 }
 
 onMounted(() => {
-    // Load saved theme preference
     const savedTheme = localStorage.getItem('theme')
     if (savedTheme === 'dark') {
         isDark.value = true
     } else if (savedTheme === null) {
-        // Use system preference if no saved preference
         isDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
     }
     focusInput()
@@ -946,6 +1073,13 @@ onMounted(() => {
     --theme-toggle-color: white;
     --theme-toggle-hover: rgba(255, 255, 255, 0.35);
 
+    /* ✅ NEW: Cassette variables */
+    --cassette-bg: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    --cassette-border: #7dd3fc;
+    --cassette-label-color: #0369a1;
+    --cassette-value-color: #0c4a6e;
+    --cassette-icon-color: #0284c7;
+
     min-height: 100vh;
     background: var(--bg-page);
     position: relative;
@@ -1049,6 +1183,13 @@ onMounted(() => {
     --theme-toggle-bg: rgba(255, 255, 255, 0.15);
     --theme-toggle-color: #e2e8f0;
     --theme-toggle-hover: rgba(255, 255, 255, 0.25);
+
+    /* ✅ NEW: Cassette dark mode */
+    --cassette-bg: rgba(14, 165, 233, 0.1);
+    --cassette-border: #0284c7;
+    --cassette-label-color: #7dd3fc;
+    --cassette-value-color: #e0f2fe;
+    --cassette-icon-color: #38bdf8;
 }
 
 /* ===== Dark Mode Toggle Button ===== */
@@ -1403,7 +1544,9 @@ onMounted(() => {
     transition: color 0.3s, border-color 0.3s;
 }
 
-.lot-table .text-left { text-align: left; }
+.lot-table .text-left {
+    text-align: left;
+}
 
 .lot-table td {
     padding: 16px;
@@ -1412,7 +1555,10 @@ onMounted(() => {
     transition: border-color 0.3s;
 }
 
-.data-row:hover { background: var(--surface-hover); transition: background 0.2s; }
+.data-row:hover {
+    background: var(--surface-hover);
+    transition: background 0.2s;
+}
 
 .empty-state {
     text-align: center;
@@ -1435,13 +1581,21 @@ onMounted(() => {
     transition: color 0.3s;
 }
 
-.lot-number.lot-ng { color: #dc2626; }
-.dark .lot-number.lot-ng { color: #f87171; }
+.lot-number.lot-ng {
+    color: #dc2626;
+}
+
+.dark .lot-number.lot-ng {
+    color: #f87171;
+}
 
 .po-lot-cell {
     font-family: 'Courier New', monospace;
     font-size: 14px;
     color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
     transition: color 0.3s;
 }
 
@@ -1499,6 +1653,19 @@ onMounted(() => {
     color: var(--text-muted);
     border: 1px solid var(--border-primary);
     transition: background 0.3s, color 0.3s, border-color 0.3s;
+}
+
+/* REP status badge */
+.status-badge-rep {
+    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+    color: #5b21b6;
+    border: 1px solid #a78bfa;
+}
+
+.dark .status-badge-rep {
+    background: rgba(139, 92, 246, 0.2);
+    color: #c4b5fd;
+    border: 1px solid #5b21b6;
 }
 
 .qty-text {
@@ -1567,9 +1734,20 @@ onMounted(() => {
     flex-shrink: 0;
 }
 
-.stat-icon.total { background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%); color: white; }
-.stat-icon.ok { background: linear-gradient(135deg, #86efac 0%, #22c55e 100%); color: white; }
-.stat-icon.ng { background: linear-gradient(135deg, #fca5a5 0%, #ef4444 100%); color: white; }
+.stat-icon.total {
+    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+    color: white;
+}
+
+.stat-icon.ok {
+    background: linear-gradient(135deg, #86efac 0%, #22c55e 100%);
+    color: white;
+}
+
+.stat-icon.ng {
+    background: linear-gradient(135deg, #fca5a5 0%, #ef4444 100%);
+    color: white;
+}
 
 .stat-content {
     display: flex;
@@ -1628,11 +1806,29 @@ onMounted(() => {
     color: white;
 }
 
-.modal-header.header-ok { background: linear-gradient(135deg, #86efac 0%, #22c55e 100%); }
-.modal-header.header-rescreen-ok { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); }
-.modal-header.header-rescreen-pending { background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%); }
-.modal-header.header-hold { background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%); }
-.modal-header.header-scrap { background: linear-gradient(135deg, #f87171 0%, #dc2626 100%); }
+.modal-header.header-ok {
+    background: linear-gradient(135deg, #86efac 0%, #22c55e 100%);
+}
+
+.modal-header.header-rep {
+    background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+}
+
+.modal-header.header-rescreen-ok {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+.modal-header.header-rescreen-pending {
+    background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
+}
+
+.modal-header.header-hold {
+    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+}
+
+.modal-header.header-scrap {
+    background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
+}
 
 .modal-icon {
     width: 56px;
@@ -1678,7 +1874,12 @@ onMounted(() => {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
+}
+
+/* REP full-width info item */
+.rep-full-width {
+    grid-column: 1 / -1;
 }
 
 .info-item label {
@@ -1700,7 +1901,130 @@ onMounted(() => {
     border-radius: 10px;
     border: 2px solid var(--border-primary);
     margin-top: 8px;
+    display: flex;
+    align-items: center;
     transition: all 0.3s;
+}
+
+/* ✅ NEW: Cassette Number Section */
+.cassette-section {
+    margin-bottom: 20px;
+    padding: 18px 24px;
+    background: var(--cassette-bg);
+    border: 2px solid var(--cassette-border);
+    border-radius: 14px;
+    transition: background 0.3s, border-color 0.3s;
+}
+
+.cassette-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--cassette-label-color);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 10px;
+    transition: color 0.3s;
+}
+
+.cassette-label svg {
+    color: var(--cassette-icon-color);
+    flex-shrink: 0;
+    transition: color 0.3s;
+}
+
+.cassette-value {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--cassette-value-color);
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+    transition: color 0.3s;
+}
+
+/* ✅ Duplicate Banner */
+.duplicate-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px solid #f59e0b;
+    border-radius: 12px;
+    color: #92400e;
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+
+.dark .duplicate-banner {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: #92400e;
+    color: #fcd34d;
+}
+
+.duplicate-banner strong {
+    display: block;
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.duplicate-banner span {
+    font-size: 13px;
+    opacity: 0.85;
+}
+
+.duplicate-banner svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+/* REP Product Info Banner */
+.rep-info-banner {
+    display: flex;
+    gap: 14px;
+    padding: 18px 20px;
+    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+    border-left: 4px solid #7c3aed;
+    border-radius: 12px;
+    color: #4c1d95;
+    margin-bottom: 20px;
+    align-items: flex-start;
+    transition: background 0.3s;
+}
+
+.dark .rep-info-banner {
+    background: rgba(139, 92, 246, 0.15);
+    border-left-color: #a78bfa;
+    color: #c4b5fd;
+}
+
+.rep-info-banner strong {
+    display: block;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.rep-info-banner p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+/* REP inline badge */
+.rep-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+    color: white;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
 }
 
 .status-display {
@@ -1710,7 +2034,8 @@ onMounted(() => {
     gap: 12px;
 }
 
-.status-main, .status-sub {
+.status-main,
+.status-sub {
     padding: 20px 24px;
     border-radius: 16px;
     display: flex;
@@ -1785,7 +2110,9 @@ onMounted(() => {
     opacity: 0.8;
 }
 
-.status-value { font-size: 18px; }
+.status-value {
+    font-size: 18px;
+}
 
 .qty-section h4 {
     font-size: 18px;
@@ -1825,7 +2152,9 @@ onMounted(() => {
     transition: all 0.3s;
 }
 
-.warning-box svg { flex-shrink: 0; }
+.warning-box svg {
+    flex-shrink: 0;
+}
 
 .warning-box strong {
     display: block;
@@ -1863,12 +2192,30 @@ onMounted(() => {
     transition: all 0.3s;
 }
 
-.btn-save { background: linear-gradient(135deg, #86efac 0%, #22c55e 100%); color: white; }
-.btn-save:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(34, 197, 94, 0.4); }
-.btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-save {
+    background: linear-gradient(135deg, #86efac 0%, #22c55e 100%);
+    color: white;
+}
 
-.btn-sendback { background: linear-gradient(135deg, #f87171 0%, #dc2626 100%); color: white; }
-.btn-sendback:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(220, 38, 38, 0.4); }
+.btn-save:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(34, 197, 94, 0.4);
+}
+
+.btn-save:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-sendback {
+    background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
+    color: white;
+}
+
+.btn-sendback:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(220, 38, 38, 0.4);
+}
 
 .btn-cancel {
     background: var(--surface-tertiary);
@@ -1876,7 +2223,9 @@ onMounted(() => {
     transition: background 0.3s, color 0.3s;
 }
 
-.btn-cancel:hover { background: var(--border-secondary); }
+.btn-cancel:hover {
+    background: var(--border-secondary);
+}
 
 /* ===== Error Modal Styles ===== */
 .error-modal-container {
@@ -1901,10 +2250,21 @@ onMounted(() => {
     color: white;
 }
 
-.error-modal-header.error-header-hold { background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%); }
-.error-modal-header.error-header-scrap { background: linear-gradient(135deg, #f87171 0%, #dc2626 100%); }
-.error-modal-header.error-header-sequence { background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%); }
-.error-modal-header.error-header-default { background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%); }
+.error-modal-header.error-header-hold {
+    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+}
+
+.error-modal-header.error-header-scrap {
+    background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
+}
+
+.error-modal-header.error-header-sequence {
+    background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
+}
+
+.error-modal-header.error-header-default {
+    background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
+}
 
 .error-modal-icon {
     width: 80px;
@@ -2038,7 +2398,10 @@ onMounted(() => {
     color: #fdba74;
 }
 
-.error-message-modern svg { flex-shrink: 0; margin-top: 2px; }
+.error-message-modern svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
 
 .error-message-modern strong {
     display: block;
@@ -2078,7 +2441,9 @@ onMounted(() => {
     color: var(--badge-ng-color);
 }
 
-.lots-header.success { color: var(--badge-ok-color); }
+.lots-header.success {
+    color: var(--badge-ok-color);
+}
 
 .success-notice {
     display: flex;
@@ -2123,7 +2488,9 @@ onMounted(() => {
     border-color: var(--lot-item-missing-border);
 }
 
-.lot-item.missing:hover { transform: translateX(4px); }
+.lot-item.missing:hover {
+    transform: translateX(4px);
+}
 
 .lot-item.skipped {
     background: var(--lot-item-skipped-bg);
@@ -2131,7 +2498,9 @@ onMounted(() => {
     border-color: var(--lot-item-skipped-border);
 }
 
-.lot-item.skipped:hover { transform: translateX(4px); }
+.lot-item.skipped:hover {
+    transform: translateX(4px);
+}
 
 .error-modal-footer {
     padding: 24px 32px;
@@ -2153,14 +2522,67 @@ onMounted(() => {
     transition: all 0.3s;
 }
 
-.btn-error-ok.btn-error-hold { background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%); }
-.btn-error-ok.btn-error-hold:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4); }
-.btn-error-ok.btn-error-scrap { background: linear-gradient(135deg, #f87171 0%, #dc2626 100%); }
-.btn-error-ok.btn-error-scrap:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(220, 38, 38, 0.4); }
-.btn-error-ok.btn-error-sequence { background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%); }
-.btn-error-ok.btn-error-sequence:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(234, 88, 12, 0.4); }
-.btn-error-ok.btn-error-default { background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%); }
-.btn-error-ok.btn-error-default:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(234, 88, 12, 0.4); }
+.btn-error-ok.btn-error-hold {
+    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+}
+
+.btn-error-ok.btn-error-hold:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+}
+
+.btn-error-ok.btn-error-scrap {
+    background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
+}
+
+.btn-error-ok.btn-error-scrap:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(220, 38, 38, 0.4);
+}
+
+.btn-error-ok.btn-error-sequence {
+    background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
+}
+
+.btn-error-ok.btn-error-sequence:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(234, 88, 12, 0.4);
+}
+
+.btn-error-ok.btn-error-default {
+    background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
+}
+
+.btn-error-ok.btn-error-default:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(234, 88, 12, 0.4);
+}
+
+/* ✅ DUPLICATE styles */
+.error-modal-header.error-header-duplicate {
+    background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+}
+
+.error-status-badge.status-badge-duplicate {
+    background: rgba(139, 92, 246, 0.15);
+    color: #a78bfa;
+    border: 2px solid #5b21b6;
+}
+
+.error-message-modern.error-box-duplicate {
+    background: rgba(139, 92, 246, 0.1);
+    border-color: #7c3aed;
+    color: #c4b5fd;
+}
+
+.btn-error-ok.btn-error-duplicate {
+    background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+}
+
+.btn-error-ok.btn-error-duplicate:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(124, 58, 237, 0.4);
+}
 
 /* ===== Loading ===== */
 .loading-overlay {
@@ -2190,7 +2612,9 @@ onMounted(() => {
 }
 
 /* ===== Animations ===== */
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
 
 @keyframes slideDown {
     from { opacity: 0; transform: translateY(-20px); }
@@ -2221,11 +2645,78 @@ onMounted(() => {
     .theme-toggle { bottom: 16px; right: 16px; }
 }
 
-/* ===== System Dark Mode Support (auto-detect) ===== */
-@media (prefers-color-scheme: dark) {
-    .main-section:not(.dark):not([data-theme="light"]) {
-        /* Can be enabled if you want automatic OS-level dark mode without toggle */
-        /* Currently handled via JS to give user control */
-    }
+/* ── Color Legend ── */
+.color-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 10px 32px;
+    background: var(--surface-secondary);
+    border-bottom: 1px solid var(--border-primary);
+    transition: background .3s, border-color .3s;
 }
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.legend-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+/* ── Row backgrounds ── */
+.row-waiting-rescreen { background-color: #fff7ed !important; }
+.dark .row-waiting-rescreen { background-color: rgba(249,115,22,.12) !important; }
+.row-waiting-rescreen:hover { background-color: #ffedd5 !important; }
+
+.row-rescreen-pending { background-color: #fefce8 !important; }
+.dark .row-rescreen-pending { background-color: rgba(234,179,8,.12) !important; }
+.row-rescreen-pending:hover { background-color: #fef9c3 !important; }
+
+.row-skipped-scrap { background-color: #fef2f2 !important; }
+.dark .row-skipped-scrap { background-color: rgba(239,68,68,.12) !important; }
+.row-skipped-scrap:hover { background-color: #fee2e2 !important; }
+
+.row-skipped-hold { background-color: #eff6ff !important; }
+.dark .row-skipped-hold { background-color: rgba(59,130,246,.12) !important; }
+.row-skipped-hold:hover { background-color: #dbeafe !important; }
+
+/* REP row background */
+.row-rep-product { background-color: #f5f3ff !important; }
+.dark .row-rep-product { background-color: rgba(139,92,246,.12) !important; }
+.row-rep-product:hover { background-color: #ede9fe !important; }
+
+/* ── Lot number colours ── */
+.lot-color-orange { color: #ea580c !important; }
+.lot-color-yellow { color: #ca8a04 !important; }
+.lot-color-red    { color: #dc2626 !important; }
+.lot-color-blue   { color: #2563eb !important; }
+.lot-color-purple { color: #7c3aed !important; }
+
+.dark .lot-color-orange { color: #fb923c !important; }
+.dark .lot-color-yellow { color: #facc15 !important; }
+.dark .lot-color-red    { color: #f87171 !important; }
+.dark .lot-color-blue   { color: #60a5fa !important; }
+.dark .lot-color-purple { color: #c4b5fd !important; }
+
+/* ── Check badge variants ── */
+.badge-waiting-rescreen { background: #ffedd5; color: #c2410c; border: 1px solid #fb923c; }
+.dark .badge-waiting-rescreen { background: rgba(249,115,22,.2); color: #fb923c; border: 1px solid #c2410c; }
+
+.badge-rescreen-pending { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+.dark .badge-rescreen-pending { background: rgba(234,179,8,.2); color: #facc15; border: 1px solid #854d0e; }
+
+.badge-skipped-scrap { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+.dark .badge-skipped-scrap { background: rgba(239,68,68,.2); color: #fca5a5; border: 1px solid #991b1b; }
+
+.badge-skipped-hold { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+.dark .badge-skipped-hold { background: rgba(59,130,246,.2); color: #93c5fd; border: 1px solid #1e40af; }
 </style>

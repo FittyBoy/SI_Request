@@ -291,6 +291,15 @@ const ProductSizeThresholdMap: Record<string, ThresholdItem[]> = {
         { Value: 0.192, Label: "Re-screen", Color: "orange" },
         { Value: 0.192, Label: "Scrap", Color: "red" },
     ],
+    //New Product
+    "AL60 76x76x0.2": [
+        { Value: 0.207, Label: "Hold", Color: "blue"},
+        { Value: 0.205, Label: "Re-screen", Color: "orange" },
+        { Value: 0.194, Label: "Target", Color: "green" },
+        { Value: 0.200, Label: "Targetbar", Color: "green" },
+        { Value: 0.192, Label: "Re-screen", Color: "orange" },
+        { Value: 0.192, Label: "Scrap", Color: "red" }
+    ]
 };
 
 // ===== API CALLS =====

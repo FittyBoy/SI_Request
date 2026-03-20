@@ -153,7 +153,76 @@
                     </div>
                 </div>
 
-                <!-- Summary Stats -->
+                <!-- ═══════════════════════════════════════════════════
+                     FILTER BAR — Search LOT + Select MC
+                     ═══════════════════════════════════════════════════ -->
+                <div class="filter-bar" v-if="rescreenLots.length > 0 || searchLot || filterMC">
+                    <!-- Search LOT -->
+                    <div class="filter-bar-item search-item">
+                        <div class="filter-bar-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                        </div>
+                        <input
+                            v-model="searchLot"
+                            type="text"
+                            class="filter-bar-input"
+                            placeholder="ค้นหา PO LOT / Imobile LOT..."
+                            @input="resetHighlight"
+                        />
+                        <button v-if="searchLot" class="filter-clear-btn" @click="searchLot = ''" title="ล้างการค้นหา">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Select MC -->
+                    <div class="filter-bar-item select-item">
+                        <div class="filter-bar-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                            </svg>
+                        </div>
+                        <select v-model="filterMC" class="filter-bar-select">
+                            <option value="">ทุก MC</option>
+                            <option v-for="mc in availableMCs" :key="mc" :value="mc">{{ mc }}</option>
+                        </select>
+                        <svg class="select-chevron" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </div>
+
+                    <!-- Active filter chips -->
+                    <div class="filter-chips" v-if="searchLot || filterMC">
+                        <span v-if="searchLot" class="filter-chip">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                            "{{ searchLot }}"
+                            <button @click="searchLot = ''">×</button>
+                        </span>
+                        <span v-if="filterMC" class="filter-chip mc-chip">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/>
+                            </svg>
+                            MC: {{ filterMC }}
+                            <button @click="filterMC = ''">×</button>
+                        </span>
+                        <button class="clear-all-btn" @click="clearAllFilters">
+                            ล้างทั้งหมด
+                        </button>
+                    </div>
+
+                    <!-- Result count -->
+                    <div class="filter-result-count" v-if="searchLot || filterMC">
+                        <span class="count-highlight">{{ filteredLots.length }}</span> / {{ rescreenLots.length }} รายการ
+                    </div>
+                </div>
+                <!-- ═══════════════════════════════════════════════════ -->
+
+                <!-- Summary Stats (based on filtered data) -->
                 <div v-if="rescreenLots.length > 0" class="stats-grid">
                     <div class="stat-card total">
                         <div class="stat-icon">
@@ -163,7 +232,7 @@
                             </svg>
                         </div>
                         <div class="stat-content">
-                            <div class="stat-label">ทั้งหมด</div>
+                            <div class="stat-label">{{ (searchLot || filterMC) ? 'ที่กรอง' : 'ทั้งหมด' }}</div>
                             <div class="stat-value">{{ summary.totalCount }}</div>
                         </div>
                     </div>
@@ -206,6 +275,16 @@
                     <p>ยังไม่มี Rescreen LOT ในวันที่เลือก</p>
                 </div>
 
+                <!-- No filter results -->
+                <div v-else-if="filteredLots.length === 0" class="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        <line x1="8" y1="11" x2="14" y2="11"/>
+                    </svg>
+                    <h3>ไม่พบรายการที่ตรงกับการค้นหา</h3>
+                    <p>ลองเปลี่ยนคีย์เวิร์ด หรือ <button class="link-btn" @click="clearAllFilters">ล้าง filter</button></p>
+                </div>
+
                 <!-- LOT List Table -->
                 <div v-else class="table-wrapper">
                     <table class="lot-table">
@@ -213,6 +292,7 @@
                             <tr>
                                 <th>PO LOT</th>
                                 <th>Imobile LOT</th>
+                                <th>MC</th>
                                 <th>TH100 Status</th>
                                 <th>Final Status</th>
                                 <th>Approved Status</th>
@@ -221,9 +301,17 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="lot in rescreenLots" :key="lot.id">
-                                <td><span class="lot-badge">{{ lot.poLot }}</span></td>
-                                <td><span class="imobile-badge">{{ lot.imobileLot }}</span></td>
+                            <tr v-for="lot in filteredLots" :key="lot.id" :class="{ 'row-highlight': isSearchMatch(lot) }">
+                                <td>
+                                    <span class="lot-badge" v-html="highlightText(lot.poLot, searchLot)"></span>
+                                </td>
+                                <td>
+                                    <span class="imobile-badge" v-html="highlightText(lot.imobileLot, searchLot)"></span>
+                                </td>
+                                <td>
+                                    <span class="mc-badge" v-if="lot.mc">{{ lot.mc }}</span>
+                                    <span v-else class="text-muted">-</span>
+                                </td>
                                 <td>
                                     <span :class="['status-badge-small', getStatusClass(lot.th100Status)]">
                                         {{ lot.th100Status || '-' }}
@@ -235,7 +323,6 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <!-- Approved Status: แสดง source ที่ทำให้ approved -->
                                     <span :class="['approval-badge', getApprovalClass(lot)]">
                                         {{ getApprovalLabel(lot) }}
                                     </span>
@@ -277,8 +364,56 @@ const isDeleting = ref(false)
 const isDarkMode = ref(false)
 const rescreenLots = ref<any[]>([])
 
+// ── Filter: Search LOT + MC ───────────────────────────────────
+const searchLot = ref('')
+const filterMC = ref('')
+
+/** รวบรวม MC ที่ไม่ซ้ำกันจากข้อมูลทั้งหมด */
+const availableMCs = computed<string[]>(() => {
+    const mcs = rescreenLots.value
+        .map((r: any) => r.mc)
+        .filter(Boolean)
+    return [...new Set(mcs)].sort()
+})
+
+/** ข้อมูลที่ผ่านทั้ง search และ MC filter */
+const filteredLots = computed(() => {
+    let data = rescreenLots.value
+
+    if (filterMC.value) {
+        data = data.filter((r: any) => r.mc === filterMC.value)
+    }
+
+    if (searchLot.value.trim()) {
+        const q = searchLot.value.trim().toLowerCase()
+        data = data.filter((r: any) =>
+            (r.poLot || '').toLowerCase().includes(q) ||
+            (r.imobileLot || '').toLowerCase().includes(q)
+        )
+    }
+
+    return data
+})
+
+const isSearchMatch = (lot: any) => searchLot.value.trim().length > 0
+
+const resetHighlight = () => { /* reactive—no-op; just triggers watcher */ }
+
+const clearAllFilters = () => {
+    searchLot.value = ''
+    filterMC.value = ''
+}
+
+/** Highlight matched text in badges */
+const highlightText = (text: string, query: string): string => {
+    if (!query || !text) return text || ''
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark class="search-highlight">$1</mark>')
+}
+// ──────────────────────────────────────────────────────────────
+
 // ── Auto-refresh ──────────────────────────────────────────────
-const REFRESH_EVERY = 30                               // วินาที
+const REFRESH_EVERY = 30
 const nextRefreshIn = ref(REFRESH_EVERY)
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 let countdownTimer: ReturnType<typeof setInterval> | null = null
@@ -292,7 +427,6 @@ const startAutoRefresh = () => {
     }, 1000)
 
     refreshTimer = setInterval(async () => {
-        // เช็ค status ใหม่ทั้งหมดก่อน แล้วค่อย reload list
         try {
             await $fetch('/api/RescreenCheck/refresh-rescreen-status', {
                 baseURL: apiBaseUrl.value,
@@ -310,7 +444,6 @@ const stopAutoRefresh = () => {
     if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null }
 }
 
-// เช็ค TH100/PO Check Flow ใหม่ทั้งหมด → update DB → reload list
 const isRefreshingStatus = ref(false)
 const refreshAndReload = async () => {
     isRefreshingStatus.value = true
@@ -324,12 +457,13 @@ const refreshAndReload = async () => {
         isRefreshingStatus.value = false
     }
     await loadRescreenLots()
-    nextRefreshIn.value = REFRESH_EVERY   // reset countdown หลัง check
+    nextRefreshIn.value = REFRESH_EVERY
 }
 // ─────────────────────────────────────────────────────────────
 
+/** Summary คำนวณจาก filteredLots เพื่อให้ตรงกับที่แสดง */
 const summary = computed(() => {
-    const data = rescreenLots.value
+    const data = (searchLot.value || filterMC.value) ? filteredLots.value : rescreenLots.value
     return {
         totalCount: data.length,
         approvedCount: data.filter((r: any) => r.isApproved).length,
@@ -337,14 +471,6 @@ const summary = computed(() => {
     }
 })
 
-// ========================================================
-// Approved Status label + class — 4 states
-//
-// isApproved=true,  source="TH100 Confirm" → ✓ TH100 Confirm  (เขียว)
-// isApproved=true,  source="Approved"      → ✓ Approved        (ฟ้า, มาจาก PO Check Flow)
-// isApproved=false, source="TH100 Confirm" → ⏸ TH100 Confirm  (ส้ม, TH100 ยังไม่ OK)
-// isApproved=false, source="Pending"       → ⏸ Pending         (เทา)
-// ========================================================
 const getApprovalLabel = (lot: any): string => {
     const source: string = lot.approvedSource || 'Pending'
     if (lot.isApproved) {
@@ -359,7 +485,7 @@ const getApprovalClass = (lot: any): string => {
     const source: string = lot.approvedSource || 'Pending'
     if (lot.isApproved) {
         if (source === 'TH100 Confirm') return 'th100-confirmed'
-        return 'approved'   // PO Check Flow → approved (ฟ้า)
+        return 'approved'
     }
     if (source === 'TH100 Confirm') return 'th100-pending'
     return 'pending'
@@ -368,7 +494,7 @@ const getApprovalClass = (lot: any): string => {
 const loadRescreenLots = async () => {
     if (!filterDate.value) return
     isLoadingList.value = true
-    nextRefreshIn.value = REFRESH_EVERY   // reset countdown
+    nextRefreshIn.value = REFRESH_EVERY
     connectionError.value = false
     try {
         const response: any = await $fetch('/api/RescreenCheck/get-rescreen-records', {
@@ -499,6 +625,13 @@ onUnmounted(() => {
     --border-input: #fcd34d;
     --header-shadow: 0 4px 20px rgba(0,0,0,0.1);
     --card-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    /* filter bar */
+    --bg-filter-bar: #fffbeb;
+    --border-filter-bar: #fde68a;
+    --bg-filter-input: #ffffff;
+    --bg-chip: #fef3c7;
+    --text-chip: #92400e;
+    --border-chip: #fcd34d;
     min-height: 100vh;
     background: var(--bg-main);
     transition: all 0.3s;
@@ -526,6 +659,13 @@ onUnmounted(() => {
     --border-input: #78350f;
     --header-shadow: 0 4px 20px rgba(0,0,0,0.4);
     --card-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    /* filter bar dark */
+    --bg-filter-bar: #1a1000;
+    --border-filter-bar: #78350f;
+    --bg-filter-input: #0f172a;
+    --bg-chip: #291a00;
+    --text-chip: #fde68a;
+    --border-chip: #78350f;
 }
 
 /* ===== Header ===== */
@@ -740,6 +880,172 @@ onUnmounted(() => {
 @keyframes spin-once { to { transform: rotate(360deg); } }
 .spin-once { animation: spin-once 0.6s linear; }
 
+/* ═══════════════════════════════════════════════════════
+   FILTER BAR
+   ═══════════════════════════════════════════════════════ */
+.filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 28px;
+    background: var(--bg-filter-bar);
+    border-bottom: 1px solid var(--border-filter-bar);
+    flex-wrap: wrap;
+    animation: slideDown 0.25s ease-out;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.filter-bar-item {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border: 2px solid var(--border-input);
+    border-radius: 10px;
+    background: var(--bg-filter-input);
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.filter-bar-item:focus-within {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.15);
+}
+
+.filter-bar-icon {
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+/* Search input */
+.search-item { flex: 1; min-width: 220px; max-width: 380px; }
+
+.filter-bar-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 9px 8px 9px 0;
+    font-size: 13px;
+    background: transparent;
+    color: var(--text-primary);
+    min-width: 0;
+}
+.filter-bar-input::placeholder { color: var(--text-secondary); }
+
+.filter-clear-btn {
+    padding: 0 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+}
+.filter-clear-btn:hover { color: #ef4444; }
+
+/* Select MC */
+.select-item { position: relative; min-width: 160px; }
+
+.filter-bar-select {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 9px 32px 9px 0;
+    font-size: 13px;
+    background: transparent;
+    color: var(--text-primary);
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    min-width: 0;
+}
+
+.select-chevron {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+/* Filter chips */
+.filter-chips {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--bg-chip);
+    color: var(--text-chip);
+    border: 1.5px solid var(--border-chip);
+    white-space: nowrap;
+}
+.filter-chip button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: inherit;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0 0 0 2px;
+    opacity: 0.6;
+    transition: opacity 0.15s;
+}
+.filter-chip button:hover { opacity: 1; }
+
+.filter-chip.mc-chip {
+    background: #ede9fe;
+    color: #6d28d9;
+    border-color: #c4b5fd;
+}
+.dark .filter-chip.mc-chip {
+    background: #2e1065;
+    color: #c4b5fd;
+    border-color: #5b21b6;
+}
+
+.clear-all-btn {
+    background: none;
+    border: 1.5px solid var(--border-default);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.clear-all-btn:hover { border-color: #ef4444; color: #ef4444; }
+
+.filter-result-count {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+.count-highlight {
+    font-size: 15px;
+    font-weight: 700;
+    color: #f59e0b;
+}
+/* ═══════════════════════════════════════════════════════ */
+
 .input-section { padding: 28px; }
 
 .scanner-wrapper {
@@ -865,6 +1171,17 @@ onUnmounted(() => {
 .empty-state h3 { margin: 0 0 8px 0; color: var(--text-primary); }
 .empty-state p { margin: 0; }
 
+.link-btn {
+    background: none;
+    border: none;
+    color: #f59e0b;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: inherit;
+    padding: 0;
+}
+
 /* Table */
 .table-wrapper { padding: 28px; overflow-x: auto; }
 .lot-table { width: 100%; border-collapse: collapse; }
@@ -879,13 +1196,32 @@ onUnmounted(() => {
 }
 .lot-table td { padding: 14px; border-bottom: 1px solid var(--border-table); color: var(--text-primary); }
 .lot-table tbody tr:hover { background: var(--bg-table-row-hover); }
+.lot-table tbody tr.row-highlight { background: rgba(251, 191, 36, 0.06); }
+.dark .lot-table tbody tr.row-highlight { background: rgba(251, 191, 36, 0.04); }
 .date-cell { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+.text-muted { font-size: 13px; color: var(--text-secondary); }
 
 /* Badges */
 .lot-badge    { display: inline-block; padding: 5px 10px; border-radius: 6px; font-size: 13px; font-weight: 600; background: #dbeafe; color: #1e40af; }
 .imobile-badge { display: inline-block; padding: 5px 10px; border-radius: 6px; font-size: 13px; font-weight: 600; background: #f3e8ff; color: #7c3aed; }
+.mc-badge { display: inline-block; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; background: #ecfdf5; color: #065f46; border: 1px solid #6ee7b7; }
+
 .dark .lot-badge    { background: #1e3a5f; color: #93c5fd; }
 .dark .imobile-badge { background: #2e1065; color: #c4b5fd; }
+.dark .mc-badge { background: #022c22; color: #6ee7b7; border-color: #065f46; }
+
+/* Search highlight */
+:deep(.search-highlight) {
+    background: #fef08a;
+    color: #713f12;
+    border-radius: 2px;
+    padding: 0 1px;
+    font-weight: 700;
+}
+.dark :deep(.search-highlight) {
+    background: #854d0e;
+    color: #fef08a;
+}
 
 .status-badge, .status-badge-small {
     display: inline-block;
@@ -909,13 +1245,7 @@ onUnmounted(() => {
 .dark .status-badge.rescreen, .dark .status-badge-small.rescreen { background: #1e3a5f; color: #93c5fd; }
 .dark .status-badge.default, .dark .status-badge-small.default   { background: #1e293b; color: #94a3b8; }
 
-/* =====================================================
-   Approval Badge — 4 states
-   th100-confirmed  → เขียว  (TH100 OK)
-   approved         → ฟ้า    (PO Check Flow = approved)
-   th100-pending    → ส้ม    (TH100 พบแต่ยังไม่ OK)
-   pending          → เทา    (ยังไม่มีข้อมูล)
-   ===================================================== */
+/* Approval Badge */
 .approval-badge {
     display: inline-flex;
     align-items: center;
@@ -926,24 +1256,16 @@ onUnmounted(() => {
     font-weight: 600;
     white-space: nowrap;
 }
-
-/* TH100 OK → เขียว */
 .approval-badge.th100-confirmed { background: #dcfce7; color: #166534; }
 .dark .approval-badge.th100-confirmed { background: #052e16; color: #86efac; }
-
-/* PO Check Flow → ฟ้า */
 .approval-badge.approved { background: #dbeafe; color: #1e40af; }
 .dark .approval-badge.approved { background: #1e3a5f; color: #93c5fd; }
-
-/* TH100 พบแต่ยังไม่ OK → ส้ม */
 .approval-badge.th100-pending { background: #ffedd5; color: #9a3412; }
 .dark .approval-badge.th100-pending { background: #431407; color: #fdba74; }
-
-/* ไม่มีข้อมูล → เทา */
 .approval-badge.pending { background: #f1f5f9; color: #475569; }
 .dark .approval-badge.pending { background: #1e293b; color: #94a3b8; }
 
-/* ปุ่มลบ */
+/* Delete button */
 .btn-action {
     padding: 7px;
     border: none;
@@ -958,18 +1280,16 @@ onUnmounted(() => {
 .btn-action.delete:hover { background: #ef4444; color: white; }
 .dark .btn-action.delete { background: #450a0a; color: #fca5a5; }
 
-/* Spinner */
+/* Spinners */
 .spinner {
-    width: 20px;
-    height: 20px;
+    width: 20px; height: 20px;
     border: 3px solid rgba(255,255,255,0.3);
     border-top-color: white;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
 .spinner-amber {
-    width: 36px;
-    height: 36px;
+    width: 36px; height: 36px;
     border: 4px solid #fde68a;
     border-top-color: #f59e0b;
     border-radius: 50%;
@@ -977,8 +1297,7 @@ onUnmounted(() => {
     animation: spin 0.8s linear infinite;
 }
 .spinner-white-sm {
-    width: 16px;
-    height: 16px;
+    width: 16px; height: 16px;
     border: 2px solid rgba(255,255,255,0.4);
     border-top-color: white;
     border-radius: 50%;
@@ -988,7 +1307,10 @@ onUnmounted(() => {
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 
-@media (max-width: 1024px) { .stats-grid { grid-template-columns: 1fr; } .scanner-wrapper { grid-template-columns: 1fr; } }
+@media (max-width: 1024px) {
+    .stats-grid { grid-template-columns: 1fr; }
+    .scanner-wrapper { grid-template-columns: 1fr; }
+}
 @media (max-width: 768px) {
     .header-content { flex-direction: column; gap: 12px; }
     .content { padding: 16px; }
@@ -996,5 +1318,8 @@ onUnmounted(() => {
     .header-actions { width: 100%; flex-direction: column; }
     .filter-group { width: 100%; }
     .filter-group input[type="date"] { flex: 1; }
+    .filter-bar { flex-direction: column; align-items: stretch; }
+    .search-item { max-width: 100%; }
+    .filter-result-count { margin-left: 0; }
 }
 </style>
