@@ -250,9 +250,19 @@ onMounted(() => {
 
 <style lang="scss">
 @use "@core/scss/template/pages/page-auth.scss";
+
 .auth-card-v2 {
-  .v-card { box-shadow: var(--el-4) !important; border-radius: var(--rr-xl) !important; }
-  .v-btn { border-radius: var(--rr-md) !important; font-weight: 700 !important; text-transform: none !important; }
-  .v-text-field .v-field { border-radius: var(--rr-md) !important; }
+  .v-card {
+    box-shadow: var(--shadow-lg);
+    border-radius: var(--radius-lg);
+  }
+  .v-btn {
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    text-transform: none;
+  }
+  .v-text-field .v-field {
+    border-radius: var(--radius-md);
+  }
 }
 </style>

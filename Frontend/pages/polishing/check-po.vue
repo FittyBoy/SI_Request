@@ -41,5 +41,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.flow-out-container { min-height: 100vh; background: var(--paper-2); font-family: var(--f-sans); }
+.flow-out-container {
+  min-height: 100vh;
+  background: var(--color-bg);
+}
 </style>

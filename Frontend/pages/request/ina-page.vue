@@ -619,13 +619,12 @@ const handleDialogRefresh = async () => {
 </template>
 
 <style>
+/* swal2 z-index override */
 .swal2-container { z-index: 99999 !important; }
-.swal2-popup { border-radius: var(--rr-xl) !important; font-family: var(--f-sans) !important; }
 
-.v-data-table { border-radius: var(--rr-xl) !important; overflow: hidden; }
-.v-data-table tbody tr:hover td { background: var(--brand-bg) !important; }
-.v-chip { font-weight: 700 !important; border-radius: var(--rr-max) !important; font-size: var(--fz-2xs) !important; }
-.text-medium-emphasis { opacity: 0.6; }
-.v-card { transition: transform var(--dur-mid) var(--ease-out), box-shadow var(--dur-mid) var(--ease-out) !important; }
-.v-card:hover { transform: translateY(-2px) !important; }
+/* Vuetify component overrides */
+.v-data-table { border-radius: var(--radius-lg) !important; }
+.v-data-table tbody tr:hover { background-color: rgba(var(--v-theme-primary), 0.04) !important; }
+.v-chip { font-weight: 500; }
+.text-medium-emphasis { opacity: 0.7; }
 </style>

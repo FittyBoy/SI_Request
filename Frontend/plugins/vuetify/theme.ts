@@ -78,7 +78,6 @@ export const themes: Record<string, ThemeDefinition> = {
       'shadow-xl-opacity': 0.18,
     },
   },
-
   dark: {
     dark: true,
     colors: {
@@ -140,15 +139,17 @@ export const themes: Record<string, ThemeDefinition> = {
       'switch-disabled-track-opacity': 0.4,
       'switch-disabled-thumb-opacity': 0.8,
       'switch-checked-disabled-opacity': 0.3,
-      'track-bg': '#474360',
+      'track-bg': '#3A3F57',
 
       // Shadows
       'shadow-key-umbra-color': '#131120',
-      'shadow-xs-opacity': 0.20,
-      'shadow-sm-opacity': 0.24,
-      'shadow-md-opacity': 0.28,
-      'shadow-lg-opacity': 0.32,
-      'shadow-xl-opacity': 0.36,
+      'shadow-xs-opacity': 0.16,
+      'shadow-sm-opacity': 0.18,
+      'shadow-md-opacity': 0.2,
+      'shadow-lg-opacity': 0.22,
+      'shadow-xl-opacity': 0.24,
     },
   },
 }
+
+export default themes
