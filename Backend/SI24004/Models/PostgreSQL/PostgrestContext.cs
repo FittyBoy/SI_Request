@@ -1791,7 +1791,6 @@ public partial class PostgrestContext : DbContext
                 .HasDefaultValueSql("uuid_generate_v4()")
                 .HasColumnName("id");
             entity.Property(e => e.Active).HasColumnName("active");
-            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
             entity.Property(e => e.RoleId).HasColumnName("role_id");
             entity.Property(e => e.SectionId).HasColumnName("section_id");
             entity.Property(e => e.UserId)

@@ -13,8 +13,6 @@ public partial class User
 
     public Guid? RoleId { get; set; }
 
-    public bool? IsDeleted { get; set; }
-
     public bool? Active { get; set; }
 
     public string UserName { get; set; }
