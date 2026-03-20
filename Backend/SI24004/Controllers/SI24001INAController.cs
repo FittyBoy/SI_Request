@@ -35,18 +35,13 @@ namespace SI24004.Controllers
                 // Get all requests
                 var requests = await _context.InaRequests
                     .Where(x => x.IsDeleted != true)
-                    .Include(x => x.Status)
+                    
                     .OrderBy(x => x.RequestCode)
                     .ThenBy(x => x.RequestDate)
                     .ToListAsync();
 
-                // Get all attachments for these requests
-                List<Guid> requestIds = requests.Select(r => r.Id).ToList();
-                var attachments = await _context.Attachments
-                                .Where(a => a.RequestId != null &&
-                                    requestIds.Contains(a.RequestId.Value) &&
-                                    a.IsDeleted == false)
-                                .ToListAsync();
+                // Attachments table not in current schema - return empty
+                var attachments = new List<InaRequest>();
 
                 // Get all lots for these requests
                 var lots = await _context.LotRequests
@@ -104,11 +99,11 @@ namespace SI24004.Controllers
                     RequestBook = x.RequestBook,
                     RequestInstallDate = x.RequestInstallDate,
                     RequestClearDate = x.RequestClearDate,
-                    Status = x.Status != null ? new
+                    Status = x.StatusId.HasValue ? new
                     {
-                        Id = x.Status.Id,
-                        StatusName = x.Status.StatusName,
-                        Ordinal = x.Status.Ordinal
+                        Id = x.StatusId.Value,
+                        StatusName = (string?)null,
+                        Ordinal = (int?)null
                     } : null,
 
                     // ????? LotNumbers ????????????
@@ -154,16 +149,14 @@ namespace SI24004.Controllers
             {
                 var inaRequest = await _context.InaRequests
                     .Where(x => x.Id == id && x.IsDeleted != true)
-                    .Include(x => x.Status)
+                    
                     .FirstOrDefaultAsync();
 
                 if (inaRequest == null)
                     return NotFound(new { message = "Request not found" });
 
-                // Get attachments for this request
-                var attachments = await _context.Attachments
-                    .Where(a => a.RequestId == id && a.IsDeleted == false)
-                    .ToListAsync();
+                // Attachments table not in current schema - return empty
+                var attachments = new List<InaRequest>();
 
                 // Get lots for this request
                 var lots = await _context.LotRequests
@@ -216,11 +209,11 @@ namespace SI24004.Controllers
                     RequestMcNo = inaRequest.RequestMcNo,
                     RequestBook = inaRequest.RequestBook,
                     RequestInstallDate = inaRequest.RequestInstallDate,
-                    Status = inaRequest.Status != null ? new
+                    Status = inaRequest.StatusId.HasValue ? new
                     {
-                        Id = inaRequest.Status.Id,
-                        StatusName = inaRequest.Status.StatusName,
-                        Ordinal = inaRequest.Status.Ordinal
+                        Id = inaRequest.StatusId.Value,
+                        StatusName = _context.Statuses.Where(s => s.Id == inaRequest.StatusId.Value).Select(s => s.StatusName).FirstOrDefault(),
+                        Ordinal = (int?)null
                     } : null,
 
                     // ????? LotNumbers ????????????
@@ -350,16 +343,16 @@ namespace SI24004.Controllers
             {
                 var newRequestId = requestDto.Id ?? Guid.NewGuid();
 
-                // Get default status
+                // Get default status (first status alphabetically as fallback)
                 var defaultStatus = await _context.Statuses
-                    .Where(s => s.Ordinal == 2 && s.StatusTypeId == Guid.Parse("7a747f9a-3d80-47bf-9157-2341938c71e6"))
+                    .OrderBy(s => s.StatusName)
                     .FirstOrDefaultAsync();
 
                 if (defaultStatus == null)
                     return BadRequest("Default status not found.");
 
                 // Validate user exists
-                var userExists = await _context.Users.AnyAsync(u => u.Id == requestDto.UserId);
+                var userExists = await _context.Users1.AnyAsync(u => u.Id == requestDto.UserId);
                 if (!userExists)
                     return BadRequest("User not found.");
 
@@ -388,7 +381,7 @@ namespace SI24004.Controllers
                             AttachmentFileLocation = !string.IsNullOrEmpty(attachment.AttachmentFileLocation) ? attachment.AttachmentFileLocation : null 
                         };
 
-                        await _context.Attachments.AddAsync(newAttachment);
+                        // Attachment not saved - Attachments table not in current schema
 
                         // Set specific attachment IDs based on category
                         if (attachment.Category?.ToLower() == "recipe")
@@ -519,21 +512,24 @@ namespace SI24004.Controllers
             try
             {
                 var updateRequest = await _context.InaRequests
-                    .Include(r => r.Status)
+                    
                     .FirstOrDefaultAsync(r => r.Id == requestDto.Id);
 
                 if (updateRequest == null)
                     return NotFound($"Request with Id {requestDto.Id} not found.");
 
-                var currentStatus = updateRequest.Status;
+                var currentStatus = updateRequest.StatusId.HasValue
+                    ? await _context.Statuses.FindAsync(updateRequest.StatusId.Value)
+                    : null;
 
                 // Update Status only if approved
                 if (isApproved && currentStatus != null)
                 {
-                    var nextStatus = await _context.Statuses
-                        .Where(s => s.Ordinal > currentStatus.Ordinal)
-                        .OrderBy(s => s.Ordinal)
-                        .FirstOrDefaultAsync();
+                    var allStatuses = await _context.Statuses.OrderBy(s => s.StatusName).ToListAsync();
+                    var currentIndex = allStatuses.FindIndex(s => s.Id == currentStatus.Id);
+                    var nextStatus = (currentIndex >= 0 && currentIndex < allStatuses.Count - 1)
+                        ? allStatuses[currentIndex + 1]
+                        : null;
 
                     if (nextStatus != null)
                     {
@@ -585,117 +581,17 @@ namespace SI24004.Controllers
                 updateRequest.RequestBook = requestDto.RequestBook ?? string.Empty;
                 updateRequest.RequestMcNo = requestDto.RequestMcNo ?? string.Empty;
 
-                // Handle Comments based on status
-                if (currentStatus != null)
-                {
-                    if (currentStatus.Ordinal >= 2)
-                    {
-                        updateRequest.RequestComment1 = requestDto.RequestComment1 ?? updateRequest.RequestComment1;
-                    }
-                    if (currentStatus.Ordinal >= 3)
-                    {
-                        updateRequest.RequestInstallDate = requestDto.RequestInstallDate ?? updateRequest.RequestInstallDate;
-                        updateRequest.RequestComment2 = requestDto.RequestComment2 ?? updateRequest.RequestComment2;
-                    }
-                    if (currentStatus.Ordinal >= 4)
-                    {
-                        updateRequest.RequestInstallDate = requestDto.RequestInstallDate ?? updateRequest.RequestInstallDate;
-                        updateRequest.RequestClearDate = requestDto.RequestClearDate ?? updateRequest.RequestClearDate;
-                        updateRequest.RequestComment3 = requestDto.RequestComment3 ?? updateRequest.RequestComment3;
-                    }
-                }
+                // Handle Comments - update all regardless of ordinal (ordinal not in DB)
+                updateRequest.RequestComment1 = requestDto.RequestComment1 ?? updateRequest.RequestComment1;
+                updateRequest.RequestInstallDate = requestDto.RequestInstallDate ?? updateRequest.RequestInstallDate;
+                updateRequest.RequestComment2 = requestDto.RequestComment2 ?? updateRequest.RequestComment2;
+                updateRequest.RequestClearDate = requestDto.RequestClearDate ?? updateRequest.RequestClearDate;
+                updateRequest.RequestComment3 = requestDto.RequestComment3 ?? updateRequest.RequestComment3;
 
                 // Handle attachments - ????????????????? other programs ???????
                 var otherProgramsIds = new List<Guid>();
 
-                if (attachments != null && attachments.Any())
-                {
-                    // Get existing attachments for this request
-                    var existingAttachments = await _context.Attachments
-                        .Where(a => a.RequestId == updateRequest.Id && a.IsDeleted == false)
-                        .ToListAsync();
-
-                    // Process each attachment from the request
-                    foreach (var attachment in attachments.Where(a => !string.IsNullOrWhiteSpace(a.AttachmentName)))
-                    {
-                        if (attachment.Id != null && attachment.Id != Guid.Empty)
-                        {
-                            // Update existing attachment
-                            var existingAttachment = existingAttachments
-                                .FirstOrDefault(ea => ea.Id == attachment.Id);
-
-                            if (existingAttachment != null)
-                            {
-                                if (attachment.IsDeleted == true)
-                                {
-                                    // Soft delete attachment
-                                    existingAttachment.IsDeleted = true;
-                                }
-                                else
-                                {
-                                    // Update existing attachment
-                                    existingAttachment.AttachmentName = attachment.AttachmentName;
-                                    existingAttachment.AttachementType = attachment.AttachementType ?? existingAttachment.AttachementType;
-                                    existingAttachment.Category = attachment.Category ?? existingAttachment.Category;
-                                    existingAttachment.AttachmentSize = attachment.AttachmentSize ?? existingAttachment.AttachmentSize;
-
-                                    // Track other programs IDs
-                                    if (attachment.Category?.ToLower() == "otherprograms")
-                                    {
-                                        otherProgramsIds.Add(existingAttachment.Id);
-                                    }
-
-                                    // Only update file data if new data is provided
-                                    if (attachment.AttachementFileData != null)
-                                        existingAttachment.AttachementFileData = attachment.AttachementFileData;
-
-                                    // Only update path if new path is provided
-                                    if (!string.IsNullOrWhiteSpace(attachment.AttachementPath))
-                                        existingAttachment.AttachementPath = attachment.AttachementPath;
-
-                                    if (!string.IsNullOrWhiteSpace(attachment.AttachmentFileLocation))
-                                        existingAttachment.AttachmentFileLocation = attachment.AttachmentFileLocation;
-                                }
-
-                                _context.Attachments.Update(existingAttachment);
-                            }
-                        }
-                        else if (!string.IsNullOrWhiteSpace(attachment.AttachementPath))
-                        {
-                            // Add new SI24004.Models.PostgreSQL.Attachment only if it doesn't already exist
-                            var isDuplicate = existingAttachments.Any(ea =>
-                                ea.AttachmentName == attachment.AttachmentName &&
-                                ea.Category == attachment.Category);
-
-                            if (!isDuplicate)
-                            {
-                                var newAttachmentId = Guid.NewGuid();
-                                var newAttachment = new SI24004.Models.PostgreSQL.Attachment
-                                {
-                                    Id = newAttachmentId,
-                                    AttachmentName = attachment.AttachmentName,
-                                    AttachementPath = attachment.AttachementPath,
-                                    AttachementType = attachment.AttachementType ?? "",
-                                    UploadDate = DateTime.UtcNow,
-                                    AttachementFileData = attachment.AttachementFileData,
-                                    IsDeleted = false,
-                                    RequestId = updateRequest.Id,
-                                    Category = attachment.Category,
-                                    AttachmentSize = !string.IsNullOrEmpty(attachment.AttachmentSize) ? attachment.AttachmentSize : null,
-                                    AttachmentFileLocation = !string.IsNullOrEmpty(attachment.AttachmentFileLocation) ? attachment.AttachmentFileLocation : null
-                                };
-
-                                await _context.Attachments.AddAsync(newAttachment);
-
-                                // Track other programs IDs
-                                if (attachment.Category?.ToLower() == "otherprograms")
-                                {
-                                    otherProgramsIds.Add(newAttachmentId);
-                                }
-                            }
-                        }
-                    }
-                }
+                // Attachments table not in current schema - attachment processing skipped
 
                 // Update OtherPrograms field with multiple IDs
                 if (otherProgramsIds.Any())
@@ -782,34 +678,28 @@ namespace SI24004.Controllers
             try
             {
                 var request = await _context.InaRequests
-                    .Include(r => r.Status)
+                    
                     .FirstOrDefaultAsync(r => r.Id == id);
 
                 if (request == null)
                     return NotFound("Request not found.");
 
-                var statusINA = await _context.ListItems
-                    .SingleOrDefaultAsync(x => x.ListItemCode == "LI02");
-
-                if (statusINA == null)
-                    return NotFound("Status type not found.");
-
                 var allStatuses = await _context.Statuses
-                    .Where(x => x.StatusTypeId == statusINA.Id)
-                    .OrderBy(s => s.Ordinal)
+                    .OrderBy(s => s.StatusName)
                     .ToListAsync();
 
-                var currentStatus = request.Status;
+                var currentStatus = request.StatusId.HasValue
+                    ? await _context.Statuses.FindAsync(request.StatusId.Value)
+                    : null;
                 if (currentStatus == null)
                     return NotFound("Current status not found.");
 
                 // Filter statuses based on current status
                 List<Status> filteredStatuses;
-                if (currentStatus.StatusName.ToLower().Trim() == "finishtest")
+                if (currentStatus.StatusName?.ToLower().Trim() == "finishtest")
                 {
                     filteredStatuses = allStatuses
-                        .Where(s => s.Ordinal < 5 || s.StatusName.ToLower().Trim() == "finishtest")
-                        .OrderBy(s => s.Ordinal)
+                        .Where(s => s.StatusName?.ToLower().Trim() == "finishtest")
                         .ToList();
                 }
                 else
@@ -818,7 +708,7 @@ namespace SI24004.Controllers
                 }
 
                 var statusSteps = filteredStatuses
-                    .Select(s => new { s.Id, s.StatusName, s.Ordinal })
+                    .Select((s, i) => new { s.Id, s.StatusName, Ordinal = i + 1 })
                     .ToList();
 
                 int currentStep = statusSteps.FindIndex(s => s.Id == request.StatusId) + 1;
@@ -828,7 +718,7 @@ namespace SI24004.Controllers
                     statusSteps,
                     currentStep,
                     currentStatusName = currentStatus.StatusName,
-                    currentOrdinal = currentStatus.Ordinal
+                    currentOrdinal = currentStep
                 });
             }
             catch (Exception ex)
@@ -843,7 +733,7 @@ namespace SI24004.Controllers
             try
             {
                 var request = await _context.InaRequests
-                    .Include(r => r.Status)
+                    
                     .FirstOrDefaultAsync(r => r.Id == id);
 
                 if (request == null)

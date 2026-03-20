@@ -37,7 +37,7 @@ namespace SI24004.Controllers
                                        join section in _context.SectionInfos on user.SectionId equals section.SectionId
                                        select new
                                        {
-                                           Section = section.SectionCode ?? "",
+                                           Section = section.Code ?? "",
                                            SectionId = section.SectionId,
                                            ItemCode = issueItem.ItemCode ?? "",
                                            Item_Name = issueItem.ItemName ?? "",
@@ -340,7 +340,7 @@ namespace SI24004.Controllers
                                        where issueItem.IssueId == barcode
                                        select new
                                        {
-                                           Section = section.SectionName,
+                                           Section = section.Name,
                                            ItemCode = issueItem.ItemCode,
                                            ItemName = issueItem.ItemName,
                                            LotNumber = issueItem.LotNumber,
@@ -1311,7 +1311,7 @@ namespace SI24004.Controllers
                         t.ReferenceId,
                         t.ReferenceType,
                         t.SectionId,
-                        t.SectionName,
+                        t.Name,
                         t.ProcessId,
                         t.PerformedBy,
                         t.DailySequence,

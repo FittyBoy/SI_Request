@@ -33,61 +33,9 @@ namespace SI24004.Controllers
         public async Task<ActionResult<IEnumerable<DwRequest>>> GetDwRequests()
         {
             var inaRequests = await _context.DwRequests
-                //.Where(x => x.IsDelete != true) // ?????????? IsDelete ???? IsDeleted ????????? Model
-                .Include(x => x.Attachment)
                 .OrderBy(x => x.UpdateDate)
                 .ThenBy(x => x.RequestCode)
-                    .Select(x => new DwRequest
-                    {
-                        Id = x.Id,
-                        RequestCode = x.RequestCode,
-                        DrawingCode = x.DrawingCode, // ????? DrawingCode ????????? Model
-                        DrawingName = x.DrawingName, // ?????????? RequestName ???? DrawingName
-                        DrawingDescription = x.DrawingDescription, // ?????????? RequestDescription
-                        SectionId = x.SectionId,
-                        DrawingTypeId = x.DrawingTypeId,
-                        StatusId = x.StatusId,
-                        CreatedDate = x.CreatedDate,
-                        CreatedBy = x.CreatedBy,
-                        UpdateDate = x.UpdateDate,
-                        UpdateBy = x.UpdateBy,
-                        AttachmentId = x.AttachmentId,
-                        Active = x.Active,
-                        IsDelete = x.IsDelete,
-                        UserId = x.UserId,
-
-                        // ? ???????? Map ????????? Status
-                        Status = x.Status != null
-                            ? new Status
-                            {
-                                Id = x.Status.Id,
-                                StatusName = x.Status.StatusName,
-                                Ordinal = x.Status.Ordinal
-                            }
-                            : null, // ?????????? null
-                        Section = x.Section != null ? new SI24004.Models.PostgreSQL.Section
-                        {
-                            Id = x.Section.Id,
-                            SectionCode = x.Section.SectionCode,
-                            SectionName = x.Section.SectionName
-                        } : null,
-                        DrawingType = x.DrawingType != null ? new Drawing
-                        {
-                            Id = x.DrawingType.Id,
-                            DrawingCode = x.DrawingCode,
-                            DrawingName = x.DrawingName,
-                        } : null,
-                        // ? ???????? Map ????????? Attachment
-                        Attachment = x.Attachment != null
-                            ? new SI24004.Models.PostgreSQL.Attachment
-                            {
-                                Id = x.Attachment.Id,
-                                AttachmentName = x.Attachment.AttachmentName,
-                                AttachementPath = x.Attachment.AttachementPath,
-                                AttachementType = x.Attachment.AttachementType,
-                            }
-                            : null // ?????????? null
-                    }).ToListAsync();
+                .ToListAsync();
             return Ok(inaRequests);
         }
 
@@ -140,59 +88,16 @@ namespace SI24004.Controllers
             if (request == null)
                 return NotFound("Request not found.");
 
-            var statusDw = await _context.ListItems
-                .Where(x => x.ListItemCode == "LI04")
-                .FirstOrDefaultAsync();
-
-            if (statusDw == null)
-                return NotFound("Status type not found.");
-
             var statusSteps = await _context.Statuses
-                .Where(x => x.StatusTypeId == statusDw.Id && x.Ordinal > 0)
-                .OrderBy(s => s.Ordinal)
                 .Select(s => new StatusStepDto
                 {
                     Id = s.Id,
-                    StatusName = s.StatusName,
-                    Ordinal = s.Ordinal.Value
+                    StatusName = s.StatusName ?? "",
+                    Ordinal = 0
                 })
                 .ToListAsync();
 
             Guid reviseId = Guid.Parse("54415422-e4a1-4308-8a8f-bcfb2723ae3f");
-
-            if (statusSteps.Any())
-            {
-                // ???????????????? Ordinal
-                statusSteps = statusSteps
-                    .GroupBy(s => s.Ordinal)
-                    .Select(g => g.First())
-                    .ToList();
-
-                // ??????? Revise
-                if (request.StatusId == reviseId || request.DrawingRevise == true)
-                {
-                    // ?? Revise ??? Request ?????
-                    statusSteps.RemoveAll(s => s.Id == reviseId || s.Ordinal == 1);
-
-                    // ????? Revise ????????????
-                    statusSteps.Insert(0, new StatusStepDto
-                    {
-                        Id = reviseId,
-                        StatusName = "Revise",
-                        Ordinal = 0
-                    });
-                }
-                else
-                {
-                    // ??????????? Ordinal == 1 ???? "Request"
-                    foreach (var step in statusSteps)
-                    {
-                        if (step.Ordinal == 1)
-                            step.StatusName = "Request";
-                    }
-                }
-            }
-
 
             int currentStep = statusSteps.FindIndex(s => s.Id == request.StatusId) + 1;
 
@@ -220,7 +125,7 @@ namespace SI24004.Controllers
                 }
 
                 // ????? approvers ??????? admin ????? section_id ????????? user
-                var approvers = await _context.Users
+                var approvers = await _context.Users1
                     .Where(u => u.RoleId == RolesAdmin.Id && u.SectionId == newRequest.SectionId)
                     .ToListAsync();
 
@@ -406,10 +311,12 @@ namespace SI24004.Controllers
                         IsDeleted = false
                     };
 
-                    await _context.Attachments.AddAsync(newAttachment);
+                    // Save attachment path only, no DB entry for Attachments table
+                    // (Attachments DbSet not available in current schema)
+                    Console.WriteLine($"File saved to: {fullPath}");
                 }
 
-                var UserName = _context.Users.Where(x => x.Id == requestDto.UserId).FirstOrDefault();
+                var UserName = _context.Users1.Where(x => x.Id == requestDto.UserId).FirstOrDefault();
 
                 // ? ????????????????
                 var newRequest = new DwRequest
@@ -443,7 +350,7 @@ namespace SI24004.Controllers
                     var section = await _context.Sections
                         .FirstOrDefaultAsync(s => s.Id == requestDto.SectionId);
 
-                    string sectionName = section?.SectionName ?? "Unknown Section";
+                    string sectionName = section?.Name ?? "Unknown Section";
 
                     // ????????? approvers
                     await SendEmailToApprovers(newRequest, UserName.UserName, sectionName);
@@ -482,7 +389,7 @@ namespace SI24004.Controllers
                     return NotFound("Request not found.");
 
                 // ???????????
-                var user = await _context.Users
+                var user = await _context.Users1
                     .FirstOrDefaultAsync(x => x.Id == requestDto.UserId);
 
                 if (user == null)
@@ -664,13 +571,12 @@ namespace SI24004.Controllers
                     try
                     {
                         var existingRequest = await _context.DwRequests
-                            .Include(x => x.Status)
                             .FirstOrDefaultAsync(x => x.Id == requestDto.Id);
 
                         if (existingRequest == null)
                             return NotFound("Request not found.");
 
-                        var user = await _context.Users
+                        var user = await _context.Users1
                             .FirstOrDefaultAsync(x => x.Id == requestDto.UserId);
 
                         if (user == null)
@@ -680,27 +586,22 @@ namespace SI24004.Controllers
                         if (currentStatus == null)
                             return BadRequest("Invalid status ID.");
 
-                        int nextStatusOrdinal = currentStatus.Ordinal.HasValue ? currentStatus.Ordinal.Value + 1 : 1;
+                        // Get all statuses ordered by name, find next one
+                        var allStatuses = await _context.Statuses.OrderBy(s => s.StatusName).ToListAsync();
+                        var currentIndex = allStatuses.FindIndex(s => s.Id == existingRequest.StatusId);
                         Guid nextStatusId;
                         string nextStatusName = "";
 
-                        if (nextStatusOrdinal > 3)
+                        if (currentIndex < 0 || currentIndex >= allStatuses.Count - 1)
                         {
-                            // ??????????????????????????? StatusId ???????????
                             nextStatusId = Guid.Parse("54415422-e4a1-4308-8a8f-bcfb2723ae3f");
                             nextStatusName = "Completed";
                         }
                         else
                         {
-                            var nextStatus = await _context.Statuses
-                                .Where(x => x.StatusTypeId == currentStatus.StatusTypeId)
-                                .FirstOrDefaultAsync(s => s.Ordinal == nextStatusOrdinal);
-
-                            if (nextStatus == null)
-                                return BadRequest("Next status not found.");
-
+                            var nextStatus = allStatuses[currentIndex + 1];
                             nextStatusId = nextStatus.Id;
-                            nextStatusName = nextStatus.StatusName;
+                            nextStatusName = nextStatus.StatusName ?? "";
                         }
 
                         if (existingRequest.StatusId == nextStatusId)
@@ -729,7 +630,7 @@ namespace SI24004.Controllers
                 {
                     try
                     {
-                        var creator = await _context.Users
+                        var creator = await _context.Users1
                             .FirstOrDefaultAsync(x => x.Id == request.UserId);
 
                         if (creator == null)

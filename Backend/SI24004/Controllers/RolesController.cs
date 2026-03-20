@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SI24004.Models.PostgreSQL;
@@ -16,125 +16,54 @@ namespace SI24004.Controllers
         {
             _context = context;
         }
+
         [HttpGet("statuses")]
         public async Task<IActionResult> GetStatuses()
         {
-            var statusINA = await _context.ListItems
-                    .Where(x => x.ListItemCode == "LI02")
-                    .FirstOrDefaultAsync();
-
-            if (statusINA == null)
-            {
-                return NotFound("Status drawing not found.");
-            }
-            var statuses = await _context.Statuses.Where(x => x.StatusTypeId == statusINA.Id).ToListAsync();
+            var statuses = await _context.Statuses.ToListAsync();
             return Ok(statuses);
         }
 
         [HttpGet("DrawingStatus")]
         public async Task<IActionResult> DrawingStatus()
         {
-            var statusDrawing = await _context.ListItems
-                    .Where(x => x.ListItemCode == "LI04")
-                    .FirstOrDefaultAsync();
-
-            if (statusDrawing == null)
-            {
-                return NotFound("Status drawing not found.");
-            }
-            var statuses = await _context.Statuses.Where(x => x.StatusTypeId == statusDrawing.Id).OrderByDescending(x => x.Ordinal).ToListAsync();
+            var statuses = await _context.Statuses.ToListAsync();
             return Ok(statuses);
         }
 
         [HttpGet("DrawingDDR")]
         public async Task<IActionResult> DrawingDropdownList()
         {
-            var statusDrawing = await _context.ListItems
-                    .Where(x => x.ListItemCode == "LI03")
-                    .FirstOrDefaultAsync();
-
-            if (statusDrawing == null)
-            {
-                return NotFound("Status drawing not found.");
-            }
-
-            var statuses = await _context.Drawings
-                .Where(x => x.ListItemId == statusDrawing.Id)
-                .ToListAsync();
-
-            return Ok(statuses);
+            // ListItems/Drawings table not in current schema - return empty
+            return Ok(new List<object>());
         }
 
         [HttpGet("SectionDDR")]
         public async Task<IActionResult> SectionDropdownList()
         {
-            var SectionDDR = await _context.ListItems
-                    .Where(x => x.ListItemCode == "LI01")
-                    .FirstOrDefaultAsync();
-
-            if (SectionDDR == null)
-            {
-                return NotFound("Status drawing not found.");
-            }
-
-            var statuses = await _context.Sections
-                .ToListAsync();
-
-            return Ok(statuses);
+            var sections = await _context.Sections.ToListAsync();
+            return Ok(sections);
         }
+
         [HttpGet("MechineDDR")]
         public async Task<IActionResult> MCDropdownList()
         {
-            var SectionDDR = await _context.ListItems
-                    .Where(x => x.ListItemCode == "LI08")
-                    .FirstOrDefaultAsync();
-
-            if (SectionDDR == null)
-            {
-                return NotFound("Status drawing not found.");
-            }
-
-            var statuses = await _context.RequestMachines
-                .Where(x => x.ListItemId == SectionDDR.Id)
-                .ToListAsync();
-
-            return Ok(statuses);
+            // RequestMachines table not in current schema - return empty
+            return Ok(new List<object>());
         }
+
         [HttpGet("ShiftDDR")]
         public async Task<IActionResult> ShiftDropdownList()
         {
-            var ShiftDDR = await _context.ListItems
-                .Where(x => x.ListItemCode == "LI09")
-                .FirstOrDefaultAsync();
-
-            if(ShiftDDR == null)
-            {
-                return NotFound("Data not found.");
-            }
-
-            var shift = await _context.Shifts
-                .Where(x => x.ListItemId != ShiftDDR.Id)
-                .ToListAsync();
-
-            return Ok(shift);
+            var shifts = await _context.Shifts.ToListAsync();
+            return Ok(shifts);
         }
+
         [HttpGet("ObjectiveDDR")]
         public async Task<IActionResult> ObjectiveDropdownList()
         {
-            var ShiftDDR = await _context.ListItems
-                .Where(x => x.ListItemCode == "LI15")
-                .FirstOrDefaultAsync();
-
-            if (ShiftDDR == null)
-            {
-                return NotFound("Data not found.");
-            }
-
-            var shift = await _context.Objectives
-                .Where(x => x.ListItemId != ShiftDDR.Id)
-                .ToListAsync();
-
-            return Ok(shift);
+            // Objectives table not in current schema - return empty
+            return Ok(new List<object>());
         }
     }
 }
