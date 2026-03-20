@@ -78,7 +78,6 @@ namespace SI24004.Controllers
             }
 
             var statuses = await _context.Sections
-                .Where(x => x.ListItemId == SectionDDR.Id)
                 .ToListAsync();
 
             return Ok(statuses);
