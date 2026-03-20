@@ -544,171 +544,275 @@ onMounted(async () => {
 </template>
 
 <style>
-/* === Page === */
+/* ─── Page Shell ─────────────────────────────────────── */
 .drawing-register-container {
-  background: var(--color-bg);
+  background: #f5f6fa;
   min-height: 100vh;
 }
 
-/* === Hero Card === */
+/* ─── Keyframes ──────────────────────────────────────── */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(115, 103, 240, 0.35); }
+  70%  { box-shadow: 0 0 0 10px rgba(115, 103, 240, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(115, 103, 240, 0); }
+}
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(8px) scale(0.85); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ─── Hero Card ──────────────────────────────────────── */
 .hero-card {
-  border-radius: var(--radius-xl) !important;
+  border-radius: 20px !important;
   overflow: hidden;
+  animation: slideDown 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .gradient-primary {
-  background: var(--color-request) !important;
-  box-shadow: var(--shadow-lg) !important;
+  background: linear-gradient(135deg, #7367f0 0%, #9e95f5 50%, #ce9ffc 100%) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animated mesh background */
+.gradient-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 10% 50%, rgba(255,255,255,0.15) 0%, transparent 60%),
+              radial-gradient(ellipse at 90% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Decorative circles */
+.gradient-primary::after {
+  content: '';
+  position: absolute;
+  right: -60px;
+  top: -60px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  pointer-events: none;
 }
 
 .icon-wrapper {
-  width: 64px;
-  height: 64px;
-  background: rgba(255,255,255,0.2);
-  border-radius: var(--radius-lg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 60px; height: 60px;
+  background: rgba(255,255,255,0.22);
+  border: 1.5px solid rgba(255,255,255,0.35);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(6px);
+  animation: pulse-ring 2.5s ease-out infinite;
 }
-.icon-wrapper i { font-size: 32px; color: #fff; }
+.icon-wrapper i { font-size: 28px; color: #fff; }
 
 .add-btn {
-  border-radius: var(--radius-lg) !important;
+  border-radius: 12px !important;
   text-transform: none !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
+  font-size: 0.95rem !important;
+  letter-spacing: 0.01em !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
+}
+.add-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2) !important;
 }
 
-/* === Stat Cards === */
+/* ─── Stat Cards ─────────────────────────────────────── */
 .stat-card {
-  border-radius: var(--radius-lg) !important;
-  border: 1px solid var(--color-border) !important;
-  background: var(--color-surface) !important;
-  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  border: 1px solid #e8e8f0 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+  transition: transform 0.25s cubic-bezier(0.22,1,0.36,1),
+              box-shadow 0.25s ease !important;
+  position: relative;
+  overflow: hidden;
 }
+
+/* Accent line on top */
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--stat-accent, #7367f0);
+  border-radius: 16px 16px 0 0;
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+.stat-card:hover::before { transform: scaleX(1); }
+
+.stat-card-total   { --stat-accent: #7367f0; }
+.stat-card-active  { --stat-accent: #28c76f; }
+.stat-card-inactive{ --stat-accent: #ff4c51; }
+
 .stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-md) !important;
+  transform: translateY(-6px) !important;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.1) !important;
 }
+
+/* Staggered entry */
+.stat-card { animation: fadeUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.stat-card:nth-child(1) { animation-delay: 0.1s; }
+.stat-card:nth-child(2) { animation-delay: 0.18s; }
+.stat-card:nth-child(3) { animation-delay: 0.26s; }
 
 .stat-icon-bg {
-  width: 52px;
-  height: 52px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 52px; height: 52px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.2s ease;
 }
-.stat-icon-bg i { font-size: 26px; }
+.stat-card:hover .stat-icon-bg { transform: scale(1.08) rotate(-3deg); }
+.stat-icon-bg i { font-size: 24px; }
 
-.stat-icon-primary { background: var(--color-primary-light); color: var(--color-primary); }
-.stat-icon-success  { background: var(--color-success-bg);   color: var(--color-success); }
-.stat-icon-error    { background: var(--color-error-bg);     color: var(--color-error); }
+.stat-icon-primary { background: rgba(115,103,240,0.1); color: #7367f0; }
+.stat-icon-success  { background: rgba(40,199,111,0.1);  color: #28c76f; }
+.stat-icon-error    { background: rgba(255,76,81,0.1);   color: #ff4c51; }
 
-.stat-badge { font-weight: 700; font-size: var(--text-xs); }
+/* Number count-up feel */
+.stat-card .text-h3 {
+  animation: countUp 0.5s cubic-bezier(0.22,1,0.36,1) both;
+  animation-delay: 0.3s;
+  display: inline-block;
+}
 
-/* === Main Card === */
+.stat-badge {
+  font-weight: 700 !important;
+  font-size: 0.7rem !important;
+  border-radius: 20px !important;
+  letter-spacing: 0.03em !important;
+}
+
+/* ─── Main Card ──────────────────────────────────────── */
 .main-card {
-  border-radius: var(--radius-lg) !important;
-  border: 1px solid var(--color-border) !important;
-  background: var(--color-surface) !important;
+  border-radius: 16px !important;
+  border: 1px solid #e8e8f0 !important;
+  background: #fff !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05) !important;
+  animation: scaleIn 0.4s cubic-bezier(0.22,1,0.36,1) 0.2s both;
+  overflow: hidden;
 }
 
-/* === Filter & Search === */
+/* ─── Filter Row ─────────────────────────────────────── */
 .filter-select :deep(.v-field),
 .search-field :deep(.v-field) {
-  border-radius: var(--radius-md) !important;
-  background: var(--color-surface-2) !important;
+  border-radius: 10px !important;
+  background: #f8f8fc !important;
+  transition: box-shadow 0.2s ease !important;
+}
+.filter-select :deep(.v-field:hover),
+.search-field :deep(.v-field:hover) {
+  box-shadow: 0 0 0 2px rgba(115,103,240,0.2) !important;
 }
 
-/* === Table === */
-.enhanced-table { border-radius: var(--radius-lg) !important; }
+/* ─── Table ──────────────────────────────────────────── */
+.enhanced-table { border-radius: 0 !important; }
 
 .enhanced-table :deep(.v-data-table__thead) {
-  background: var(--color-table-header);
+  background: #f8f8fc !important;
 }
 .enhanced-table :deep(.v-data-table__th) {
-  color: var(--color-text) !important;
-  font-weight: 600 !important;
-  font-size: var(--text-sm) !important;
-  padding: var(--space-4) !important;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-weight: 700 !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.07em !important;
+  text-transform: uppercase !important;
+  color: #888 !important;
+  padding: 14px 16px !important;
+  border-bottom: 2px solid #eee !important;
 }
 .enhanced-table :deep(.v-data-table__td) {
-  padding: var(--space-3) var(--space-4) !important;
-  font-size: var(--text-sm) !important;
+  padding: 14px 16px !important;
+  font-size: 0.875rem !important;
+  border-bottom: 1px solid #f0f0f6 !important;
+  transition: background 0.15s ease;
 }
-.enhanced-table :deep(tr:hover) {
-  background: var(--color-surface-2) !important;
+.enhanced-table :deep(tbody tr) {
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.enhanced-table :deep(tbody tr:hover td) {
+  background: #f4f3ff !important;
+}
+
+/* Row hover lift */
+.enhanced-table :deep(tbody tr:hover) {
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 2px 8px rgba(115,103,240,0.1);
 }
 
 .table-index {
-  width: 32px;
-  height: 32px;
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: var(--text-sm);
+  width: 30px; height: 30px;
+  background: rgba(115,103,240,0.1);
+  color: #7367f0;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.8rem;
+  transition: background 0.2s ease;
+}
+.enhanced-table :deep(tbody tr:hover) .table-index {
+  background: #7367f0;
+  color: #fff;
 }
 
 .drawing-name-cell {
-  display: flex;
-  align-items: center;
-  max-width: 250px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: flex; align-items: center;
+  max-width: 260px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-weight: 500;
 }
 
-.action-buttons { display: flex; gap: var(--space-2); }
-.action-buttons .v-btn { border-radius: var(--radius-md) !important; }
+.action-buttons { display: flex; gap: 8px; align-items: center; }
+.action-buttons .v-btn {
+  border-radius: 8px !important;
+  transition: transform 0.15s ease !important;
+}
+.action-buttons .v-btn:hover { transform: scale(1.1) !important; }
 
-/* === No Data === */
-.no-data-container { text-align: center; padding: var(--space-10) var(--space-8); }
+/* ─── No Data ────────────────────────────────────────── */
+.no-data-container { text-align: center; padding: 64px 32px; }
 .no-data-icon {
-  width: 100px;
-  height: 100px;
-  margin: 0 auto var(--space-6);
-  background: var(--color-primary-light);
+  width: 88px; height: 88px;
+  margin: 0 auto 24px;
+  background: rgba(115,103,240,0.08);
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
+  animation: pulse-ring 2s ease-out infinite;
 }
-.no-data-icon i { font-size: 48px; color: var(--color-primary); }
+.no-data-icon i { font-size: 40px; color: #7367f0; }
 
-/* === Chips === */
-.v-chip {
-  border-radius: var(--radius-md) !important;
-  font-size: var(--text-xs) !important;
-}
+/* ─── Scrollbar ──────────────────────────────────────── */
+:deep(.v-data-table__wrapper)::-webkit-scrollbar { height: 5px; }
+:deep(.v-data-table__wrapper)::-webkit-scrollbar-track { background: #f5f5f5; border-radius: 99px; }
+:deep(.v-data-table__wrapper)::-webkit-scrollbar-thumb { background: #ddd; border-radius: 99px; }
+:deep(.v-data-table__wrapper)::-webkit-scrollbar-thumb:hover { background: #7367f0; }
 
-/* === Scrollbar === */
-:deep(.v-data-table__wrapper)::-webkit-scrollbar { height: 6px; }
-:deep(.v-data-table__wrapper)::-webkit-scrollbar-track { background: var(--color-surface-2); border-radius: var(--radius-full); }
-:deep(.v-data-table__wrapper)::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: var(--radius-full); }
-:deep(.v-data-table__wrapper)::-webkit-scrollbar-thumb:hover { background: var(--color-primary); }
-
-/* === SweetAlert === */
+/* ─── SweetAlert ─────────────────────────────────────── */
 .swal2-container { z-index: 99999 !important; }
 
-/* === Animations === */
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.stat-card, .main-card { animation: fadeInUp 0.4s ease-out; }
-.stat-card:nth-child(1) { animation-delay: 0.05s; }
-.stat-card:nth-child(2) { animation-delay: 0.1s; }
-.stat-card:nth-child(3) { animation-delay: 0.15s; }
-
-/* === Responsive === */
+/* ─── Responsive ─────────────────────────────────────── */
 @media (max-width: 600px) {
   .add-btn { width: 100%; }
-  .stat-card { margin-bottom: var(--space-4); }
 }
 </style>
