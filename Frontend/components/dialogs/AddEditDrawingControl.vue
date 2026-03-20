@@ -855,7 +855,7 @@ onMounted(async () => {
                                 label="Drawing Name" placeholder="ชื่อ Drawing" required :readonly="!CanEdit" />
                         </VCol>
                         <VCol cols="6" style="margin-top: 1.5rem;">
-                            <VSelect v-model="SelectedSection" :items="SectionsDDR" item-title="SectionName"
+                            <VSelect v-model="SelectedSection" :items="SectionsDDR" item-title="Name"
                                 item-value="Id" label="เลือก Section" :disabled="!CanEdit" />
                         </VCol>
                     </VRow>
@@ -1014,37 +1014,38 @@ onMounted(async () => {
 .stepper-container {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     position: relative;
     width: 100%;
-    padding: 40px 20px;
-    background: linear-gradient(to bottom, #f8f9fa, #ffffff);
-    border-radius: 12px;
+    padding: 28px 24px 20px;
+    background: #fafafa;
+    border-radius: 14px;
     margin-bottom: 20px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f0f0f0;
 }
 
+/* Base track */
 .stepper-container::before {
     content: '';
     position: absolute;
-    top: 45px;
-    left: 30px;
-    right: 30px;
-    height: 4px;
-    background: #e0e0e0;
-    border-radius: 2px;
+    top: 42px;
+    left: 60px;
+    right: 60px;
+    height: 3px;
+    background: #e8e8e8;
+    border-radius: 99px;
     z-index: 0;
 }
 
+/* Active progress fill */
 .progress-line {
     position: absolute;
-    top: 45px;
-    left: 30px;
-    height: 4px;
-    background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-    border-radius: 2px;
-    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+    top: 42px;
+    left: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, #28c76f 0%, #7367f0 100%);
+    border-radius: 99px;
+    transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1;
 }
 
@@ -1055,92 +1056,101 @@ onMounted(async () => {
     position: relative;
     z-index: 2;
     flex: 1;
+    gap: 10px;
 }
 
 .step-circle {
-    width: 50px;
-    height: 50px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
-    background: white;
-    border: 4px solid #e0e0e0;
+    background: #fff;
+    border: 2.5px solid #e0e0e0;
     display: flex;
     justify-content: center;
     align-items: center;
     font-weight: 700;
-    font-size: 18px;
-    color: #9e9e9e;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    font-size: 15px;
+    color: #bbb;
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     position: relative;
 }
 
+/* Glow ring for active */
 .step-circle::after {
     content: '';
     position: absolute;
-    width: 100%;
-    height: 100%;
+    inset: -5px;
     border-radius: 50%;
     background: transparent;
-    transition: all 0.4s ease;
+    border: 2px solid transparent;
+    transition: all 0.35s ease;
 }
 
 .step-circle.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-color: #667eea;
-    color: white;
-    transform: scale(1.2);
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.5);
-    animation: pulse 2s ease-in-out infinite;
+    background: #7367f0;
+    border-color: #7367f0;
+    color: #fff;
+    transform: scale(1.18);
+    box-shadow: 0 4px 18px rgba(115,103,240,0.45);
 }
 
 .step-circle.active::after {
-    animation: ripple 1.5s ease-out infinite;
+    border-color: rgba(115,103,240,0.25);
+    animation: ring-pulse 1.8s ease-out infinite;
 }
 
 .step-circle.completed {
-    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-    border-color: #4CAF50;
-    color: white;
-    transform: scale(1.1);
-    box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+    background: #28c76f;
+    border-color: #28c76f;
+    color: #fff;
+    transform: scale(1.08);
+    box-shadow: 0 4px 14px rgba(40,199,111,0.35);
+}
+
+/* Checkmark bounce in */
+.step-circle.completed span {
+    animation: check-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 .step-label {
-    margin-top: 12px;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
-    color: #666;
+    color: #aaa;
     text-align: center;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
     transition: all 0.3s ease;
+    white-space: nowrap;
 }
 
 .step-item:has(.step-circle.active) .step-label {
-    color: #667eea;
-    font-size: 15px;
-    font-weight: 700;
+    color: #7367f0;
+    font-size: 12px;
 }
 
 .step-item:has(.step-circle.completed) .step-label {
-    color: #4CAF50;
-    font-weight: 700;
+    color: #28c76f;
+}
+
+@keyframes ring-pulse {
+    0%   { transform: scale(1);   opacity: 1; }
+    100% { transform: scale(1.5); opacity: 0; }
+}
+
+@keyframes check-pop {
+    from { transform: scale(0) rotate(-15deg); opacity: 0; }
+    to   { transform: scale(1) rotate(0deg);  opacity: 1; }
 }
 
 @keyframes pulse {
-    0%, 100% {
-        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.5);
-    }
-    50% {
-        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.7);
-    }
+    0%, 100% { box-shadow: 0 4px 18px rgba(115,103,240,0.45); }
+    50%       { box-shadow: 0 4px 28px rgba(115,103,240,0.65); }
 }
 
 @keyframes ripple {
-    0% {
-        box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.5);
-    }
-    100% {
-        box-shadow: 0 0 0 20px rgba(102, 126, 234, 0);
-    }
+    0%   { box-shadow: 0 0 0 0  rgba(115,103,240,0.4); }
+    100% { box-shadow: 0 0 0 18px rgba(115,103,240,0); }
 }
 
 /* ========================================
