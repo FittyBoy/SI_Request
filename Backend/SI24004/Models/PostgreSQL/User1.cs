@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace SI24004.Models.PostgreSQL;
@@ -30,4 +30,20 @@ public partial class User1
     public virtual Role? Role { get; set; }
 
     public virtual Section? Section { get; set; }
+
+    // Legacy aliases for controller compatibility
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? Email => null;
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? Name => UserName;
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? Password => UserPassword;
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? RememberToken => null;
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public DateTime? EmailVerifiedAt => null;
 }
