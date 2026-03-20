@@ -253,30 +253,16 @@ onMounted(() => {
 
 .auth-card-v2 {
   .v-card {
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    border-radius: var(--radius-lg);
   }
-  
   .v-btn {
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     font-weight: 600;
     text-transform: none;
   }
-  
-  .v-text-field {
-    .v-field {
-      border-radius: 8px;
-    }
+  .v-text-field .v-field {
+    border-radius: var(--radius-md);
   }
-}
-
-// Loading animation
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-.v-btn--loading {
-  animation: pulse 1.5s ease-in-out infinite;
 }
 </style>

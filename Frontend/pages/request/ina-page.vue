@@ -619,119 +619,12 @@ const handleDialogRefresh = async () => {
 </template>
 
 <style>
-.swal2-container {
-    z-index: 99999 !important;
-}
+/* swal2 z-index override */
+.swal2-container { z-index: 99999 !important; }
 
-.text-h5 {
-    font-size: 1.5rem !important;
-}
-
-.text-h6 {
-    font-size: 1.25rem !important;
-}
-
-.font-weight-bold {
-    font-weight: 700 !important;
-}
-
-.font-weight-medium {
-    font-weight: 500 !important;
-}
-
-.text-capitalize {
-    text-transform: capitalize;
-}
-
-.text-truncate {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.rounded-lg {
-    border-radius: 12px !important;
-}
-
-.text-medium-emphasis {
-    opacity: 0.7;
-}
-
-.v-data-table {
-    border-radius: 12px !important;
-}
-
-.v-data-table-header {
-    background-color: rgba(var(--v-theme-surface-variant), 0.1);
-}
-
-.v-data-table tbody tr:hover {
-    background-color: rgba(var(--v-theme-primary), 0.04) !important;
-}
-
-.v-chip {
-    font-weight: 500;
-}
-
-.justify-center {
-    justify-content: center;
-}
-
-.text-body-2 {
-    font-size: 0.875rem;
-}
-
-.text-caption {
-    font-size: 0.75rem;
-}
-
-.text-grey {
-    color: #6c757d;
-}
-
-.d-flex {
-    display: flex;
-}
-
-.ga-2 {
-    gap: 8px;
-}
-
-.align-center {
-    align-items: center;
-}
-
-.pa-2 {
-    padding: 8px;
-}
-
-.pa-4 {
-    padding: 16px;
-}
-
-.mt-4 {
-    margin-top: 16px;
-}
-
-.mt-2 {
-    margin-top: 8px;
-}
-
-.px-4 {
-    padding-left: 16px;
-    padding-right: 16px;
-}
-
-.py-2 {
-    padding-top: 8px;
-    padding-bottom: 8px;
-}
-
-.v-card {
-    border-radius: 8px;
-}
-
-.v-data-table {
-    border-radius: 8px;
-}
+/* Vuetify component overrides */
+.v-data-table { border-radius: var(--radius-lg) !important; }
+.v-data-table tbody tr:hover { background-color: rgba(var(--v-theme-primary), 0.04) !important; }
+.v-chip { font-weight: 500; }
+.text-medium-emphasis { opacity: 0.7; }
 </style>
