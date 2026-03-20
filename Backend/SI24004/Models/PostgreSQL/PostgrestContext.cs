@@ -2927,38 +2927,6 @@ public partial class PostgrestContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("users_pkey");
 
-            entity.ToTable("users");
-
-            entity.HasIndex(e => e.Email, "users_email_unique").IsUnique();
-
-            entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.CreatedAt)
-                .HasColumnType("timestamp(0) without time zone")
-                .HasColumnName("created_at");
-            entity.Property(e => e.Email)
-                .HasMaxLength(255)
-                .HasColumnName("email");
-            entity.Property(e => e.EmailVerifiedAt)
-                .HasColumnType("timestamp(0) without time zone")
-                .HasColumnName("email_verified_at");
-            entity.Property(e => e.Name)
-                .HasMaxLength(255)
-                .HasColumnName("name");
-            entity.Property(e => e.Password)
-                .HasMaxLength(255)
-                .HasColumnName("password");
-            entity.Property(e => e.RememberToken)
-                .HasMaxLength(100)
-                .HasColumnName("remember_token");
-            entity.Property(e => e.UpdatedAt)
-                .HasColumnType("timestamp(0) without time zone")
-                .HasColumnName("updated_at");
-        });
-
-        modelBuilder.Entity<User1>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("users_pkey");
-
             entity.ToTable("users", "master");
 
             entity.HasIndex(e => e.UserId, "users_user_id_key").IsUnique();
