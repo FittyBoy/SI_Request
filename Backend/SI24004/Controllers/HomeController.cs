@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using SI24004.Models;
 using SI24004.Models.PostgreSQL;
 using SI24004.Models.DTOs;
 using System.Diagnostics;
