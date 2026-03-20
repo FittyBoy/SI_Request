@@ -2895,6 +2895,42 @@ public partial class PostgrestContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("users_pkey");
 
+            entity.ToTable("users", "master");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("uuid_generate_v4()")
+                .HasColumnName("id");
+            entity.Property(e => e.Active).HasColumnName("active");
+            entity.Property(e => e.RoleId).HasColumnName("role_id");
+            entity.Property(e => e.SectionId).HasColumnName("section_id");
+            entity.Property(e => e.UserId)
+                .IsRequired()
+                .HasColumnType("character varying")
+                .HasColumnName("user_id");
+            entity.Property(e => e.UserLastname)
+                .HasColumnType("character varying")
+                .HasColumnName("user_lastname");
+            entity.Property(e => e.UserName)
+                .HasColumnType("character varying")
+                .HasColumnName("user_name");
+            entity.Property(e => e.UserPassword)
+                .IsRequired()
+                .HasColumnType("character varying")
+                .HasColumnName("user_password");
+
+            entity.HasOne(d => d.Role).WithMany(p => p.Users)
+                .HasForeignKey(d => d.RoleId)
+                .HasConstraintName("users_role_fk");
+
+            entity.HasOne(d => d.Section).WithMany(p => p.Users)
+                .HasForeignKey(d => d.SectionId)
+                .HasConstraintName("users_section_fk");
+        });
+
+        modelBuilder.Entity<User1>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("users_pkey");
+
             entity.ToTable("users");
 
             entity.HasIndex(e => e.Email, "users_email_unique").IsUnique();

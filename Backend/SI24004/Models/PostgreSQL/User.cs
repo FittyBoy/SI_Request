@@ -13,9 +13,9 @@ public partial class User
 
     public DateTime? EmailVerifiedAt { get; set; }
 
-    public string Password { get; set; } = null!;
+    public bool? IsDeleted { get; set; }
 
-    public string? RememberToken { get; set; }
+    public bool? Active { get; set; }
 
     public DateTime? CreatedAt { get; set; }
 
