@@ -38,3 +38,15 @@ Thumbs.db
 *.log
 logs/
 "@ | Out-File -FilePath .gitignore -Encoding utf8
+# ===============================
+# Visual Studio generated files
+# ===============================
+**/.vs/
+**/CopilotIndices/
+**/DesignTimeBuild/
+**/FileContentIndex/
+**/.dtbcache.v2
+**/applicationhost.config
+**/*.db
+**/*.db-shm
+**/*.db-wal
