@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 using SI24004.Models.PostgreSQL;
 using SI24004.Models.DTOs;
-using SI24004.Models.Responses;
+
 using SI24004.Services.Interfaces;
 using System;
 using System.Linq;

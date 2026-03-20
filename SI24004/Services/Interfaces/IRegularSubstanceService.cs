@@ -1,6 +1,6 @@
 ﻿using SI24004.Models.PostgreSQL;
 using SI24004.Models.DTOs;
-using SI24004.Models.Responses;
+using SI24004.Models.DTOs;
 using System;
 using System.Threading.Tasks;
 

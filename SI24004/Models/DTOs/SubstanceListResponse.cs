@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace SI24004.Models.Responses
+namespace SI24004.Models.DTOs
 {
     public class SubstanceListResponse
     {

@@ -12,7 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 
-namespace SI24004.Servicess
+namespace SI24004.Services
 {
     public class ChemicalSearchService : IChemicalSearchService
     {
