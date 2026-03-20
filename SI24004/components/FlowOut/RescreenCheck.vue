@@ -123,11 +123,11 @@
                             <polyline points="14 2 14 8 20 8"/>
                             <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
                         </svg>
-                        รายการ Rescreen LOT (วันนี้)
+                        รายการ Rescreen LOT (วันที่ผลิต)
                     </h2>
                     <div class="header-actions">
                         <div class="filter-group">
-                            <label>วันที่:</label>
+                            <label>วันที่ผลิต:</label>
                             <input type="date" v-model="filterDate" @change="loadRescreenLots" />
                         </div>
                         <button class="btn-check-status" @click="refreshAndReload" :disabled="isRefreshingStatus || isLoadingList">
@@ -143,14 +143,6 @@
                                 <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
                             </svg>
                             รีเฟรช
-                        </button>
-                        <button class="btn-check-status" @click="checkAllStatus" :disabled="isCheckingStatus">
-                            <div v-if="isCheckingStatus" class="spinner spinner-sm"></div>
-                            <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M9 11l3 3L22 4"/>
-                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-                            </svg>
-                            {{ isCheckingStatus ? 'กำลังเช็ค...' : 'เช็ค Status' }}
                         </button>
                         <div class="auto-refresh-badge">
                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -1064,15 +1064,7 @@ const plugins = [
 _P27CwHypmtqbR0rUSxcIGyOY0fyPBIm4jdB_NNFhGJg
 ];
 
-const assets = {
-  "/index.mjs": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"ff85-acXDtKQHt62RB+d0NfJ81mUiagw\"",
-    "mtime": "2026-02-18T07:03:13.921Z",
-    "size": 65413,
-    "path": "index.mjs"
-  }
-};
+const assets = {};
 
 function readAsset (id) {
   const serverDir = dirname$1(fileURLToPath(globalThis._importMeta_.url));
