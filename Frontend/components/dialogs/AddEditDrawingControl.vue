@@ -855,7 +855,7 @@ onMounted(async () => {
                                 label="Drawing Name" placeholder="ชื่อ Drawing" required :readonly="!CanEdit" />
                         </VCol>
                         <VCol cols="6" style="margin-top: 1.5rem;">
-                            <VSelect v-model="SelectedSection" :items="SectionsDDR" item-title="Name"
+                            <VSelect v-model="SelectedSection" :items="SectionsDDR" item-title="SectionName"
                                 item-value="Id" label="เลือก Section" :disabled="!CanEdit" />
                         </VCol>
                     </VRow>
@@ -863,8 +863,12 @@ onMounted(async () => {
                     <!-- Drawing Type Selection -->
                     <VRow>
                         <VCol cols="6" style="margin-top: 1.5rem;">
-                            <VSelect v-model="SelectedDrawing" :items="DrawingTypeDDR" item-title="DrawingName"
-                                item-value="Id" label="ประเภท Drawing" :disabled="!CanEdit" />
+                            <VSelect
+                                v-model="FormInput.DrawingName"
+                                :items="['Part', 'Machine', 'Table', 'Jig', 'Tool', 'Other']"
+                                label="ประเภท Drawing"
+                                :disabled="!CanEdit"
+                            />
                         </VCol>
                         <VCol cols="6"></VCol>
                     </VRow>

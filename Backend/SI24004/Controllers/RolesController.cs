@@ -32,16 +32,26 @@ namespace SI24004.Controllers
         }
 
         [HttpGet("DrawingDDR")]
-        public async Task<IActionResult> DrawingDropdownList()
+        public IActionResult DrawingDropdownList()
         {
-            // ListItems/Drawings table not in current schema - return empty
-            return Ok(new List<object>());
+            var drawingTypes = new List<object>
+            {
+                new { Id = "dt-part",    DrawingName = "Part" },
+                new { Id = "dt-machine", DrawingName = "Machine" },
+                new { Id = "dt-table",   DrawingName = "Table" },
+                new { Id = "dt-jig",     DrawingName = "Jig" },
+                new { Id = "dt-tool",    DrawingName = "Tool" },
+                new { Id = "dt-other",   DrawingName = "Other" },
+            };
+            return Ok(drawingTypes);
         }
 
         [HttpGet("SectionDDR")]
         public async Task<IActionResult> SectionDropdownList()
         {
-            var sections = await _context.Sections.ToListAsync();
+            var sections = await _context.Sections
+                .Select(s => new { s.Id, SectionName = s.Name, s.Code })
+                .ToListAsync();
             return Ok(sections);
         }
 
