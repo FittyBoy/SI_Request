@@ -11,11 +11,18 @@ import NavBarI18n from '@core/components/I18n.vue'
 // @layouts plugin
 import { VerticalNavLayout } from '@layouts'
 
-// เปลี่ยนจาก import navItems เป็นฟังก์ชัน
+// เรียกฟังก์ชันเพื่อโหลดเมนูหลังจาก cookies พร้อม
 import getNavItems from '@/navigation/vertical'
 
-// เรียกฟังก์ชันเพื่อโหลดเมนูหลังจาก cookies พร้อม
-const navItems = computed(() => getNavItems())
+// อ่าน cookie ครั้งเดียวเป็น ref ป้องกัน recursive computed
+const roleNameCookie    = useCookie('roleName')
+const sectionNameCookie = useCookie('sectionName')
+
+const navItems = computed(() => {
+  const role    = roleNameCookie.value ?? ''
+  const section = decodeURIComponent(sectionNameCookie.value || '')
+  return getNavItems(role, section)
+})
 </script>
 
 <template>

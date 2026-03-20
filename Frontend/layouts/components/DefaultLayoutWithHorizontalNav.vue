@@ -13,7 +13,15 @@ import { VNodeRenderer } from '@layouts/components/VNodeRenderer'
 
 import getNavItems from '@/navigation/horizontal'
 
-const navItems = computed(() => getNavItems())
+// อ่าน cookie ครั้งเดียวเป็น ref ป้องกัน recursive computed
+const roleNameCookie    = useCookie('roleName')
+const sectionNameCookie = useCookie('sectionName')
+
+const navItems = computed(() => {
+  const role    = roleNameCookie.value ?? ''
+  const section = decodeURIComponent(sectionNameCookie.value || '')
+  return getNavItems(role, section)
+})
 </script>
 
 <template>

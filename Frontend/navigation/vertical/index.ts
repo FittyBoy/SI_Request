@@ -1,8 +1,10 @@
-export default () => {
-  const roleName = useCookie('roleName').value
-  const sectionName = decodeURIComponent(useCookie('sectionName').value || '')
+// รับ roleName และ sectionName เป็น params แทนการเรียก useCookie ภายใน
+// เพื่อป้องกัน recursive computed loop ใน layout
+export default (roleName?: string | null, sectionName?: string) => {
+  const role    = roleName   ?? ''
+  const section = sectionName ?? ''
 
-  if (!roleName) return []
+  if (!role) return []
 
   return [
     {
@@ -25,7 +27,7 @@ export default () => {
       title: 'Lapping',
       icon: { icon: 'tabler-layers-difference' },
       children: [
-        ...(roleName === 'admin' || sectionName === 'OE-FP_Lapping'
+        ...(role === 'admin' || section === 'OE-FP_Lapping'
           ? [{
               title: 'Material Control',
               to: { name: 'lapping' },
@@ -38,22 +40,21 @@ export default () => {
       title: 'QA',
       icon: { icon: 'tabler-microscope' },
       children: [
-        ...(roleName === 'admin' || sectionName === 'OE-QA_Quality Assurance' || sectionName === 'OE-FP_Lapping'
+        ...(role === 'admin' || section === 'OE-QA_Quality Assurance' || section === 'OE-FP_Lapping'
           ? [{
               title: 'QA Word Checker',
               to: { name: 'qa' },
               icon: { icon: 'tabler-search' },
             }]
           : []),
-
-        ...(roleName === 'admin' || sectionName === 'OE-QA_Quality Assurance'
+        ...(role === 'admin' || section === 'OE-QA_Quality Assurance'
           ? [{
               title: 'Substance Master',
               to: { name: 'master-substance' },
               icon: { icon: 'tabler-flask' },
             }]
           : []),
-        ...(roleName === 'admin' || sectionName === 'OE-QA_Quality Assurance'
+        ...(role === 'admin' || section === 'OE-QA_Quality Assurance'
           ? [{
               title: 'SVHC Master',
               to: { name: 'master-svhc' },
@@ -66,7 +67,7 @@ export default () => {
       title: 'Master Data',
       icon: { icon: 'tabler-database' },
       children: [
-        ...(roleName === 'admin'
+        ...(role === 'admin'
           ? [{
               title: 'Material Receive',
               to: { name: 'master-material-receive' },
@@ -79,14 +80,14 @@ export default () => {
       title: 'Request',
       icon: { icon: 'tabler-file-text' },
       children: [
-        ...(roleName === 'admin'
+        ...(role === 'admin'
           ? [{
               title: 'INA Tracking',
               to: { name: 'request-ina-page' },
               icon: { icon: 'tabler-smart-home' },
             }]
           : []),
-        ...(roleName === 'admin' || sectionName === 'OE-FP_Scribing & Chamfering'
+        ...(role === 'admin' || section === 'OE-FP_Scribing & Chamfering'
           ? [{
               title: 'Register Drawing',
               to: { name: 'request-registerdac' },
