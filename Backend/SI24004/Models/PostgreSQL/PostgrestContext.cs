@@ -2895,38 +2895,32 @@ public partial class PostgrestContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("users_pkey");
 
-            entity.ToTable("users", "master");
+            entity.ToTable("users");
 
-            entity.Property(e => e.Id)
-                .HasDefaultValueSql("uuid_generate_v4()")
-                .HasColumnName("id");
-            entity.Property(e => e.Active).HasColumnName("active");
-            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
-            entity.Property(e => e.RoleId).HasColumnName("role_id");
-            entity.Property(e => e.SectionId).HasColumnName("section_id");
-            entity.Property(e => e.UserId)
-                .IsRequired()
-                .HasColumnType("character varying")
-                .HasColumnName("user_id");
-            entity.Property(e => e.UserLastname)
-                .HasColumnType("character varying")
-                .HasColumnName("user_lastname");
-            entity.Property(e => e.UserName)
-                .HasColumnType("character varying")
-                .HasColumnName("user_name");
-            entity.Property(e => e.UserPassword)
-                .HasColumnType("character varying")
-                .HasColumnName("user_password");
-            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
-            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+            entity.HasIndex(e => e.Email, "users_email_unique").IsUnique();
 
-            entity.HasOne(d => d.Role).WithMany()
-                .HasForeignKey(d => d.RoleId)
-                .HasConstraintName("users_role_fk");
-
-            entity.HasOne(d => d.Section).WithMany()
-                .HasForeignKey(d => d.SectionId)
-                .HasConstraintName("users_section_fk");
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasColumnType("timestamp(0) without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Email)
+                .HasMaxLength(255)
+                .HasColumnName("email");
+            entity.Property(e => e.EmailVerifiedAt)
+                .HasColumnType("timestamp(0) without time zone")
+                .HasColumnName("email_verified_at");
+            entity.Property(e => e.Name)
+                .HasMaxLength(255)
+                .HasColumnName("name");
+            entity.Property(e => e.Password)
+                .HasMaxLength(255)
+                .HasColumnName("password");
+            entity.Property(e => e.RememberToken)
+                .HasMaxLength(100)
+                .HasColumnName("remember_token");
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnType("timestamp(0) without time zone")
+                .HasColumnName("updated_at");
         });
 
         modelBuilder.Entity<User1>(entity =>

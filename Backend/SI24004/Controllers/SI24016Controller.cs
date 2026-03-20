@@ -37,7 +37,7 @@ namespace SI24004.Controllers
                                        join section in _context.SectionInfos on user.SectionId equals section.SectionId
                                        select new
                                        {
-                                           Section = section.Code ?? "",
+                                           Section = section.SectionCode ?? "",
                                            SectionId = section.SectionId,
                                            ItemCode = issueItem.ItemCode ?? "",
                                            Item_Name = issueItem.ItemName ?? "",

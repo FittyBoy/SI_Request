@@ -113,24 +113,9 @@ namespace SI24004.Controllers
 
                     Attachments = new
                     {
-                        Recipe = attachmentsByRequest.TryGetValue(x.Id, out var attachments)
-                            ? attachments.Where(a => a.Category?.ToLower() == "recipe")
-                                        .Select(a => new { a.Id, a.AttachmentName, a.AttachementPath, a.AttachementType, a.Category, a.UploadDate, a.AttachmentSize, a.AttachmentFileLocation })
-                                        .ToList<object>()
-                            : new List<object>(),
-
-                        // Other Programs - ?????????????
-                        OtherPrograms = attachmentsByRequest.TryGetValue(x.Id, out var attachments2)
-                            ? attachments2.Where(a => a.Category?.ToLower() == "otherprograms")
-                                         .Select(a => new { a.Id, a.AttachmentName, a.AttachementPath, a.AttachementType, a.Category, a.UploadDate, a.AttachmentSize, a.AttachmentFileLocation })
-                                         .ToList<object>()
-                            : new List<object>(),
-
-                        General = attachmentsByRequest.TryGetValue(x.Id, out var attachments3)
-                            ? attachments3.Where(a => a.Category?.ToLower() == "general")
-                                         .Select(a => new { a.Id, a.AttachmentName, a.AttachementPath, a.AttachementType, a.Category, a.UploadDate, a.AttachmentSize, a.AttachmentFileLocation })
-                                         .ToList<object>()
-                            : new List<object>()
+                        Recipe = new List<object>(),
+                        OtherPrograms = new List<object>(),
+                        General = new List<object>()
                     }
                 }).ToList();
 
@@ -314,7 +299,7 @@ namespace SI24004.Controllers
                     return BadRequest("Default status not found.");
 
                 // Validate user exists
-                var userExists = await _context.Users.AnyAsync(u => u.Id == requestDto.UserId);
+                var userExists = await _context.Users1.AnyAsync(u => u.Id == requestDto.UserId);
                 if (!userExists)
                     return BadRequest("User not found.");
 

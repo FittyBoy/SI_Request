@@ -38,7 +38,7 @@ namespace SI24004.Controllers
 
             try
             {
-                var user = await _context.Users
+                var user = await _context.Users1
                             .Include(u => u.Role)
                             .Include(u => u.Section)
                             .FirstOrDefaultAsync(x => x.UserId == loginRequest.UserId);
@@ -160,7 +160,7 @@ namespace SI24004.Controllers
             if (!Guid.TryParse(idClaim, out var userId))
                 return Unauthorized();
 
-            var dbUser = await _context.Users
+            var dbUser = await _context.Users1
                 .Include(u => u.Section)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
