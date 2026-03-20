@@ -1620,7 +1620,6 @@ public partial class PostgrestContext : DbContext
             entity.Property(e => e.Id)
                 .HasDefaultValueSql("uuid_generate_v4()")
                 .HasColumnName("id");
-            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
             entity.Property(e => e.RoleName)
                 .HasColumnType("character varying")
                 .HasColumnName("role_name");
