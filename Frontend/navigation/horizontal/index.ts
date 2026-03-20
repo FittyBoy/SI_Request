@@ -45,13 +45,7 @@ export default () => {
               icon: { icon: 'tabler-search' },
             }]
           : []),
-        ...(roleName === 'admin' || sectionName === 'OE-QA_Quality Assurance'
-          ? [{
-              title: 'QA Chart Display',
-              to: { name: 'qa-chart' },
-              icon: { icon: 'tabler-chart-bar' },
-            }]
-          : []),
+
         ...(roleName === 'admin' || sectionName === 'OE-QA_Quality Assurance'
           ? [{
               title: 'Substance Master',

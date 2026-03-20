@@ -23,6 +23,7 @@ export default defineNuxtConfig({
   },
 
   css: [
+    '@/assets/css/main.css',
     '@core/scss/template/index.scss',
     '@styles/styles.scss',
     '@/plugins/iconify/icons.css',
