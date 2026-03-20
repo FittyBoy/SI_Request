@@ -173,14 +173,16 @@ html, :root, .v-application, #app {
   }
 }
 
-/* Force font on Vuetify elements */
-.v-application,
-.v-application * {
+/* Font: DM Sans on Vuetify elements (without breaking Vuetify color system) */
+.v-application {
   font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif !important;
 }
-
-.v-application code,
-.v-application pre {
+.v-btn, .v-card, .v-chip, .v-data-table,
+.v-text-field, .v-select, .v-list-item,
+.v-dialog, .v-alert, .v-pagination {
+  font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif !important;
+}
+.v-application code, .v-application pre {
   font-family: 'DM Mono', 'Consolas', monospace !important;
 }
 
