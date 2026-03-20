@@ -619,17 +619,13 @@ const handleDialogRefresh = async () => {
 </template>
 
 <style>
-/* swal2 */
 .swal2-container { z-index: 99999 !important; }
-.swal2-popup { border-radius: var(--r-xl) !important; font-family: var(--font) !important; }
+.swal2-popup { border-radius: var(--rr-xl) !important; font-family: var(--f-sans) !important; }
 
-/* Vuetify overrides */
-.v-data-table { border-radius: var(--r-xl) !important; }
-.v-data-table tbody tr:hover { background-color: var(--brand-xlight) !important; }
-.v-chip { font-weight: 600 !important; border-radius: var(--r-full) !important; }
-.text-medium-emphasis { opacity: 0.65; }
-
-/* Summary cards animation */
-.v-card { transition: transform var(--t-mid) var(--ease), box-shadow var(--t-mid) var(--ease) !important; }
-.v-card:hover { transform: translateY(-2px) !important; box-shadow: var(--shadow-md) !important; }
+.v-data-table { border-radius: var(--rr-xl) !important; overflow: hidden; }
+.v-data-table tbody tr:hover td { background: var(--brand-bg) !important; }
+.v-chip { font-weight: 700 !important; border-radius: var(--rr-max) !important; font-size: var(--fz-2xs) !important; }
+.text-medium-emphasis { opacity: 0.6; }
+.v-card { transition: transform var(--dur-mid) var(--ease-out), box-shadow var(--dur-mid) var(--ease-out) !important; }
+.v-card:hover { transform: translateY(-2px) !important; }
 </style>
