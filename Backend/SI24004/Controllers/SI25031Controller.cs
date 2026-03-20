@@ -980,28 +980,22 @@ namespace SI24004.Controllers
                     });
                 }
 
-                // เช็ค ImobileLot ซ้ำ (unique constraint)
+                // ถ้า ImobileLot ซ้ำแต่ PoLot ต่างกัน = พนักงานคีย์ผิด → อนุญาตให้บันทึกได้
+                // แต่ต้อง set Imobilelot เป็น null เพื่อหลีกเลี่ยง unique constraint
+                string? imobilelotToSave = thRecord.ImobileLot;
                 if (!string.IsNullOrEmpty(thRecord.ImobileLot))
                 {
                     var existingByImobileLot = await _context.PoCheckFlows
-                        .FirstOrDefaultAsync(p => p.Imobilelot == thRecord.ImobileLot);
-
-                    if (existingByImobileLot != null)
-                    {
-                        return BadRequest(new
-                        {
-                            success = false,
-                            message = $"ImobileLot {thRecord.ImobileLot} เคยถูกบันทึกแล้ว (PoLot: {existingByImobileLot.PoLot})",
-                            status = "DUPLICATE"
-                        });
-                    }
+                        .AnyAsync(p => p.Imobilelot == thRecord.ImobileLot);
+                    if (existingByImobileLot)
+                        imobilelotToSave = null; // clear เพื่อหลีกเลี่ยง unique constraint
                 }
 
                 // PoLot ยังไม่มีใน DB → CREATE NEW
                 poCheckFlow = new PoCheckFlow
                 {
                     PoLot = poLot,
-                    Imobilelot = thRecord.ImobileLot,
+                    Imobilelot = imobilelotToSave,
                     StatusTn = finalStatus,
                     CheckSt = checkSt,
                     CheckDate = checkDate2,
