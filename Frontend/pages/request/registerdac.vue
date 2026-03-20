@@ -459,14 +459,14 @@ onMounted(async () => {
                         </template>
 
                         <template #item.RequestCode="{ item }">
-                            <v-chip size="small" color="blue-darken-1" variant="flat" class="font-weight-medium">
+                            <v-chip size="small" variant="tonal" color="primary" class="font-weight-medium chip-code">
                                 <i class="bi bi-file-text mr-1"></i>
                                 {{ item.RequestCode || '-' }}
                             </v-chip>
                         </template>
 
                         <template #item.DrawingCode="{ item }">
-                            <v-chip size="small" color="purple-darken-1" variant="flat" class="font-weight-medium">
+                            <v-chip size="small" variant="tonal" color="secondary" class="font-weight-medium chip-code">
                                 <i class="bi bi-diagram-3 mr-1"></i>
                                 {{ item.DrawingCode || '-' }}
                             </v-chip>
@@ -480,14 +480,14 @@ onMounted(async () => {
                         </template>
 
                         <template #item.UpdateDate="{ item }">
-                            <v-chip size="small" color="orange-darken-1" variant="flat" class="font-weight-medium">
+                            <span class="date-cell">
                                 <i class="bi bi-calendar-event mr-1"></i>
                                 {{ FormatDate(item.UpdateDate) }}
-                            </v-chip>
+                            </span>
                         </template>
 
                         <template #item.Active="{ item }">
-                            <v-chip :color="item.Active ? 'success' : 'error'" size="small" variant="flat"
+                            <v-chip :color="item.Active ? 'success' : 'error'" size="small" variant="tonal"
                                 class="font-weight-medium px-3">
                                 <i :class="item.Active ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill'"
                                     class="mr-1"></i>
@@ -815,4 +815,14 @@ onMounted(async () => {
 @media (max-width: 600px) {
   .add-btn { width: 100%; }
 }
+
+/* ─── Table chips ────────────────────────────────────── */
+.date-cell {
+  font-size: 0.82rem;
+  color: #888;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 </style>
