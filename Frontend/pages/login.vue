@@ -142,7 +142,7 @@ const login = async () => {
     })
 
     // 🔄 Redirect ไปหน้าหลัก
-    await router.push('/ina-page')
+    await router.push('/request/ina-page')
 
   } catch (error: any) {
     console.error('❌ Login Failed:', error)
