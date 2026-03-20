@@ -161,7 +161,7 @@ html, :root, .v-application, #app {
 
 /* Dark mode */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root, html, .v-application, #app {
     --ink:    #f1f5f9; --ink-2: #cbd5e1; --ink-3: #94a3b8; --ink-4: #64748b;
     --paper:  #0f172a; --paper-2: #1e293b; --paper-3: #334155; --paper-4: #475569;
     --line:   #334155; --line-2: #475569;
@@ -171,6 +171,17 @@ html, :root, .v-application, #app {
     --warn-bg: #431407; --warn-mid: #78350f;
     --info-bg: #083344; --info-mid: #164e63;
   }
+}
+
+/* Force font on Vuetify elements */
+.v-application,
+.v-application * {
+  font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif !important;
+}
+
+.v-application code,
+.v-application pre {
+  font-family: 'DM Mono', 'Consolas', monospace !important;
 }
 
 /* ──────────────────────────────────────────────
