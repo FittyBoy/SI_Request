@@ -1,0 +1,1219 @@
+<script setup lang="ts">
+import { ref, onMounted, computed } from 'vue'
+
+// SEO และ Meta
+useHead({
+  title: 'Material Withdrawal - LP Control System',
+  meta: [
+    { name: 'description', content: 'Material withdrawal system for LP manufacturing' },
+    { name: 'viewport', content: 'width=device-width, initial-scale=1' }
+  ]
+})
+
+// Type definitions - ปรับให้ตรงกับ Backend Model
+interface MateralInventory {
+  Id: string
+  MatName: string
+  MatQuantity: number | null
+  matUnit?: string
+  matTypeId?: string
+  case?: string
+  expDate: string | null  // DateOnly จะกลายเป็น string ใน JSON
+  insertDate: string | null  // DateOnly จะกลายเป็น string ใน JSON
+  empId?: string
+  shift?: string
+  product?: string
+  supplier?: string
+  lotNumber?: string
+  Location?: string
+}
+
+interface WithdrawalRequest {
+  shift: string
+  product: string
+  MatName: string
+  machine: string
+  quantity: number
+  cause: string
+  employee: string
+  materialId: string
+}
+
+interface Withdrawal {
+  id: number
+  timestamp: Date
+  MatName: string
+  quantity: number
+  machine: string
+  cause: string
+  employee: string
+  shift: string
+  product: string
+}
+
+// Reactive state
+const formData = ref<WithdrawalRequest>({
+  shift: 'B',
+  product: 'Mobile 0.1',
+  MatName: 'FO1500',
+  machine: 'LP603',
+  quantity: 0.5,
+  cause: 'Add In Loop',
+  employee: '',
+  materialId: ''
+})
+
+const materials = ref<MateralInventory[]>([])
+const selectedMaterial = ref<MateralInventory | null>(null)
+const loadingStock = ref<boolean>(false)
+const loadingMaterials = ref<boolean>(false)
+const isSubmitting = ref<boolean>(false)
+const validationErrors = ref<string[]>([])
+const successMessage = ref<string>('')
+const recentWithdrawals = ref<Withdrawal[]>([])
+
+// Dynamic options from API
+const products = ref<any[]>([])
+const shifts = ref<any[]>([])
+const suppliers = ref<any[]>([])
+const Locations = ref<any[]>([])
+const employees = ref<any[]>([])
+
+// API Configuration from runtime config
+const { public: { apiBase } } = useRuntimeConfig()
+
+// Computed properties
+const availableStock = computed((): number => {
+  return selectedMaterial.value?.MatQuantity || 0
+})
+
+// Static constants (fallback if API fails)
+const DEFAULT_MACHINES = ['LP603', 'LP604', 'LP605']
+const DEFAULT_CAUSES = [
+  'Add In Loop',
+  'Gravity Low',
+  'Cor New Plate',
+  'Cor Plate FN Over',
+  'Cor Plate Scratch',
+  'Cor Start up',
+  'Grinding Carrier',
+  'Slurry Abnormal'
+]
+
+// Methods
+const loadMasterData = async (): Promise<void> => {
+  try {
+    // Load products
+    const { data: productsData, error: productsError } = await useFetch<any[]>(`${apiBase}/api/SI25006/products`, {
+      server: false,
+      default: () => []
+    })
+
+    if (!productsError.value && productsData.value) {
+      products.value = productsData.value
+    }
+
+    // Load shifts
+    const { data: shiftsData, error: shiftsError } = await useFetch<any[]>(`${apiBase}/api/SI25006/shifts`, {
+      server: false,
+      default: () => []
+    })
+
+    if (!shiftsError.value && shiftsData.value) {
+      shifts.value = shiftsData.value
+    }
+
+    // Load suppliers
+    const { data: suppliersData, error: suppliersError } = await useFetch<any[]>(`${apiBase}/api/SI25006/suppliers`, {
+      server: false,
+      default: () => []
+    })
+
+    if (!suppliersError.value && suppliersData.value) {
+      suppliers.value = suppliersData.value
+    }
+
+    // Load Locations
+    const { data: LocationsData, error: LocationsError } = await useFetch<any[]>(`${apiBase}/api/SI25006/Locations`, {
+      server: false,
+      default: () => []
+    })
+
+    if (!LocationsError.value && LocationsData.value) {
+      Locations.value = LocationsData.value
+    }
+
+    // Load employees
+    const { data: employeesData, error: employeesError } = await useFetch<any[]>(`${apiBase}/api/SI25006/employees`, {
+      server: false,
+      default: () => []
+    })
+
+    if (!employeesError.value && employeesData.value) {
+      employees.value = employeesData.value
+    }
+
+  } catch (error) {
+    console.error('Error loading master data:', error)
+    // Fallback to default values if API fails
+    products.value = [
+      { product: 'Mobile 0.1', count: 0 },
+      { product: 'Mobile 0.2', count: 0 },
+      { product: 'Mobile 0.3', count: 0 }
+    ]
+    shifts.value = [
+      { shift: 'A', count: 0 },
+      { shift: 'B', count: 0 },
+      { shift: 'C', count: 0 }
+    ]
+  }
+}
+
+const loadMaterials = async (): Promise<void> => {
+  loadingMaterials.value = true
+  try {
+    const { data: materialsData, error } = await useFetch<MateralInventory[]>(`${apiBase}/api/SI25006`, {
+      server: false,
+      default: () => []
+    })
+
+    if (!error.value && materialsData.value) {
+      materials.value = materialsData.value.map(material => ({
+        ...material,
+        matUnit: material.matUnit || 'kg', // Default unit if not specified
+        MatQuantity: material.MatQuantity || 0
+      }))
+
+      // Set default material if available
+      if (materials.value.length > 0 && !selectedMaterial.value) {
+        const defaultMat = materials.value.find(m => m.MatName === 'FO1500') || materials.value[0]
+        selectedMaterial.value = defaultMat
+        formData.value.MatName = defaultMat.MatName
+        formData.value.materialId = defaultMat.Id
+      }
+    } else {
+      throw new Error(error.value?.message || 'Failed to load materials')
+    }
+  } catch (error) {
+    console.error('Error loading materials:', error)
+    showError('Failed to load materials from server')
+  } finally {
+    loadingMaterials.value = false
+  }
+}
+
+const onMaterialChange = (): void => {
+  const selected = materials.value.find(m => m.MatName === formData.value.MatName)
+  selectedMaterial.value = selected || null
+  formData.value.materialId = selected?.Id || ''
+  clearMessages()
+}
+
+const checkStock = async (): Promise<void> => {
+  if (!selectedMaterial.value) return
+
+  loadingStock.value = true
+  try {
+    // Refresh individual material data
+    const { data: materialData, error } = await useFetch<MateralInventory>(`${apiBase}/api/SI25006/${selectedMaterial.value.Id}`, {
+      server: false
+    })
+
+    if (!error.value && materialData.value) {
+      // Update local material data
+      const materialIndex = materials.value.findIndex(m => m.Id === selectedMaterial.value?.Id)
+      if (materialIndex !== -1) {
+        materials.value[materialIndex] = {
+          ...materialData.value,
+          matUnit: materialData.value.matUnit || 'kg',
+          MatQuantity: materialData.value.MatQuantity || 0
+        }
+        selectedMaterial.value = materials.value[materialIndex]
+      }
+
+      showSuccess('Stock data refreshed successfully')
+    } else {
+      throw new Error(error.value?.message || 'Failed to fetch material data')
+    }
+  } catch (error) {
+    console.error('Error checking stock:', error)
+    // Fallback to reloading all materials if individual fetch fails
+    try {
+      await loadMaterials()
+      showSuccess('Stock data refreshed from main inventory')
+    } catch (fallbackError) {
+      showError('Failed to refresh stock data')
+    }
+  } finally {
+    loadingStock.value = false
+  }
+}
+
+const validateForm = (): boolean => {
+  validationErrors.value = []
+
+  if (!formData.value.shift) validationErrors.value.push('Please select a shift')
+  if (!formData.value.product) validationErrors.value.push('Please select a product')
+  if (!formData.value.MatName) validationErrors.value.push('Please select a material')
+  if (!formData.value.machine) validationErrors.value.push('Please select a machine')
+  if (!formData.value.cause) validationErrors.value.push('Please select a cause')
+  if (!formData.value.employee) validationErrors.value.push('Please enter employee ID')
+  if (!formData.value.quantity || formData.value.quantity <= 0) {
+    validationErrors.value.push('Please enter a valid quantity')
+  }
+
+  if (selectedMaterial.value && formData.value.quantity > (selectedMaterial.value.MatQuantity || 0)) {
+    validationErrors.value.push(
+      `Insufficient stock. Available: ${selectedMaterial.value.MatQuantity} ${selectedMaterial.value.matUnit}`
+    )
+  }
+
+  return validationErrors.value.length === 0
+}
+
+const handleWithdrawal = async (): Promise<void> => {
+  clearMessages()
+
+  if (!validateForm() || !selectedMaterial.value) {
+    if (!selectedMaterial.value) {
+      validationErrors.value.push('No material selected')
+    }
+    return
+  }
+
+  isSubmitting.value = true
+
+  try {
+    // Calculate new quantity
+    const currentQuantity = selectedMaterial.value.MatQuantity || 0
+    const newQuantity = currentQuantity - formData.value.quantity
+
+    if (newQuantity < 0) {
+      throw new Error('Insufficient stock for withdrawal')
+    }
+
+    // Update material quantity via API - ใช้ useFetch แทน $fetch
+    const { error } = await useFetch(`${apiBase}//api/SI25006/${selectedMaterial.value.Id}/quantity`, {
+      method: 'PATCH',
+      body: newQuantity,
+      server: false
+    })
+
+    if (error.value) {
+      throw new Error(error.value.message || 'Failed to update material quantity')
+    }
+
+    // TODO: เมื่อมี Withdrawal API จึงจะใช้
+    // สำหรับตอนนี้ comment ไว้ก่อนเนื่องจาก API ยังไม่มี endpoint นี้
+    /*
+    const withdrawalRecord = {
+      materialId: selectedMaterial.value.id,
+      MatName: formData.value.MatName,
+      quantity: formData.value.quantity,
+      machine: formData.value.machine,
+      cause: formData.value.cause,
+      empId: formData.value.employee,
+      shift: formData.value.shift,
+      product: formData.value.product,
+      withdrawalDate: new Date().toISOString()
+    }
+
+    const { error: withdrawalError } = await useFetch(`${apiBase}/api/SI25006/withdrawal`, {
+      method: 'POST',
+      body: withdrawalRecord,
+      server: false
+    })
+
+    if (withdrawalError.value) {
+      throw new Error(withdrawalError.value.message || 'Failed to record withdrawal')
+    }
+    */
+
+    // Update local state
+    selectedMaterial.value.MatQuantity = newQuantity
+    const materialIndex = materials.value.findIndex(m => m.Id === selectedMaterial.value?.Id)
+    if (materialIndex !== -1) {
+      materials.value[materialIndex].MatQuantity = newQuantity
+    }
+
+    // Add to recent withdrawals (local storage for demo)
+    const withdrawal: Withdrawal = {
+      id: Date.now(),
+      timestamp: new Date(),
+      MatName: formData.value.MatName,
+      quantity: formData.value.quantity,
+      machine: formData.value.machine,
+      cause: formData.value.cause,
+      employee: formData.value.employee,
+      shift: formData.value.shift,
+      product: formData.value.product
+    }
+
+    recentWithdrawals.value.unshift(withdrawal)
+    if (recentWithdrawals.value.length > 10) {
+      recentWithdrawals.value = recentWithdrawals.value.slice(0, 10)
+    }
+
+    // Save to localStorage for persistence (เนื่องจากยังไม่มี withdrawal API)
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('recentWithdrawals', JSON.stringify(recentWithdrawals.value))
+    }
+
+    showSuccess(`Successfully withdrew ${formData.value.quantity} ${selectedMaterial.value.matUnit} of ${formData.value.MatName}`)
+
+    // Reset quantity
+    formData.value.quantity = 0
+
+  } catch (error: any) {
+    console.error('Error processing withdrawal:', error)
+    if (error && typeof error === 'object' && 'status' in error) {
+      const status = error.status
+      if (status === 404) {
+        showError('Material not found')
+      } else if (status === 400) {
+        showError('Invalid request data')
+      } else if (status >= 500) {
+        showError('Server error. Please try again later.')
+      } else {
+        showError('Failed to process withdrawal. Please try again.')
+      }
+    } else {
+      showError('Network error. Please check your connection.')
+    }
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+const initializeData = async (): Promise<void> => {
+  try {
+    const { error } = await useFetch(`${apiBase}/api/SI25006/initialize-data`, {
+      method: 'POST',
+      server: false
+    })
+
+    if (!error.value) {
+      showSuccess('System data initialized successfully')
+      // Reload materials after initialization
+      await loadMaterials()
+      await loadMasterData()
+    } else {
+      throw new Error(error.value.message || 'Failed to initialize data')
+    }
+  } catch (error) {
+    console.error('Error initializing data:', error)
+    showError('Failed to initialize system data')
+  }
+}
+
+const resetForm = (): void => {
+  formData.value = {
+    shift: '',
+    product: '',
+    MatName: '',
+    machine: '',
+    quantity: 0,
+    cause: '',
+    employee: '',
+    materialId: ''
+  }
+  selectedMaterial.value = null
+  clearMessages()
+}
+
+const loadRecentWithdrawals = (): void => {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('recentWithdrawals')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        recentWithdrawals.value = parsed.map((w: any) => ({
+          ...w,
+          timestamp: new Date(w.timestamp)
+        }))
+      }
+    }
+  } catch (error) {
+    console.error('Error loading recent withdrawals:', error)
+    recentWithdrawals.value = []
+  }
+}
+
+const clearMessages = (): void => {
+  validationErrors.value = []
+  successMessage.value = ''
+}
+
+const showSuccess = (message: string): void => {
+  successMessage.value = message
+  setTimeout(() => {
+    successMessage.value = ''
+  }, 5000)
+}
+
+const showError = (message: string): void => {
+  validationErrors.value = [message]
+}
+
+const formatDateTime = (date: Date | string | null | undefined): string => {
+  if (!date) return 'N/A'
+  try {
+    return new Date(date).toLocaleString('th-TH')
+  } catch {
+    return 'N/A'
+  }
+}
+
+const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return 'N/A'
+  try {
+    // DateOnly จาก C# จะมาเป็น "YYYY-MM-DD" format
+    return new Date(dateString + 'T00:00:00').toLocaleDateString('th-TH')
+  } catch {
+    return 'N/A'
+  }
+}
+
+// Lifecycle
+onMounted(async (): Promise<void> => {
+  try {
+    // Load master data first
+    await loadMasterData()
+
+    // Load materials from API
+    await loadMaterials()
+
+    // If no materials found, offer to initialize
+    if (materials.value.length === 0) {
+      const shouldInitialize = confirm('No materials found in inventory. Would you like to initialize sample data?')
+      if (shouldInitialize) {
+        await initializeData()
+      }
+    }
+
+    // Load recent withdrawals from localStorage
+    loadRecentWithdrawals()
+  } catch (error) {
+    console.error('Error during component initialization:', error)
+    showError('Failed to load initial data. Some features may not work properly.')
+  }
+})
+</script>
+
+<template>
+  <div class="material-withdrawal-page">
+    <!-- Header with Navigation -->
+    <div class="header-bar d-flex justify-content-between align-items-center">
+      <h4 class="mb-0 text-white fw-bold">Material Withdrawal System</h4>
+      <div class="nav-buttons">
+        <NuxtLink to="/material-receive" class="btn btn-outline-light btn-sm me-2">
+          รับเข้า
+        </NuxtLink>
+        <button type="button" class="btn-close btn-close-white" aria-label="Close"></button>
+      </div>
+    </div>
+
+    <!-- Main Form Container -->
+    <div class="form-container">
+      <div class="page-title">
+        <h5 class="text-danger fw-bold mb-3">เบิกออก - Material Withdrawal</h5>
+      </div>
+
+      <form @submit.prevent="handleWithdrawal" class="material-form">
+
+        <!-- Row 1: Shift, Product -->
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Shift <span class="text-danger">*</span></label>
+            <select v-model="formData.shift" class="form-control" required>
+              <option value="">Select Shift</option>
+              <option v-for="shift in shifts" :key="shift.shift" :value="shift.shift">
+                {{ shift.shift }} ({{ shift.count }} employees)
+              </option>
+              <!-- Fallback options -->
+              <option v-if="shifts.length === 0" value="A">A</option>
+              <option v-if="shifts.length === 0" value="B">B</option>
+              <option v-if="shifts.length === 0" value="C">C</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Product <span class="text-danger">*</span></label>
+            <select v-model="formData.product" class="form-control" required>
+              <option value="">Select Product</option>
+              <option v-for="product in products" :key="product.product" :value="product.product">
+                {{ product.product }}
+                <span v-if="product.count !== undefined">({{ product.count }} materials)</span>
+              </option>
+              <!-- Fallback options -->
+              <option v-if="products.length === 0" value="Mobile 0.1">Mobile 0.1</option>
+              <option v-if="products.length === 0" value="Mobile 0.2">Mobile 0.2</option>
+              <option v-if="products.length === 0" value="Mobile 0.3">Mobile 0.3</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Row 2: Mat Name, Machine -->
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Mat Name <span class="text-danger">*</span></label>
+            <select v-model="formData.MatName" @change="onMaterialChange" class="form-control" required
+              :disabled="loadingMaterials">
+              <option value="">{{ loadingMaterials ? 'Loading materials...' : 'Select Material' }}</option>
+              <option v-for="material in materials" :key="material.Id" :value="material.MatName">
+                {{ material.MatName }} ({{ material.MatQuantity || 0 }} {{ material.matUnit || 'kg' }})
+                <span v-if="material.Location"> - {{ material.Location }}</span>
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Machine <span class="text-danger">*</span></label>
+            <select v-model="formData.machine" class="form-control" required>
+              <option value="">Select Machine</option>
+              <option v-for="machine in DEFAULT_MACHINES" :key="machine" :value="machine">
+                {{ machine }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Row 3: Cause/Reason, Withdrawal Quantity -->
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Cause/Reason <span class="text-danger">*</span></label>
+            <select v-model="formData.cause" class="form-control" required>
+              <option value="">Select Cause</option>
+              <option v-for="cause in DEFAULT_CAUSES" :key="cause" :value="cause">
+                {{ cause }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Withdrawal Quantity <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <input v-model.number="formData.quantity" type="number" step="0.1" min="0" :max="availableStock"
+                class="form-control" placeholder="0.0" required />
+              <span class="input-group-text">{{ selectedMaterial?.matUnit || 'kg' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Employee ID <span class="text-danger">*</span></label>
+            <select v-model="formData.employee" class="form-control" required>
+              <option value="">Select Employee</option>
+              <option v-for="employee in employees" :key="employee.empId" :value="employee.empId">
+                {{ employee.empId }} - {{ employee.empName || employee.employeename }}
+                <span v-if="employee.department">({{ employee.department }})</span>
+              </option>
+            </select>
+            <!-- Fallback input if no employees loaded -->
+            <input v-if="employees.length === 0" v-model="formData.employee" type="text" class="form-control mt-2"
+              placeholder="Enter Employee ID manually" />
+          </div>
+
+          <!-- Empty space to maintain layout -->
+          <div class="form-group"></div>
+        </div>
+
+        <!-- Stock Information -->
+        <div class="stock-info-section">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Current Balance Stock</label>
+              <div class="stock-display">
+                <span v-if="selectedMaterial" class="stock-value">
+                  {{ selectedMaterial.MatQuantity || 0 }} {{ selectedMaterial.matUnit || 'kg' }}
+                </span>
+                <span v-else-if="loadingMaterials" class="stock-placeholder">Loading...</span>
+                <span v-else class="stock-placeholder">Select material first</span>
+              </div>
+              <!-- แสดงข้อมูลเพิ่มเติม -->
+              <div v-if="selectedMaterial" class="material-details">
+                <small class="text-muted">
+                  <div v-if="selectedMaterial.lotNumber">Lot: {{ selectedMaterial.lotNumber }}</div>
+                  <div v-if="selectedMaterial.Location">Location: {{ selectedMaterial.Location }}</div>
+                  <div v-if="selectedMaterial.expDate">Exp: {{ formatDate(selectedMaterial.expDate) }}</div>
+                  <div v-if="selectedMaterial.supplier">Supplier: {{ selectedMaterial.supplier }}</div>
+                </small>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Refresh Stock Data</label>
+              <button type="button" @click="checkStock" :disabled="!formData.MatName || loadingStock"
+                class="btn btn-check">
+                <span v-if="loadingStock" class="spinner-border spinner-border-sm me-1"></span>
+                {{ loadingStock ? 'Checking...' : 'Check Stock' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alert Messages -->
+        <div v-if="validationErrors.length > 0" class="alert alert-danger">
+          <strong>Please fix the following errors:</strong>
+          <ul class="mb-0 mt-2">
+            <li v-for="error in validationErrors" :key="error">{{ error }}</li>
+          </ul>
+        </div>
+
+        <div v-if="successMessage" class="alert alert-success">
+          <strong>Success!</strong> {{ successMessage }}
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <button type="submit" :disabled="isSubmitting" class="btn btn-withdraw-primary">
+            <span v-if="isSubmitting" class="spinner-border spinner-border-sm me-2"></span>
+            {{ isSubmitting ? 'Processing Withdrawal...' : 'เบิกออก (Withdraw)' }}
+          </button>
+
+          <button type="button" @click="resetForm" class="btn btn-secondary">
+            Reset Form
+          </button>
+
+          <button v-if="materials.length === 0" type="button" @click="initializeData" class="btn btn-info">
+            Initialize Sample Data
+          </button>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- Recent Withdrawals Section -->
+    <div class="withdrawals-section">
+      <div class="section-header">
+        <h6 class="section-title">Recent Withdrawals History</h6>
+        <span class="record-count">{{ recentWithdrawals.length }} records</span>
+      </div>
+
+      <div class="withdrawals-content">
+        <div v-if="recentWithdrawals.length === 0" class="no-data">
+          <div class="no-data-icon">📦</div>
+          <p class="mb-0">No withdrawal records found</p>
+          <small class="text-muted">Start withdrawing materials to see history</small>
+        </div>
+
+        <div v-else class="table-container">
+          <table class="withdrawals-table">
+            <thead>
+              <tr>
+                <th>Date/Time</th>
+                <th>Material</th>
+                <th>Quantity</th>
+                <th>Machine</th>
+                <th>Cause</th>
+                <th>Employee</th>
+                <th>Shift</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="withdrawal in recentWithdrawals" :key="withdrawal.id">
+                <td class="fw-medium">{{ formatDateTime(withdrawal.timestamp) }}</td>
+                <td>
+                  <span class="material-badge">{{ withdrawal.MatName }}</span>
+                </td>
+                <td>
+                  <span class="quantity-badge">-{{ withdrawal.quantity }}</span>
+                </td>
+                <td>
+                  <span class="machine-badge">{{ withdrawal.machine }}</span>
+                </td>
+                <td class="cause-text">{{ withdrawal.cause }}</td>
+                <td>
+                  <div class="employee-info">
+                    <span class="employee-avatar">{{ withdrawal.employee.charAt(0) }}</span>
+                    {{ withdrawal.employee }}
+                  </div>
+                </td>
+                <td>
+                  <span class="shift-badge shift-{{ withdrawal.shift.toLowerCase() }}">{{ withdrawal.shift }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.material-withdrawal-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 50%, #f87171 100%);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: 0;
+}
+
+.header-bar {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: white;
+  padding: 15px 25px;
+  box-shadow: 0 2px 10px rgba(220, 38, 38, 0.3);
+}
+
+.nav-buttons {
+  display: flex;
+  align-items: center;
+}
+
+.btn-close {
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.btn-close::before {
+  content: '×';
+  font-weight: bold;
+}
+
+.form-container {
+  padding: 25px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-title {
+  text-align: center;
+  margin-bottom: 25px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  border-left: 4px solid #dc2626;
+}
+
+.material-form {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.form-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  align-items: end;
+}
+
+.form-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-label {
+  font-size: 14px;
+  color: #374151;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.form-control {
+  padding: 10px 14px;
+  border: 2px solid #d1d5db;
+  border-radius: 6px;
+  background-color: white;
+  font-size: 14px;
+  height: 42px;
+  transition: all 0.2s ease;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.input-group {
+  display: flex;
+}
+
+.input-group .form-control {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.input-group-text {
+  background-color: #f3f4f6;
+  border: 2px solid #d1d5db;
+  border-left: none;
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.form-text {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.stock-info-section {
+  background: #fef7f7;
+  padding: 20px;
+  border-radius: 8px;
+  border: 2px dashed #fca5a5;
+  margin: 25px 0;
+}
+
+.stock-display {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 2px solid #bbf7d0;
+  border-radius: 6px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+}
+
+.stock-value {
+  color: #15803d;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.stock-placeholder {
+  color: #9ca3af;
+  font-size: 14px;
+  font-style: italic;
+}
+
+.material-details {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+}
+
+.btn-check {
+  width: 100%;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  height: 42px;
+  transition: all 0.2s ease;
+}
+
+.btn-check:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  transform: translateY(-1px);
+}
+
+.btn-check:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin: 30px 0;
+}
+
+.btn {
+  padding: 12px 30px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 180px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-withdraw-primary {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+}
+
+.btn-withdraw-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+  transform: translateY(-2px);
+}
+
+.alert {
+  margin: 20px 0;
+  padding: 15px 20px;
+  border-radius: 8px;
+  border: none;
+}
+
+.alert-danger {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border-left: 4px solid #dc2626;
+  color: #991b1b;
+}
+
+.alert-success {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-left: 4px solid #16a34a;
+  color: #15803d;
+}
+
+.alert ul {
+  padding-left: 20px;
+  margin-top: 8px;
+}
+
+.withdrawals-section {
+  margin-top: 30px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 25px;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  border-bottom: 2px solid #d1d5db;
+}
+
+.section-title {
+  margin: 0;
+  color: #374151;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.record-count {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 15px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.withdrawals-content {
+  padding: 25px;
+}
+
+.no-data {
+  text-align: center;
+  padding: 50px 0;
+  color: #6b7280;
+}
+
+.no-data-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+}
+
+.table-container {
+  overflow-x: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.withdrawals-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  font-size: 14px;
+}
+
+.withdrawals-table th {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  padding: 15px 12px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 13px;
+  color: #991b1b;
+  border-bottom: 2px solid #f87171;
+}
+
+.withdrawals-table td {
+  padding: 15px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
+}
+
+.withdrawals-table tbody tr:hover {
+  background: linear-gradient(135deg, #fef7f7 0%, #fef2f2 100%);
+}
+
+.material-badge {
+  background: linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%);
+  color: #5b21b6;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.quantity-badge {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #dc2626;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.machine-badge {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #92400e;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cause-text {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.employee-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.employee-avatar {
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.shift-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.shift-a {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #1d4ed8;
+}
+
+.shift-b {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  color: #15803d;
+}
+
+.shift-c {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #92400e;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .form-row {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .btn {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .withdrawals-table {
+    font-size: 12px;
+  }
+
+  .withdrawals-table th,
+  .withdrawals-table td {
+    padding: 10px 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-container {
+    padding: 15px;
+  }
+
+  .withdrawals-content {
+    padding: 15px;
+  }
+
+  .header-bar {
+    padding: 12px 15px;
+  }
+
+  .header-bar h4 {
+    font-size: 16px;
+  }
+
+  .material-form {
+    padding: 20px;
+  }
+}
+</style>
