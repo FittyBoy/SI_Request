@@ -1,3 +1,4 @@
+using SI24004.Models.PostgreSQL;
 ﻿using SI24004.Models.DTOs;
 using System.Collections.Generic;
 
