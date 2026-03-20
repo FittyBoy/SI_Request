@@ -1,0 +1,49 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace SI24004.Models.PostgreSQL;
+
+public partial class InventoryTransaction
+{
+    public Guid Id { get; set; }
+
+    public string TransactionId { get; set; }
+
+    public string ItemCode { get; set; }
+
+    public string ItemName { get; set; }
+
+    public string LotNumber { get; set; }
+
+    public string TransactionType { get; set; }
+
+    public string TransactionSubtype { get; set; }
+
+    public decimal Quantity { get; set; }
+
+    public string Unit { get; set; }
+
+    public decimal? BalanceAfter { get; set; }
+
+    public string IssueId { get; set; }
+
+    public string ReferenceId { get; set; }
+
+    public string ReferenceType { get; set; }
+
+    public string SectionId { get; set; }
+
+    public string SectionName { get; set; }
+
+    public string ProcessId { get; set; }
+
+    public string PerformedBy { get; set; }
+
+    public DateTime TransactionDate { get; set; }
+
+    public string Remarks { get; set; }
+
+    public DateTime? CreatedAt { get; set; }
+
+    public int? DailySequence { get; set; }
+}

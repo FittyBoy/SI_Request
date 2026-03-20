@@ -1,0 +1,272 @@
+﻿{
+   "CodeGenerationMode": 4,
+   "ContextClassName": "PostgrestContext",
+   "ContextNamespace": null,
+   "FilterSchemas": false,
+   "IncludeConnectionString": false,
+   "ModelNamespace": null,
+   "OutputContextPath": null,
+   "OutputPath": "Models",
+   "PreserveCasingWithRegex": true,
+   "ProjectRootNamespace": "SI24004",
+   "Schemas": null,
+   "SelectedHandlebarsLanguage": 2,
+   "SelectedToBeGenerated": 0,
+   "T4TemplatePath": null,
+   "Tables": [
+      {
+         "Name": "audit.download_log_drawing",
+         "ObjectType": 0
+      },
+      {
+         "Name": "AVI.avi_request",
+         "ObjectType": 0
+      },
+      {
+         "Name": "INA.ina_request",
+         "ObjectType": 0
+      },
+      {
+         "Name": "INA.lot_request",
+         "ObjectType": 0
+      },
+      {
+         "Name": "LP.employeemaster",
+         "ObjectType": 0
+      },
+      {
+         "Name": "LP.locationmaster",
+         "ObjectType": 0
+      },
+      {
+         "Name": "LP.materalinventories",
+         "ObjectType": 0
+      },
+      {
+         "Name": "LP.materialreceiverecords",
+         "ObjectType": 0
+      },
+      {
+         "Name": "LP.materialtypes",
+         "ObjectType": 0
+      },
+      {
+         "Name": "LP.productmaster",
+         "ObjectType": 0
+      },
+      {
+         "Name": "LP.shiftmaster",
+         "ObjectType": 0
+      },
+      {
+         "Name": "LP.suppliermaster",
+         "ObjectType": 0
+      },
+      {
+         "Name": "master.attachment",
+         "ObjectType": 0
+      },
+      {
+         "Name": "master.drawing",
+         "ObjectType": 0
+      },
+      {
+         "Name": "master.list_item",
+         "ObjectType": 0
+      },
+      {
+         "Name": "master.objective",
+         "ObjectType": 0
+      },
+      {
+         "Name": "master.request_machine",
+         "ObjectType": 0
+      },
+      {
+         "Name": "master.role",
+         "ObjectType": 0
+      },
+      {
+         "Name": "master.section",
+         "ObjectType": 0
+      },
+      {
+         "Name": "master.shift",
+         "ObjectType": 0
+      },
+      {
+         "Name": "master.status",
+         "ObjectType": 0
+      },
+      {
+         "Name": "master.users",
+         "ObjectType": 0
+      },
+      {
+         "Name": "PO.po_check_flow",
+         "ObjectType": 0
+      },
+      {
+         "Name": "PO.rescreen_check_record",
+         "ObjectType": 0
+      },
+      {
+         "Name": "public.cache",
+         "ObjectType": 0
+      },
+      {
+         "Name": "public.cache_locks",
+         "ObjectType": 0
+      },
+      {
+         "Name": "public.failed_jobs",
+         "ObjectType": 0
+      },
+      {
+         "Name": "public.job_batches",
+         "ObjectType": 0
+      },
+      {
+         "Name": "public.jobs",
+         "ObjectType": 0
+      },
+      {
+         "Name": "public.materialtypes",
+         "ObjectType": 0
+      },
+      {
+         "Name": "public.migrations",
+         "ObjectType": 0
+      },
+      {
+         "Name": "public.password_reset_tokens",
+         "ObjectType": 0
+      },
+      {
+         "Name": "public.regular_substand_reordered",
+         "ObjectType": 0
+      },
+      {
+         "Name": "public.rescreen_check_record",
+         "ObjectType": 0
+      },
+      {
+         "Name": "public.sessions",
+         "ObjectType": 0
+      },
+      {
+         "Name": "public.users",
+         "ObjectType": 0
+      },
+      {
+         "Name": "QA.qa_substance",
+         "ObjectType": 0
+      },
+      {
+         "Name": "QA.regular_substand",
+         "ObjectType": 0
+      },
+      {
+         "Name": "SSCH.dw_request",
+         "ObjectType": 0
+      },
+      {
+         "Name": "WH.inventory_transactions",
+         "ObjectType": 0
+      },
+      {
+         "Name": "WH.issue_status",
+         "ObjectType": 0
+      },
+      {
+         "Name": "WH.item_hold_details",
+         "ObjectType": 0
+      },
+      {
+         "Name": "WH.item_inventory_stats",
+         "ObjectType": 0
+      },
+      {
+         "Name": "WH.item_receive_details",
+         "ObjectType": 0
+      },
+      {
+         "Name": "WH.vw_issue_summary",
+         "ObjectType": 3
+      },
+      {
+         "Name": "WH.vw_item_current_status",
+         "ObjectType": 3
+      },
+      {
+         "Name": "WH.vw_item_daily_minmax",
+         "ObjectType": 3
+      },
+      {
+         "Name": "LP.get_inventory_summary",
+         "ObjectType": 1
+      },
+      {
+         "Name": "LP.update_updated_at_column",
+         "ObjectType": 1
+      },
+      {
+         "Name": "LP.update_updated_date",
+         "ObjectType": 1
+      },
+      {
+         "Name": "LP.update_updated_timestamp",
+         "ObjectType": 1
+      },
+      {
+         "Name": "public.update_updated_date",
+         "ObjectType": 1
+      },
+      {
+         "Name": "public.update_updated_timestamp",
+         "ObjectType": 1
+      },
+      {
+         "Name": "WH.fn_auto_calculate_stats",
+         "ObjectType": 1
+      },
+      {
+         "Name": "WH.fn_calculate_daily_stats",
+         "ObjectType": 1
+      },
+      {
+         "Name": "WH.fn_record_inventory_transaction",
+         "ObjectType": 1
+      },
+      {
+         "Name": "WH.update_updated_at_column",
+         "ObjectType": 1
+      }
+   ],
+   "UiHint": null,
+   "UncountableWords": null,
+   "UseAsyncStoredProcedureCalls": true,
+   "UseBoolPropertiesWithoutDefaultSql": false,
+   "UseDatabaseNames": false,
+   "UseDatabaseNamesForRoutines": true,
+   "UseDateOnlyTimeOnly": true,
+   "UseDbContextSplitting": false,
+   "UseDecimalDataAnnotationForSprocResult": true,
+   "UseFluentApiOnly": true,
+   "UseHandleBars": false,
+   "UseHierarchyId": false,
+   "UseInflector": true,
+   "UseLegacyPluralizer": false,
+   "UseManyToManyEntity": false,
+   "UseNoDefaultConstructor": false,
+   "UseNoNavigations": false,
+   "UseNoObjectFilter": false,
+   "UseNodaTime": false,
+   "UseNullableReferences": false,
+   "UsePrefixNavigationNaming": false,
+   "UseSchemaFolders": false,
+   "UseSchemaNamespaces": false,
+   "UseSpatial": false,
+   "UseT4": false,
+   "UseT4Split": false
+}
