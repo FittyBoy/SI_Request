@@ -91,8 +91,63 @@
 
   /* Table Header */
   --color-table-header: #e8eaf6;
-}
 
+  /* ── FlowOut component token aliases ── */
+  --brand:        #5865f2;
+  --brand-dark:   #4752c4;
+  --brand-light:  #eef0fd;
+  --brand-xlight: #f5f6ff;
+
+  --surface:    #ffffff;
+  --surface-2:  #f5f6fa;
+  --border:     #e2e4ec;
+  --border-light: #eef0f6;
+
+  --text-1: #1a1a2e;
+  --text-2: #4a5068;
+  --text-3: #8990a8;
+
+  --success:        #2e7d32;
+  --success-bg:     #e8f5e9;
+  --success-border: #a5d6a7;
+  --error:          #c62828;
+  --error-bg:       #ffebee;
+  --error-border:   #ef9a9a;
+  --warning:        #e65100;
+  --warning-bg:     #fff3e0;
+  --info:           #0277bd;
+  --info-bg:        #e1f5fe;
+
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
+  --s-5: 20px; --s-6: 24px; --s-8: 32px; --s-10: 40px; --s-12: 48px;
+
+  --r-sm:  4px;
+  --r-md:  8px;
+  --r-lg:  12px;
+  --r-xl:  16px;
+  --r-full: 9999px;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.04);
+  --shadow-xl: 0 16px 40px rgba(0,0,0,0.12);
+
+  --font:      'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Consolas', 'Monaco', monospace;
+
+  --fs-xs:  0.75rem;
+  --fs-sm:  0.875rem;
+  --fs-md:  1rem;
+  --fs-lg:  1.125rem;
+  --fs-xl:  1.25rem;
+  --fs-2xl: 1.5rem;
+  --fs-3xl: 2rem;
+
+  --ease:   cubic-bezier(0.4, 0, 0.2, 1);
+  --t-fast: 0.12s;
+  --t-mid:  0.22s;
+  --t-slow: 0.38s;
+}
 /* ------------------------------------------
    2. Dark Mode Tokens
    ------------------------------------------ */
