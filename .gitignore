@@ -1,4 +1,40 @@
-.vs/
-bin/
-obj/
-tettttt
+@"
+# ===============================
+# Frontend (Nuxt 3)
+# ===============================
+Frontend/node_modules/
+Frontend/.nuxt/
+Frontend/.output/
+Frontend/dist/
+Frontend/.env
+Frontend/.env.*
+!Frontend/.env.example
+
+# ===============================
+# Backend (ASP.NET Core)
+# ===============================
+Backend/**/bin/
+Backend/**/obj/
+Backend/**/*.dll
+Backend/**/*.exe
+Backend/**/*.pdb
+Backend/**/appsettings.json
+Backend/**/appsettings.*.json
+!Backend/**/appsettings.example.json
+
+# ===============================
+# OS / Editor
+# ===============================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.user
+
+# ===============================
+# Logs
+# ===============================
+*.log
+logs/
+"@ | Out-File -FilePath .gitignore -Encoding utf8
