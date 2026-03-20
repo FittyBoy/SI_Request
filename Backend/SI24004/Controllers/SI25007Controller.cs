@@ -125,7 +125,7 @@ namespace SI24004.Controllers
                 }
 
                 // ????? approvers ??????? admin ????? section_id ????????? user
-                var approvers = await _context.Users1
+                var approvers = await _context.Users
                     .Where(u => u.RoleId == RolesAdmin.Id && u.SectionId == newRequest.SectionId)
                     .ToListAsync();
 
@@ -316,7 +316,7 @@ namespace SI24004.Controllers
                     Console.WriteLine($"File saved to: {fullPath}");
                 }
 
-                var UserName = _context.Users1.Where(x => x.Id == requestDto.UserId).FirstOrDefault();
+                var UserName = _context.Users.Where(x => x.Id == requestDto.UserId).FirstOrDefault();
 
                 // ? ????????????????
                 var newRequest = new DwRequest
@@ -389,7 +389,7 @@ namespace SI24004.Controllers
                     return NotFound("Request not found.");
 
                 // ???????????
-                var user = await _context.Users1
+                var user = await _context.Users
                     .FirstOrDefaultAsync(x => x.Id == requestDto.UserId);
 
                 if (user == null)
@@ -576,7 +576,7 @@ namespace SI24004.Controllers
                         if (existingRequest == null)
                             return NotFound("Request not found.");
 
-                        var user = await _context.Users1
+                        var user = await _context.Users
                             .FirstOrDefaultAsync(x => x.Id == requestDto.UserId);
 
                         if (user == null)
@@ -630,7 +630,7 @@ namespace SI24004.Controllers
                 {
                     try
                     {
-                        var creator = await _context.Users1
+                        var creator = await _context.Users
                             .FirstOrDefaultAsync(x => x.Id == request.UserId);
 
                         if (creator == null)

@@ -579,7 +579,7 @@ namespace SI24004.Controllers
                         });
                     }
 
-                    var checkDate = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+                    var checkDate = DateOnly.FromDateTime(DateTime.UtcNow);
 
                     var existingRep = await _context.PoCheckFlows
                         .FirstOrDefaultAsync(p => p.PoLot == request.PoLot && p.McNo == "REP");
@@ -968,7 +968,7 @@ namespace SI24004.Controllers
                     .FirstOrDefaultAsync(p => p.PoLot == poLot && p.McNo == thRecord.McPo);
 
                 PoCheckFlow poCheckFlow;
-                var checkDate2 = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+                var checkDate2 = DateOnly.FromDateTime(DateTime.UtcNow);
 
                 if (existingByPoLot != null)
                 {
@@ -1019,7 +1019,7 @@ namespace SI24004.Controllers
                         imobileLot = poCheckFlow.Imobilelot,
                         statusTn = poCheckFlow.StatusTn,
                         checkSt = poCheckFlow.CheckSt,
-                        check = poCheckFlow.CheckSt ? "OK" : "NG",
+                        check = poCheckFlow.CheckSt == true ? "OK" : "NG",
                         checkDate = poCheckFlow.CheckDate,
                         mcNo = poCheckFlow.McNo,
                         lotQty = poCheckFlow.LotQty,
@@ -1172,7 +1172,7 @@ namespace SI24004.Controllers
                                 imobileLot = s.Imobilelot,
                                 statusTn = s.StatusTn,
                                 checkSt = s.CheckSt,
-                                check = s.CheckSt ? "OK" : "NG",
+                                check = s.CheckSt == true ? "OK" : "NG",
                                 checkDate = s.CheckDate,
                                 mcNo = s.McNo,
                                 lotQty = s.LotQty,
@@ -1233,8 +1233,8 @@ namespace SI24004.Controllers
                 }
 
                 int totalCount = savedRecords.Count;
-                int okCount = savedRecords.Count(r => r.CheckSt);
-                int ngCount = savedRecords.Count(r => !r.CheckSt);
+                int okCount = savedRecords.Count(r => r.CheckSt == true);
+                int ngCount = savedRecords.Count(r => r.CheckSt != true);
 
                 return Ok(new
                 {
@@ -1278,7 +1278,7 @@ namespace SI24004.Controllers
 
                 var mcList = await _context.PoCheckFlows
                     .Where(p =>
-                        (p.CheckDate.HasValue && p.CheckDate.Value.Date == targetDate.Date)
+                        (p.CheckDate.HasValue && p.CheckDate.Value == DateOnly.FromDateTime(targetDate))
                         ||
                         (p.PoLot != null && p.PoLot.Length >= 4 && p.PoLot.Substring(0, 4) == targetDDMM))
                     .Select(p => p.McNo)
@@ -1338,7 +1338,7 @@ namespace SI24004.Controllers
                 {
                     query = query.Where(p => p.McNo == mcNo &&
                                              (
-                                                 (p.CheckDate.HasValue && p.CheckDate.Value.Date == targetDate.Date)
+                                                 (p.CheckDate.HasValue && p.CheckDate.Value == DateOnly.FromDateTime(targetDate))
                                                  ||
                                                  (p.PoLot != null && p.PoLot.Length >= 4 &&
                                                   p.PoLot.Substring(0, 4) == targetDDMM &&
@@ -1348,7 +1348,7 @@ namespace SI24004.Controllers
                 else
                 {
                     query = query.Where(p =>
-                        (p.CheckDate.HasValue && p.CheckDate.Value.Date == targetDate.Date)
+                        (p.CheckDate.HasValue && p.CheckDate.Value == DateOnly.FromDateTime(targetDate))
                         ||
                         (p.PoLot != null && p.PoLot.Length >= 4 && p.PoLot.Substring(0, 4) == targetDDMM));
                 }
@@ -1365,8 +1365,8 @@ namespace SI24004.Controllers
                         targetDDMM = targetDDMM,
                         mcNo = mcNo,
                         totalLots = records.Count,
-                        okCount = records.Count(r => r.CheckSt),
-                        ngCount = records.Count(r => !r.CheckSt && r.StatusTn?.ToUpper() != "SCRAP"),
+                        okCount = records.Count(r => r.CheckSt == true),
+                        ngCount = records.Count(r => r.CheckSt != true && r.StatusTn?.ToUpper() != "SCRAP"),
                         scrapCount = records.Count(r => r.StatusTn?.ToUpper() == "SCRAP"),
                         totalQty = totalQty
                     }
@@ -1430,7 +1430,7 @@ namespace SI24004.Controllers
                         imobileLot = r.Imobilelot,
                         statusTn = r.StatusTn,
                         checkSt = r.CheckSt,
-                        check = r.StatusTn?.ToUpper() == "SCRAP" ? "SCRAP" : (r.CheckSt ? "OK" : "NG"),
+                        check = r.StatusTn?.ToUpper() == "SCRAP" ? "SCRAP" : (r.CheckSt == true ? "OK" : "NG"),
                         checkDate = r.CheckDate,
                         mcNo = r.McNo,
                         lotQty = r.LotQty
@@ -1492,7 +1492,7 @@ namespace SI24004.Controllers
 
             if (existingRecord == null)
             {
-                var checkDate = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+                var checkDate = DateOnly.FromDateTime(DateTime.UtcNow);
 
                 var scrapLot = new PoCheckFlow
                 {

@@ -2901,6 +2901,7 @@ public partial class PostgrestContext : DbContext
                 .HasDefaultValueSql("uuid_generate_v4()")
                 .HasColumnName("id");
             entity.Property(e => e.Active).HasColumnName("active");
+            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
             entity.Property(e => e.RoleId).HasColumnName("role_id");
             entity.Property(e => e.SectionId).HasColumnName("section_id");
             entity.Property(e => e.UserId)
@@ -2914,15 +2915,16 @@ public partial class PostgrestContext : DbContext
                 .HasColumnType("character varying")
                 .HasColumnName("user_name");
             entity.Property(e => e.UserPassword)
-                .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("user_password");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
 
-            entity.HasOne(d => d.Role).WithMany(p => p.Users)
+            entity.HasOne(d => d.Role).WithMany()
                 .HasForeignKey(d => d.RoleId)
                 .HasConstraintName("users_role_fk");
 
-            entity.HasOne(d => d.Section).WithMany(p => p.Users)
+            entity.HasOne(d => d.Section).WithMany()
                 .HasForeignKey(d => d.SectionId)
                 .HasConstraintName("users_section_fk");
         });

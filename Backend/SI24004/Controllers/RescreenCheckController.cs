@@ -431,8 +431,8 @@ namespace SI24004.Controllers
                     summary = new
                     {
                         totalCount = records.Count,
-                        approvedCount = records.Count(r => r.IsApproved),
-                        pendingCount = records.Count(r => !r.IsApproved),
+                        approvedCount = records.Count(r => r.IsApproved == true),
+                        pendingCount = records.Count(r => !r.IsApproved == true),
                         okCount = records.Count(r => r.FinalStatus?.ToLower() == "ok"),
                         holdCount = records.Count(r => r.FinalStatus?.ToLower() == "hold"),
                         date = targetDate?.ToString("yyyy-MM-dd")
@@ -572,7 +572,7 @@ namespace SI24004.Controllers
                     {
                         mcNo = g.Key,
                         totalCount = g.Count(),
-                        approvedCount = g.Count(r => r.IsApproved),
+                        approvedCount = g.Count(r => r.IsApproved == true),
                         okCount = g.Count(r => r.FinalStatus?.ToLower() == "ok"),
                         holdCount = g.Count(r => r.FinalStatus?.ToLower() == "hold")
                     })
@@ -586,8 +586,8 @@ namespace SI24004.Controllers
                     summary = new
                     {
                         totalCount = records.Count,
-                        approvedCount = records.Count(r => r.IsApproved),
-                        pendingCount = records.Count(r => !r.IsApproved),
+                        approvedCount = records.Count(r => r.IsApproved == true),
+                        pendingCount = records.Count(r => !r.IsApproved == true),
                         okCount = records.Count(r => r.FinalStatus?.ToLower() == "ok"),
                         holdCount = records.Count(r => r.FinalStatus?.ToLower() == "hold"),
                         rescreenCount = records.Count(r => r.FinalStatus?.ToLower() == "rescreen")

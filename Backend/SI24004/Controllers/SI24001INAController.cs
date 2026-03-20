@@ -41,7 +41,7 @@ namespace SI24004.Controllers
                     .ToListAsync();
 
                 // Attachments table not in current schema - return empty
-                var attachments = new List<InaRequest>();
+                List<Guid> requestIds = requests.Select(r => r.Id).ToList();
 
                 // Get all lots for these requests
                 var lots = await _context.LotRequests
@@ -49,8 +49,8 @@ namespace SI24004.Controllers
                     .OrderBy(l => l.LotNo)
                     .ToListAsync();
 
-                // Group attachments by RequestId and Category
-                var attachmentsByRequest = attachments.GroupBy(a => a.RequestId).ToDictionary(g => g.Key, g => g.ToList());
+                // Group by RequestId
+                var attachmentsByRequest = new Dictionary<Guid?, List<InaRequest>>();
                 var lotsByRequest = lots.GroupBy(l => l.RequestId).ToDictionary(g => g.Key, g => g.ToList());
 
                 var result = requests.Select(x => new
@@ -219,50 +219,12 @@ namespace SI24004.Controllers
                     // ????? LotNumbers ????????????
                     LotNumbers = lots.Select(l => l.LotNo).ToList(),
 
+                    // Attachments not available - table not in current schema
                     Attachments = new
                     {
-                        Recipe = attachments
-                            .Where(a => a.Category != null && a.Category.ToLower() == "recipe")
-                            .Select(a => new
-                            {
-                                a.Id,
-                                a.AttachmentName,
-                                a.AttachementPath,
-                                a.AttachementType,
-                                a.Category,
-                                a.UploadDate,
-                                a.AttachmentSize,
-                                a.AttachmentFileLocation
-                            }).ToList(),
-
-                        // Other Programs - ?????????????
-                        OtherPrograms = attachments
-                            .Where(a => a.Category != null && a.Category.ToLower() == "otherprograms")
-                            .Select(a => new
-                            {
-                                a.Id,
-                                a.AttachmentName,
-                                a.AttachementPath,
-                                a.AttachementType,
-                                a.Category,
-                                a.UploadDate,
-                                a.AttachmentSize,
-                                a.AttachmentFileLocation
-                            }).ToList(),
-
-                        General = attachments
-                            .Where(a => a.Category != null && a.Category.ToLower() == "general")
-                            .Select(a => new
-                            {
-                                a.Id,
-                                a.AttachmentName,
-                                a.AttachementPath,
-                                a.AttachementType,
-                                a.Category,
-                                a.UploadDate,
-                                a.AttachmentSize,
-                                a.AttachmentFileLocation
-                            }).ToList()
+                        Recipe = new List<object>(),
+                        OtherPrograms = new List<object>(),
+                        General = new List<object>()
                     },
 
                     Lots = lots.Select(l => new
@@ -352,7 +314,7 @@ namespace SI24004.Controllers
                     return BadRequest("Default status not found.");
 
                 // Validate user exists
-                var userExists = await _context.Users1.AnyAsync(u => u.Id == requestDto.UserId);
+                var userExists = await _context.Users.AnyAsync(u => u.Id == requestDto.UserId);
                 if (!userExists)
                     return BadRequest("User not found.");
 

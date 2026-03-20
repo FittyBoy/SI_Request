@@ -340,7 +340,7 @@ namespace SI24004.Controllers
                                        where issueItem.IssueId == barcode
                                        select new
                                        {
-                                           Section = section.Name,
+                                           Section = section.SectionName,
                                            ItemCode = issueItem.ItemCode,
                                            ItemName = issueItem.ItemName,
                                            LotNumber = issueItem.LotNumber,
@@ -1311,7 +1311,7 @@ namespace SI24004.Controllers
                         t.ReferenceId,
                         t.ReferenceType,
                         t.SectionId,
-                        t.Name,
+                        Name = t.SectionName,
                         t.ProcessId,
                         t.PerformedBy,
                         t.DailySequence,
