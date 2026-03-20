@@ -1634,7 +1634,6 @@ public partial class PostgrestContext : DbContext
             entity.Property(e => e.Id)
                 .HasDefaultValueSql("uuid_generate_v4()")
                 .HasColumnName("id");
-            entity.Property(e => e.ListItemId).HasColumnName("list_item_id");
             entity.Property(e => e.SectionCode)
                 .IsRequired()
                 .HasColumnType("character varying")
@@ -1643,11 +1642,6 @@ public partial class PostgrestContext : DbContext
                 .IsRequired()
                 .HasColumnType("character varying")
                 .HasColumnName("section_name");
-
-            entity.HasOne(d => d.ListItem).WithMany(p => p.Sections)
-                .HasForeignKey(d => d.ListItemId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("section_list_item_fk");
         });
 
         modelBuilder.Entity<Session>(entity =>

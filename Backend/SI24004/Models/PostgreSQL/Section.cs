@@ -11,11 +11,7 @@ public partial class Section
 
     public string SectionName { get; set; }
 
-    public Guid ListItemId { get; set; }
-
     public virtual ICollection<DwRequest> DwRequests { get; set; } = new List<DwRequest>();
-
-    public virtual ListItem ListItem { get; set; }
 
     public virtual ICollection<User> Users { get; set; } = new List<User>();
 }
