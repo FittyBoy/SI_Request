@@ -14,7 +14,7 @@ using SI24004.Models.SqlServer;
 namespace SI24004.Services
 {
     // EmailRecipients Service
-    public class EmailRecipientsService : IEmailRecipientsService
+    public class EmailRecipientsService : SI24004.Services.Interfaces.IEmailRecipientsService
     {
         private readonly IOptions<EmailRecipients> _emailRecipients;
         private readonly ILogger<EmailRecipientsService> _logger;
@@ -807,7 +807,7 @@ namespace SI24004.Services
     {
         public static IServiceCollection AddEmailScheduleService(this IServiceCollection services)
         {// Register EmailRecipientsService first
-            services.AddSingleton<IEmailRecipientsService, EmailRecipientsService>();
+            services.AddSingleton<SI24004.Services.Interfaces.IEmailRecipientsService, EmailRecipientsService>();
             // Register เฉพาะ Hosted Service เท่านั้น
             services.AddHostedService<EmailScheduleService>();
             return services;
@@ -838,7 +838,7 @@ namespace SI24004.Services
         public static IServiceCollection AddEmailScheduleWithManualAccess(this IServiceCollection services)
         {
             // Register EmailRecipientsService
-            services.AddSingleton<IEmailRecipientsService, EmailRecipientsService>();
+            services.AddSingleton<SI24004.Services.Interfaces.IEmailRecipientsService, EmailRecipientsService>();
 
             // Register as singleton first
             services.AddSingleton<EmailScheduleService>();

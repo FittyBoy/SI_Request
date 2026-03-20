@@ -741,7 +741,7 @@ namespace SI24004.Controllers
                         {
                             // Add new lot
                             var lotId = Guid.NewGuid();
-                            var newLot = new Models.LotRequest
+                            var newLot = new LotRequest
                             {
                                 Id = lotId,
                                 LotNo = requestLotNumber,

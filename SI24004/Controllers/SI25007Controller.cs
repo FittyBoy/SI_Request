@@ -65,7 +65,7 @@ namespace SI24004.Controllers
                                 Ordinal = x.Status.Ordinal
                             }
                             : null, // ป้องกันค่า null
-                        Section = x.Section != null ? new SI24004.Models.Section
+                        Section = x.Section != null ? new SI24004.Models.PostgreSQL.Section
                         {
                             Id = x.Section.Id,
                             SectionCode = x.Section.SectionCode,
@@ -79,7 +79,7 @@ namespace SI24004.Controllers
                         } : null,
                         // ✅ แก้ไขการ Map ข้อมูลของ Attachment
                         Attachment = x.Attachment != null
-                            ? new SI24004.Models.Attachment
+                            ? new SI24004.Models.PostgreSQL.Attachment
                             {
                                 Id = x.Attachment.Id,
                                 AttachmentName = x.Attachment.AttachmentName,
@@ -395,7 +395,7 @@ namespace SI24004.Controllers
                     }
 
                     // ✅ บันทึกไฟล์ลงฐานข้อมูล
-                    var newAttachment = new SI24004.Models.Attachment
+                    var newAttachment = new SI24004.Models.PostgreSQL.Attachment
                     {
                         Id = attachmentId.Value,
                         AttachmentName = fileName, // ✅ ใช้ชื่อไฟล์ที่มีนามสกุล
