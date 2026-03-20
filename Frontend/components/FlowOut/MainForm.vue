@@ -561,7 +561,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+
+const isMounted = ref(true)
 
 interface LotRecord {
     id: string | null
@@ -870,7 +872,7 @@ const handleSave = async () => {
             await fetchLotData()
             successMessage.value = `✓ เพิ่ม LOT ${savedData.poLot} สำเร็จ${isRepProduct.value ? ' (REP)' : ` (MC: ${mcNo})`}`
             playBeep()
-            setTimeout(() => { successMessage.value = ''; lotNo.value = ''; closeModal(); focusInput() }, 2000)
+            setTimeout(() => { if (isMounted.value) { successMessage.value = ''; lotNo.value = ''; closeModal(); focusInput() } }, 2000)
         } else {
             showErrorModalFunc(response.value?.message || 'ไม่สามารถบันทึกข้อมูลได้')
             closeModal()
@@ -883,7 +885,7 @@ const handleSave = async () => {
 const handleSendBack = () => {
     successMessage.value = `LOT ${modalData.value?.poLot} ถูกส่งกลับแล้ว`
     playErrorBeep()
-    setTimeout(() => { successMessage.value = ''; lotNo.value = ''; closeModal(); focusInput() }, 2000)
+    setTimeout(() => { if (isMounted.value) { successMessage.value = ''; lotNo.value = ''; closeModal(); focusInput() } }, 2000)
 }
 
 const playBeep = () => {
@@ -969,6 +971,10 @@ onMounted(() => {
     }
     focusInput()
     fetchMcList()
+})
+
+onUnmounted(() => {
+    isMounted.value = false
 })
 </script>
 

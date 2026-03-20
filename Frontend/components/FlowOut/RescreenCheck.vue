@@ -352,6 +352,9 @@ const emit = defineEmits(['go-back'])
 const config = useRuntimeConfig()
 const apiBaseUrl = computed(() => config.public.apiBase || 'http://localhost:24678')
 
+// Guard against updating state after unmount
+const isMounted = ref(true)
+
 const imobileLot = ref('')
 const alertMessage = ref('')
 const alertType = ref<'success' | 'error'>('success')
@@ -492,7 +495,7 @@ const getApprovalClass = (lot: any): string => {
 }
 
 const loadRescreenLots = async () => {
-    if (!filterDate.value) return
+    if (!filterDate.value || !isMounted.value) return
     isLoadingList.value = true
     nextRefreshIn.value = REFRESH_EVERY
     connectionError.value = false
@@ -500,8 +503,10 @@ const loadRescreenLots = async () => {
         const response: any = await $fetch('/api/RescreenCheck/get-rescreen-records', {
             baseURL: apiBaseUrl.value, method: 'GET', params: { date: filterDate.value }
         })
+        if (!isMounted.value) return
         rescreenLots.value = response?.success ? (response.data || []) : []
     } catch (error: any) {
+        if (!isMounted.value) return
         if (error.message?.includes('fetch failed') || error.cause?.code === 'ECONNREFUSED') {
             connectionError.value = true
             showAlert('ไม่สามารถเชื่อมต่อกับ API Server ได้', 'error')
@@ -510,7 +515,7 @@ const loadRescreenLots = async () => {
         }
         rescreenLots.value = []
     } finally {
-        isLoadingList.value = false
+        if (isMounted.value) isLoadingList.value = false
     }
 }
 
@@ -598,6 +603,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+    isMounted.value = false
     stopAutoRefresh()
 })
 </script>
