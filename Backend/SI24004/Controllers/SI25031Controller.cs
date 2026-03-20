@@ -1031,7 +1031,13 @@ namespace SI24004.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = "เกิดข้อผิดพลาดในการบันทึก", error = ex.Message });
+                return StatusCode(500, new { 
+                    success = false, 
+                    message = "เกิดข้อผิดพลาดในการบันทึก", 
+                    error = ex.Message,
+                    innerError = ex.InnerException?.Message,
+                    detail = ex.InnerException?.InnerException?.Message
+                });
             }
         }
 
