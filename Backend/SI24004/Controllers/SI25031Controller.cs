@@ -972,13 +972,29 @@ namespace SI24004.Controllers
 
                 if (existingByPoLot != null)
                 {
-                    // PoLot นี้เคยบันทึกแล้ว → block ไม่ให้เพิ่มซ้ำ
                     return BadRequest(new
                     {
                         success = false,
                         message = $"LOT {poLot} เคยถูกบันทึกแล้ว ไม่สามารถเพิ่มซ้ำได้",
                         status = "DUPLICATE"
                     });
+                }
+
+                // เช็ค ImobileLot ซ้ำ (unique constraint)
+                if (!string.IsNullOrEmpty(thRecord.ImobileLot))
+                {
+                    var existingByImobileLot = await _context.PoCheckFlows
+                        .FirstOrDefaultAsync(p => p.Imobilelot == thRecord.ImobileLot);
+
+                    if (existingByImobileLot != null)
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = $"ImobileLot {thRecord.ImobileLot} เคยถูกบันทึกแล้ว (PoLot: {existingByImobileLot.PoLot})",
+                            status = "DUPLICATE"
+                        });
+                    }
                 }
 
                 // PoLot ยังไม่มีใน DB → CREATE NEW
