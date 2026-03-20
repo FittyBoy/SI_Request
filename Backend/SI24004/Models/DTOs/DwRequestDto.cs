@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using SI24004.Models.PostgreSQL;
 
 namespace SI24004.Models.DTOs
 {

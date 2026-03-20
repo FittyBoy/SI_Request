@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-
+using SI24004.Models.PostgreSQL;
 namespace SI24004.Models.Responses
 {
     public class SubstanceListResponse
