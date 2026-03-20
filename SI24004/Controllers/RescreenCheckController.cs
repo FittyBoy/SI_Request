@@ -48,10 +48,7 @@ namespace SI24004.Controllers
             return (startOfDay, endOfDay);
         }
 
-        // ========================================================
-        // Helper: หา TH100 record โดยใช้ lot_po + mc_po + no_po เท่านั้น
-        // ไม่ใช้ imobileLot เนื่องจาก TH100 ไม่มี field นั้น
-        // ========================================================
+        // ✅ แก้: FindTH100Record — OrdinalIgnoreCase + เลือก TimeProcess ล่าสุด
         private async Task<Th100Record?> FindTH100Record(ThRecord thRecord)
         {
             var noPoNumber = System.Text.RegularExpressions.Regex.Match(
@@ -64,45 +61,29 @@ namespace SI24004.Controllers
                 .Where(t => t.LotPo == thRecord.LotPo && t.McPo == thRecord.McPo)
                 .ToListAsync();
 
-            foreach (var th100 in th100List)
-            {
-                var th100NoPoNumber = System.Text.RegularExpressions.Regex.Match(
-                    th100.NoPo ?? "", @"^(\d+)").Groups[1].Value;
-
-                if (th100NoPoNumber == noPoNumber)
-                    return th100;
-            }
-
-            // ไม่ fallback ด้วย imobileLot เพราะตาราง TH100 ไม่ได้เก็บ imobileLot
-            return null;
+            return th100List
+                .Where(t => {
+                    var raw = System.Text.RegularExpressions.Regex.Match(t.NoPo ?? "", @"^(\d+)").Groups[1].Value;
+                    return string.Equals(raw, noPoNumber, StringComparison.OrdinalIgnoreCase);
+                })
+                .OrderByDescending(t => t.TimeProcess)
+                .FirstOrDefault();
         }
 
-        // ========================================================
-        // Helper: หา PO Check Flow record โดยใช้ imobileLot
-        // ========================================================
         private async Task<PoCheckFlow?> FindPoCheckFlowRecord(string imobileLot)
         {
             return await _context.PoCheckFlows
-                .FirstOrDefaultAsync(p => p.Imobilelot == imobileLot);   // Imobilelot ตาม DbContext
+                .FirstOrDefaultAsync(p => p.Imobilelot == imobileLot);
         }
 
-        // ========================================================
-        // Helper: ประเมิน final status + approved source
-        // Priority: TH100 (lot_po+mc_po+no_po) → PO Check Flow (imobileLot) → Pending
-        //
-        // TH100  → ดู Status เป็นตัวตัดสิน (OK = approved, อื่น = pending)
-        // PO     → มีข้อมูลแสดงว่าผ่าน PO Check Flow แล้ว = approved เสมอ
-        // ========================================================
         private (string finalStatus, bool isApproved, string approvedSource, string? th100Status) EvaluateStatus(
             Th100Record? th100Record, PoCheckFlow? poCheckFlow)
         {
             string? th100Status = th100Record?.Status;
 
-            // 1) มีใน PO Check Flow → Approved เสมอ (สำคัญสุด ตรวจก่อน TH100)
             if (poCheckFlow != null)
                 return ("OK", true, "Approved", th100Status);
 
-            // 2) ไม่มีใน PO แต่มีใน TH100 → ใช้ TH100 เป็นตัวตัดสิน
             if (th100Record != null)
             {
                 var upper = th100Record.Status?.ToUpper() ?? "";
@@ -112,7 +93,6 @@ namespace SI24004.Controllers
                 return (th100Record.Status ?? "Rescreen", false, "TH100 Confirm", th100Status);
             }
 
-            // 3) ไม่มีทั้งคู่
             return ("Rescreen", false, "Pending", null);
         }
 
@@ -125,7 +105,9 @@ namespace SI24004.Controllers
                     return BadRequest(new { success = false, message = "กรุณา Scan Barcode" });
 
                 var thRecord = await _thicknessContext.ThRecords
-                    .FirstOrDefaultAsync(t => t.ImobileLot == request.ImobileLot);
+                    .Where(t => t.ImobileLot == request.ImobileLot)
+                    .OrderByDescending(t => t.TimeProcess)
+                    .FirstOrDefaultAsync();
 
                 if (thRecord == null)
                     return NotFound(new { success = false, message = $"ไม่พบ LOT: {request.ImobileLot}" });
@@ -152,6 +134,7 @@ namespace SI24004.Controllers
                             id = existingRecord.Id,
                             imobileLot = existingRecord.ImobileLot,
                             poLot = $"{existingRecord.LotPo}-{existingRecord.McPo}-{existingRecord.NoPo}",
+                            mc = existingRecord.McPo,
                             status = existingRecord.Status,
                             th100Status = existingRecord.Th100Status,
                             finalStatus = existingRecord.FinalStatus,
@@ -178,6 +161,7 @@ namespace SI24004.Controllers
                     {
                         imobileLot = thRecord.ImobileLot,
                         poLot = $"{thRecord.LotPo}-{thRecord.McPo}-{thRecord.NoPo}",
+                        mc = thRecord.McPo,
                         lotPo = thRecord.LotPo,
                         mcPo = thRecord.McPo,
                         noPo = thRecord.NoPo,
@@ -186,7 +170,7 @@ namespace SI24004.Controllers
                         finalStatus = finalStatus,
                         isApproved = isApproved,
                         approvedSource = approvedSource,
-                        dateProcess = thRecord.DateProcess,
+                        timeProcess = thRecord.TimeProcess,
                         hasTH100 = th100Record != null,
                         hasPoCheckFlow = poCheckFlow != null
                     }
@@ -207,7 +191,9 @@ namespace SI24004.Controllers
                     return BadRequest(new { success = false, message = "กรุณา Scan Imobile LOT" });
 
                 var thRecord = await _thicknessContext.ThRecords
-                    .FirstOrDefaultAsync(t => t.ImobileLot == request.ImobileLot);
+                    .Where(t => t.ImobileLot == request.ImobileLot)
+                    .OrderByDescending(t => t.TimeProcess)
+                    .FirstOrDefaultAsync();
 
                 if (thRecord == null)
                     return NotFound(new { success = false, message = $"ไม่พบ LOT: {request.ImobileLot}" });
@@ -268,6 +254,7 @@ namespace SI24004.Controllers
                         id = newRecord.Id,
                         imobileLot = newRecord.ImobileLot,
                         poLot = poLot,
+                        mc = newRecord.McPo,
                         finalStatus = finalStatus,
                         isApproved = isApproved,
                         approvedSource = approvedSource,
@@ -291,7 +278,9 @@ namespace SI24004.Controllers
                     return BadRequest(new { success = false, message = "กรุณาระบุ ImobileLot" });
 
                 var thRecord = await _thicknessContext.ThRecords
-                    .FirstOrDefaultAsync(t => t.ImobileLot == request.ImobileLot);
+                    .Where(t => t.ImobileLot == request.ImobileLot)
+                    .OrderByDescending(t => t.TimeProcess)
+                    .FirstOrDefaultAsync();
 
                 if (thRecord == null)
                     return NotFound(new { success = false, message = "ไม่พบ LOT" });
@@ -356,6 +345,7 @@ namespace SI24004.Controllers
                     {
                         imobileLot = thRecord.ImobileLot,
                         poLot = poLot,
+                        mc = thRecord.McPo,
                         finalStatus = finalStatus,
                         isApproved = isApproved,
                         approvedSource = approvedSource,
@@ -369,6 +359,7 @@ namespace SI24004.Controllers
             }
         }
 
+        // ✅ เพิ่ม mc = r.McPo ใน response เพื่อให้ frontend ใช้ Select MC filter ได้
         [HttpGet("get-rescreen-records")]
         public async Task<IActionResult> GetRescreenRecords(
             [FromQuery] string? mcNo,
@@ -389,7 +380,6 @@ namespace SI24004.Controllers
                 if (targetDate.HasValue)
                 {
                     var (startOfDay, endOfDay) = GetBangkokDayRange(targetDate.Value);
-                    // filter ตาม date_process (วันที่ผลิต LOT จริง) ไม่ใช่ check_date
                     query = query.Where(r => r.DateProcess >= startOfDay &&
                                             r.DateProcess < endOfDay);
                 }
@@ -407,19 +397,14 @@ namespace SI24004.Controllers
 
                 var records = await query.ToListAsync();
 
-                // เรียง PO LOT format: XXXXX-YYY-ZZZ-A
-                // 1) ตัวเลขหน้า (LotPo) น้อย→มาก
-                // 2) ตัวเลขใน NoPo (3 ตัวหน้า เช่น 011 ใน 011-N) น้อย→มาก
-                // 3) ตัวอักษรท้าย NoPo (เช่น N, U) น้อย→มาก
-                // ตัวกลาง (McPo) ไม่เรียง
                 records = records
                     .OrderBy(r => r.LotPo)
                     .ThenBy(r => {
-                        var parts = (r.NoPo ?? "").Split('-');
+                        var parts = (r.NoPo ?? "").ToUpper().Split('-');
                         return int.TryParse(parts[0], out int n) ? n : 0;
                     })
                     .ThenBy(r => {
-                        var parts = (r.NoPo ?? "").Split('-');
+                        var parts = (r.NoPo ?? "").ToUpper().Split('-');
                         return parts.Length > 1 ? parts[1] : "";
                     })
                     .ToList();
@@ -432,11 +417,12 @@ namespace SI24004.Controllers
                         id = r.Id,
                         imobileLot = r.ImobileLot,
                         poLot = $"{r.LotPo}-{r.McPo}-{r.NoPo}",
+                        mc = r.McPo,   // ✅ เพิ่ม field นี้เพื่อให้ frontend groupBy / filter MC ได้
                         status = r.Status,
                         th100Status = r.Th100Status,
                         finalStatus = r.FinalStatus,
                         isApproved = r.IsApproved,
-                        approvedSource = r.ApprovedSource,   // <-- field ใหม่
+                        approvedSource = r.ApprovedSource,
                         checkDate = r.CheckDate,
                         dateProcess = r.DateProcess,
                         checkedBy = r.CheckedBy,
@@ -490,6 +476,7 @@ namespace SI24004.Controllers
                         id = record.Id,
                         imobileLot = record.ImobileLot,
                         poLot = $"{record.LotPo}-{record.McPo}-{record.NoPo}",
+                        mc = record.McPo,
                         oldFinalStatus,
                         newFinalStatus = record.FinalStatus,
                         oldIsApproved,
@@ -550,6 +537,7 @@ namespace SI24004.Controllers
                     {
                         imobileLot = record.ImobileLot,
                         poLot = $"{record.LotPo}-{record.McPo}-{record.NoPo}",
+                        mc = record.McPo,
                         finalStatus = record.FinalStatus,
                         isApproved = record.IsApproved,
                         approvedSource = record.ApprovedSource,
@@ -618,28 +606,26 @@ namespace SI24004.Controllers
         {
             try
             {
-                // ถ้าส่ง date มา → เช็คเฉพาะวันนั้น, ถ้าไม่ส่ง → เช็คทุก record ที่ยัง pending
-                // เช็คทุก record ที่ยังไม่เป็น "Approved" จาก PO Check Flow
-                // รวม TH100 Confirm ด้วย เพราะอาจมี PO Check Flow เพิ่มเข้ามาทีหลัง
                 IQueryable<RescreenCheckRecord1> query = _context.RescreenCheckRecords1
                     .Where(r => r.ApprovedSource != "Approved");
 
                 if (!string.IsNullOrEmpty(date) && DateTime.TryParse(date, out DateTime parsedDate))
                 {
                     var (startOfDay, endOfDay) = GetBangkokDayRange(parsedDate.Date);
-                    // filter ตาม date_process (วันที่ผลิต) ไม่ใช่ check_date
                     query = query.Where(r => r.DateProcess >= startOfDay &&
                                             r.DateProcess < endOfDay);
                 }
 
                 var pendingRecords = await query.ToListAsync();
-
                 var updatedList = new List<object>();
 
                 foreach (var record in pendingRecords)
                 {
                     var thRecord = await _thicknessContext.ThRecords
-                        .FirstOrDefaultAsync(t => t.ImobileLot == record.ImobileLot);
+                        .Where(t => t.ImobileLot == record.ImobileLot)
+                        .OrderByDescending(t => t.TimeProcess)
+                        .FirstOrDefaultAsync();
+
                     if (thRecord == null) continue;
 
                     var th100Record = await FindTH100Record(thRecord);
@@ -649,7 +635,6 @@ namespace SI24004.Controllers
 
                     bool changed = false;
 
-                    // อัปเดต th100Status เสมอ แม้ยังไม่ approved (ให้ UI เห็นค่าล่าสุด)
                     if (record.Th100Status != th100Status)
                     {
                         record.Th100Status = th100Status;
@@ -671,6 +656,7 @@ namespace SI24004.Controllers
                         {
                             imobileLot = record.ImobileLot,
                             poLot = $"{record.LotPo}-{record.McPo}-{record.NoPo}",
+                            mc = record.McPo,
                             th100Status = th100Status,
                             finalStatus = record.FinalStatus,
                             isApproved = record.IsApproved,
