@@ -471,8 +471,6 @@ namespace SI24004.Controllers
                 // Status Thickness คือ Result
                 string statusThickness = record.Result ?? "";
 
-                // ✅ Status Rescreen ช่องนี้แสดง Link เสมอ
-                string statusRescreen = "<a href='http://172.18.106.100:9014/pol-page' target='_blank' style='color: #2196f3;'>Link</a>";
 
                 // ✅ Status สุดท้าย - แสดง "Rescreen OK" เฉพาะที่มีใน TH100
                 string finalStatus = "";
@@ -496,7 +494,7 @@ namespace SI24004.Controllers
                 sb.AppendLine($"<td style='text-align: center;'>{statusThickness}</td>");
                 sb.AppendLine($"<td style='text-align: center;'>{poLot}</td>");
                 sb.AppendLine($"<td style='text-align: center;'>{mc}</td>");
-                sb.AppendLine($"<td style='text-align: center;'>{statusRescreen}</td>");
+// statusRescreen td removed
                 sb.AppendLine($"<td style='text-align: center;'>{finalStatus}</td>"); // ✅ เพิ่มคอลัมน์ Status สุดท้าย
                 sb.AppendLine("</tr>");
 
@@ -570,13 +568,13 @@ namespace SI24004.Controllers
             sb.AppendLine("<th style='text-align: center; font-weight: bold;'>Status Thickness</th>");
             sb.AppendLine("<th style='text-align: center; font-weight: bold;'>PO Lot</th>");
             sb.AppendLine("<th style='text-align: center; font-weight: bold;'>MC</th>");
-            sb.AppendLine("<th style='text-align: center; font-weight: bold;'>Status Rescreen</th>");
+            // Status Rescreen column removed
             sb.AppendLine("<th style='text-align: center; font-weight: bold;'>Status</th>");
             sb.AppendLine("</tr>");
             sb.AppendLine("</thead>");
             sb.AppendLine("<tbody>");
             sb.AppendLine("<tr>");
-            sb.AppendLine("<td colspan='6' style='text-align: center; padding: 20px; color: #666; font-style: italic;'>No issues found in this period</td>");
+            sb.AppendLine("<td colspan='5' style='text-align: center; padding: 20px; color: #666; font-style: italic;'>No issues found in this period</td>");
             sb.AppendLine("</tr>");
             sb.AppendLine("</tbody>");
             sb.AppendLine("</table>");
@@ -659,7 +657,7 @@ namespace SI24004.Controllers
             sb.AppendLine("<th style='text-align: center; font-weight: bold;'>Status Thickness</th>");
             sb.AppendLine("<th style='text-align: center; font-weight: bold;'>PO Lot</th>");
             sb.AppendLine("<th style='text-align: center; font-weight: bold;'>MC</th>");
-            sb.AppendLine("<th style='text-align: center; font-weight: bold;'>Status Rescreen</th>");
+            // Status Rescreen column removed
             sb.AppendLine("</tr>");
             sb.AppendLine("</thead>");
 
@@ -692,7 +690,7 @@ namespace SI24004.Controllers
                 sb.AppendLine($"<td style='text-align: center;'>{statusThickness}</td>");
                 sb.AppendLine($"<td style='text-align: center;'>{poLot}</td>");
                 sb.AppendLine($"<td style='text-align: center;'>{mc}</td>");
-                sb.AppendLine($"<td style='text-align: center;'><a href='#' style='color: #2196f3;'>Link</a></td>");
+                // Link td removed
                 sb.AppendLine("</tr>");
 
                 rowNumber++;
@@ -752,7 +750,7 @@ namespace SI24004.Controllers
             sb.AppendLine("<th style='text-align: center; font-weight: bold;'>Status Thickness</th>");
             sb.AppendLine("<th style='text-align: center; font-weight: bold;'>PO Lot</th>");
             sb.AppendLine("<th style='text-align: center; font-weight: bold;'>MC</th>");
-            sb.AppendLine("<th style='text-align: center; font-weight: bold;'>Status Rescreen</th>");
+            // Status Rescreen column removed
             sb.AppendLine("</tr>");
             sb.AppendLine("</thead>");
             sb.AppendLine("<tbody>");
