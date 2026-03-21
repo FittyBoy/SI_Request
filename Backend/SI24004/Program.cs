@@ -144,20 +144,18 @@ builder.Services.Configure<SI24004.Models.DTOs.EmailRecipients>(options =>
     options.Bcc = emailSection.GetSection("Bcc").Get<List<string>>() ?? new List<string>();
 });
 
-// ? FIXED: ?????? EmailScheduleManager ????????????? - ?? duplicate registrations
-// ???????????: builder.Services.AddEmailScheduleWithManualAccess(); 
+// Email service registration
 builder.Services.AddSingleton<SI24004.Services.Interfaces.IEmailRecipientsService, SI24004.Services.EmailRecipientsService>();
 
-// ? FIXED: ????? EmailScheduleManager registration 
-// ??????? 1: ??? EmailScheduleManager implement IHostedService
+// Register EmailScheduleManager as singleton (accessible via DI)
 builder.Services.AddSingleton<SI24004.Services.EmailScheduleManager>();
 builder.Services.AddSingleton<SI24004.Services.Interfaces.IEmailScheduleManager>(provider =>
     provider.GetRequiredService<SI24004.Services.EmailScheduleManager>());
 
-
-// ??????? 2: ??? EmailScheduleManager ??? implement IHostedService ???????????????????????
-// builder.Services.AddSingleton<SI24004.Services.Interfaces.IEmailScheduleManager, SI24004.Services.EmailScheduleManager>();
-// builder.Services.AddHostedService<SI24004.Services.IISCompatibleEmailService>();
+// Register IISCompatibleEmailService as HostedService so StartAsync() is called
+builder.Services.AddSingleton<SI24004.Services.IISCompatibleEmailService>();
+builder.Services.AddHostedService<SI24004.Services.IISCompatibleEmailService>(provider =>
+    provider.GetRequiredService<SI24004.Services.IISCompatibleEmailService>());
 
 // Keep-alive service (?????? email service)
 builder.Services.AddSingleton<SI24004.Services.IISKeepAliveService>();
