@@ -638,189 +638,112 @@ namespace SI24004.Services
         }
 
         private string GenerateEnhancedEmailBody(IEnumerable<(ThRecord record, bool isRescreenCompleted)> records,
-    DateTime reportTime, DateTime fromTime, DateTime toTime)
+            DateTime reportTime, DateTime fromTime, DateTime toTime)
         {
             var sb = new StringBuilder();
+            var recordList = records.ToList();
+            int total          = recordList.Count;
+            int rescreenPending= recordList.Count(r => r.record.Status?.ToUpper() == "RESCREEN" && !r.isRescreenCompleted);
+            int rescreenOk     = recordList.Count(r => r.record.Status?.ToUpper() == "RESCREEN" &&  r.isRescreenCompleted);
+            int hold           = recordList.Count(r => r.record.Status?.ToUpper() == "HOLD");
+            int scrap          = recordList.Count(r => r.record.Status?.ToUpper() == "SCRAP");
+
             sb.AppendLine("<!DOCTYPE html>");
-            sb.AppendLine("<html><head><meta charset='UTF-8'></head>");
-            sb.AppendLine("<body style='font-family: Arial, sans-serif; margin: 20px;'>");
+            sb.AppendLine("<html><head><meta charset='UTF-8'>");
+            sb.AppendLine("<style>");
+            sb.AppendLine("  body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; color: #333; }");
+            sb.AppendLine("  .container { max-width: 760px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }");
+            sb.AppendLine("  .header { background: linear-gradient(135deg, #c62828, #e53935); padding: 24px 32px; color: #fff; }");
+            sb.AppendLine("  .header h1 { margin: 0 0 4px; font-size: 22px; font-weight: 700; }");
+            sb.AppendLine("  .header p { margin: 0; font-size: 13px; opacity: 0.85; }");
+            sb.AppendLine("  .summary { display: flex; gap: 12px; padding: 20px 32px; background: #fafafa; border-bottom: 1px solid #eee; }");
+            sb.AppendLine("  .stat { flex: 1; text-align: center; padding: 12px 8px; border-radius: 8px; }");
+            sb.AppendLine("  .stat-num { font-size: 28px; font-weight: 700; line-height: 1; }");
+            sb.AppendLine("  .stat-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; opacity: 0.7; }");
+            sb.AppendLine("  .stat-total   { background: #fff3e0; color: #e65100; }");
+            sb.AppendLine("  .stat-rescreen{ background: #ffebee; color: #c62828; }");
+            sb.AppendLine("  .stat-ok      { background: #e8f5e9; color: #2e7d32; }");
+            sb.AppendLine("  .stat-hold    { background: #e3f2fd; color: #1565c0; }");
+            sb.AppendLine("  .stat-scrap   { background: #fce4ec; color: #880e4f; }");
+            sb.AppendLine("  .content { padding: 24px 32px; }");
+            sb.AppendLine("  table { width: 100%; border-collapse: collapse; font-size: 13px; }");
+            sb.AppendLine("  thead tr { background: #f5f5f5; }");
+            sb.AppendLine("  th { padding: 10px 12px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #666; border-bottom: 2px solid #e0e0e0; }");
+            sb.AppendLine("  th.center, td.center { text-align: center; }");
+            sb.AppendLine("  td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }");
+            sb.AppendLine("  tr:last-child td { border-bottom: none; }");
+            sb.AppendLine("  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }");
+            sb.AppendLine("  .badge-rescreen { background: #ffebee; color: #c62828; }");
+            sb.AppendLine("  .badge-hold     { background: #e3f2fd; color: #1565c0; }");
+            sb.AppendLine("  .badge-scrap    { background: #fce4ec; color: #880e4f; }");
+            sb.AppendLine("  .badge-ok       { background: #e8f5e9; color: #2e7d32; }");
+            sb.AppendLine("  .footer { padding: 16px 32px; background: #f9f9f9; border-top: 1px solid #eee; font-size: 11px; color: #999; }");
+            sb.AppendLine("</style></head>");
+            sb.AppendLine("<body><div class='container'>");
 
             // Header
-            sb.AppendLine($"<h2 style='color: #d32f2f;'>Polishing Alert Report</h2>");
-            sb.AppendLine($"<p><strong>Report Time:</strong> {reportTime:yyyy-MM-dd HH:mm:ss}</p>");
-            sb.AppendLine($"<p><strong>Period:</strong> {fromTime:yyyy-MM-dd HH:mm} - {toTime:yyyy-MM-dd HH:mm}</p>");
-            sb.AppendLine($"<p><strong>Total Issues:</strong> {records.Count()}</p>");
+            sb.AppendLine($"<div class='header'><h1>Polishing Alert Report</h1>");
+            sb.AppendLine($"<p>Period: {fromTime:yyyy-MM-dd HH:mm} &ndash; {reportTime:yyyy-MM-dd HH:mm}</p></div>");
+
+            // Summary stats
+            sb.AppendLine("<div class='summary'>");
+            sb.AppendLine($"  <div class='stat stat-total'><div class='stat-num'>{total}</div><div class='stat-lbl'>Total</div></div>");
+            sb.AppendLine($"  <div class='stat stat-rescreen'><div class='stat-num'>{rescreenPending}</div><div class='stat-lbl'>Rescreen</div></div>");
+            sb.AppendLine($"  <div class='stat stat-ok'><div class='stat-num'>{rescreenOk}</div><div class='stat-lbl'>Rescreen OK</div></div>");
+            sb.AppendLine($"  <div class='stat stat-hold'><div class='stat-num'>{hold}</div><div class='stat-lbl'>Hold</div></div>");
+            sb.AppendLine($"  <div class='stat stat-scrap'><div class='stat-num'>{scrap}</div><div class='stat-lbl'>Scrap</div></div>");
+            sb.AppendLine("</div>");
 
             // Table
-            sb.AppendLine("<table border='1' cellpadding='8' cellspacing='0' style='border-collapse: collapse; width: 100%; margin-top: 20px; font-size: 12px;'>");
+            sb.AppendLine("<div class='content'><table>");
+            sb.AppendLine("<thead><tr>");
+            sb.AppendLine("  <th class='center' style='width:44px'>No.</th>");
+            sb.AppendLine("  <th>PO Lot</th>");
+            sb.AppendLine("  <th class='center' style='width:60px'>MC</th>");
+            sb.AppendLine("  <th class='center'>Status Thickness</th>");
+            sb.AppendLine("  <th class='center'>Status</th>");
+            sb.AppendLine("</tr></thead><tbody>");
 
-            // Table Header
-            sb.AppendLine("<thead>");
-            sb.AppendLine("<tr style='background-color: #f5f5f5;'>");
-            sb.AppendLine("<th>No.</th>");
-            sb.AppendLine("<th>Status</th>");
-            sb.AppendLine("<th>PO Lot</th>");
-            sb.AppendLine("<th>MC</th>");
-            sb.AppendLine("<th style='background-color: #e3f2fd;'>Avg</th>");
-            sb.AppendLine("<th style='background-color: #ffebee;'>Max</th>");
-            sb.AppendLine("<th style='background-color: #e8f5e8;'>Min</th>");
-            sb.AppendLine("<th style='background-color: #fff3e0;'>Diff</th>");
-            sb.AppendLine("<th>Rescreen Status</th>");
-            sb.AppendLine("</tr>");
-            sb.AppendLine("</thead>");
-
-            // Table Body
-            sb.AppendLine("<tbody>");
             int rowNumber = 1;
-
-            foreach (var item in records)
+            foreach (var (record, isRescreenCompleted) in recordList)
             {
-                var record = item.record;
-                var isRescreenCompleted = item.isRescreenCompleted;
-                var (avg, max, min, diff) = CalculateCaStatistics(record);
-
-                string poLot = $"{record.LotPo ?? ""}{record.McPo ?? ""}{record.NoPo ?? ""}";
-                string mc = record.McPo ?? "";
+                string poLot  = $"{record.LotPo ?? ""}{record.McPo ?? ""}{record.NoPo ?? ""}";
+                string mc     = record.McPo ?? "";
                 string status = (record.Status ?? "").ToUpper();
-
-                string rescreenStatus = "";
-                string statusIcon = "";
-
-                // Set status icon and rescreen status
-                switch (status)
-                {
-                    case "RESCREEN":
-                        statusIcon = "";
-                        if (isRescreenCompleted)
-                        {
-                            rescreenStatus = "<span style='color: #4caf50; font-weight: bold;'>Completed</span>";
-                        }
-                        else
-                        {
-                            rescreenStatus = "<span style='color: #ff9800; font-weight: bold;'>Pending</span>";
-                        }
-                        break;
-                    case "HOLD":
-                        statusIcon = "";
-                        rescreenStatus = "<span style='color: #2196f3; font-weight: bold;'>On Hold</span>";
-                        break;
-                    case "SCRAP":
-                        statusIcon = "";
-                        rescreenStatus = "<span style='color: #f44336; font-weight: bold;'>Scrapped</span>";
-                        break;
-                    default:
-                        statusIcon = "";
-                        rescreenStatus = "<span style='color: #757575;'>-</span>";
-                        break;
-                }
 
                 string bgColor = status switch
                 {
-                    "RESCREEN" when isRescreenCompleted => "#e8f5e8",
-                    "RESCREEN" => "#ffebee",
-                    "HOLD" => "#e3f2fd",
-                    "SCRAP" => "#ffebee",
-                    _ => "#ffffff"
+                    "RESCREEN" when isRescreenCompleted => "#f1f8e9",
+                    "RESCREEN"                          => "#fff8f8",
+                    "HOLD"                              => "#f3f8ff",
+                    "SCRAP"                             => "#fff0f3",
+                    _                                   => "#ffffff"
                 };
 
-                sb.AppendLine($"<tr style='background-color: {bgColor};'>");
-                sb.AppendLine($"<td style='text-align: center;'>{rowNumber}</td>");
-                sb.AppendLine($"<td>{statusIcon} {status}</td>");
-                sb.AppendLine($"<td>{poLot}</td>");
-                sb.AppendLine($"<td>{mc}</td>");
-                sb.AppendLine($"<td style='text-align: center;'>{(avg > 0 ? avg.ToString("F3") : "-")}</td>");
-                sb.AppendLine($"<td style='text-align: center;'>{(max > 0 ? max.ToString("F3") : "-")}</td>");
-                sb.AppendLine($"<td style='text-align: center;'>{(min > 0 ? min.ToString("F3") : "-")}</td>");
-                sb.AppendLine($"<td style='text-align: center;'>{(avg > 0 ? (diff * 1000).ToString("F0") : "-")}</td>");
-                sb.AppendLine($"<td>{rescreenStatus}</td>");
-                sb.AppendLine("</tr>");
+                string badgeClass = status switch
+                {
+                    "RESCREEN" => "badge-rescreen",
+                    "HOLD"     => "badge-hold",
+                    "SCRAP"    => "badge-scrap",
+                    _          => ""
+                };
 
+                string finalStatus = (status == "RESCREEN" && isRescreenCompleted)
+                    ? "<span class='badge badge-ok'>Rescreen OK</span>" : "";
+
+                sb.AppendLine($"<tr style='background:{bgColor}'>");
+                sb.AppendLine($"  <td class='center' style='color:#999;font-size:12px'>{rowNumber}</td>");
+                sb.AppendLine($"  <td style='font-family:monospace;font-size:12px'>{poLot}</td>");
+                sb.AppendLine($"  <td class='center'>{mc}</td>");
+                sb.AppendLine($"  <td class='center'><span class='badge {badgeClass}'>{status}</span></td>");
+                sb.AppendLine($"  <td class='center'>{finalStatus}</td>");
+                sb.AppendLine("</tr>");
                 rowNumber++;
             }
 
-            sb.AppendLine("</tbody>");
-            sb.AppendLine("</table>");
-
-            // Summary
-            sb.AppendLine("<div style='margin-top: 20px; padding: 15px; background-color: #f0f0f0; border-radius: 5px;'>");
-            sb.AppendLine("<h3>Summary</h3>");
-
-            var statusCounts = records.GroupBy(r => (r.record.Status ?? "Unknown").ToUpper())
-                                     .ToDictionary(g => g.Key, g => g.Count());
-
-            // Define status display order and styling
-            var statusConfig = new Dictionary<string, (string displayName, string color, string icon)>
-                {
-                    { "RESCREEN", ("Rescreen", "#ff9800", "") },
-                    { "HOLD", ("Hold", "#2196f3", "") },
-                    { "SCRAP", ("Scrap", "#f44336", "") }
-                };
-
-
-            foreach (var statusInfo in statusConfig)
-            {
-                var statusKey = statusInfo.Key;
-                var (displayName, color, icon) = statusInfo.Value;
-
-                if (statusCounts.ContainsKey(statusKey))
-                {
-                    var count = statusCounts[statusKey];
-
-                    if (statusKey == "RESCREEN")
-                    {
-                        var rescreenRecords = records.Where(r => (r.record.Status ?? "").ToUpper() == "RESCREEN").ToList();
-                        var completedCount = rescreenRecords.Count(r => r.isRescreenCompleted);
-                        var pendingCount = rescreenRecords.Count() - completedCount;
-
-                        sb.AppendLine($"<p style='margin: 8px 0; padding: 10px; background-color: #fff3e0; border-left: 4px solid {color}; border-radius: 4px;'>");
-                        sb.AppendLine($"<strong style='color: {color};'>{icon} {displayName}:</strong> <span style='font-size: 16px; font-weight: bold;'>{count}</span> items");
-                        sb.AppendLine($"<br><span style='margin-left: 20px; color: #4caf50;'>Completed: <strong>{completedCount}</strong></span>");
-                        sb.AppendLine($"<span style='margin-left: 15px; color: #ff9800;'>Pending: <strong>{pendingCount}</strong></span>");
-                        sb.AppendLine("</p>");
-                    }
-                    else
-                    {
-                        sb.AppendLine($"<p style='margin: 8px 0; padding: 10px; background-color: #f8f9fa; border-left: 4px solid {color}; border-radius: 4px;'>");
-                        sb.AppendLine($"<strong style='color: {color};'>{icon} {displayName}:</strong> <span style='font-size: 16px; font-weight: bold;'>{count}</span> items");
-                        sb.AppendLine("</p>");
-                    }
-                }
-                else
-                {
-                    // Show 0 count for statuses that don't have any records
-                    sb.AppendLine($"<p style='margin: 8px 0; padding: 10px; background-color: #f8f9fa; border-left: 4px solid #e0e0e0; border-radius: 4px;'>");
-                    sb.AppendLine($"<strong style='color: #757575;'>{icon} {displayName}:</strong> <span style='font-size: 16px; font-weight: bold; color: #757575;'>0</span> items");
-                    sb.AppendLine("</p>");
-                }
-            }
-            // Add total summary
-            var totalItems = statusCounts.Values.Sum();
-            sb.AppendLine($"<div style='margin-top: 15px; padding: 12px; background-color: #e3f2fd; border: 2px solid #2196f3; border-radius: 6px; text-align: center;'>");
-            sb.AppendLine($"<strong style='color: #1976d2; font-size: 18px;'>Total Issues: {totalItems}</strong>");
-            sb.AppendLine("</div>");
-
-            sb.AppendLine("</div>");
-
-
-            // Footer
-            sb.AppendLine("<hr style='margin-top: 30px;'>");
-            sb.AppendLine("<p style='color: #666; font-size: 12px;'>");
-            sb.AppendLine("Automated report from Polishing System<br>");
-            sb.AppendLine($"Generated at: {GetThailandTime():yyyy-MM-dd HH:mm:ss}");
-            sb.AppendLine("</p>");
-            // Added link section
-            sb.AppendLine("<div style='text-align: center; margin-top: 15px; padding: 10px; background-color: #e3f2fd; border-radius: 5px;'>");
-            sb.AppendLine("<p style='margin: 0; font-size: 14px; font-weight: bold; color: #1976d2;'>");
-            sb.AppendLine("View Detailed Dashboard:");
-            sb.AppendLine("</p>");
-            sb.AppendLine("<p style='margin: 5px 0 0 0;'>");
-            sb.AppendLine("<a href='http://172.18.106.100:9014/pol-page' style='color: #1976d2; text-decoration: none; font-weight: bold; font-size: 14px; padding: 8px 16px; background-color: #ffffff; border: 2px solid #1976d2; border-radius: 4px; display: inline-block;' target='_blank'>");
-            sb.AppendLine("Open Polishing Dashboard");
-            sb.AppendLine("</a>");
-            sb.AppendLine("</p>");
-            sb.AppendLine("</div>");
-
-            sb.AppendLine("</body></html>");
+            sb.AppendLine("</tbody></table></div>");
+            sb.AppendLine($"<div class='footer'>Generated at {DateTime.Now:yyyy-MM-dd HH:mm:ss} &bull; Polishing Alert System</div>");
+            sb.AppendLine("</div></body></html>");
             return sb.ToString();
         }
 

@@ -432,116 +432,118 @@ namespace SI24004.Controllers
         private string GenerateEmailBodyWithRescreenStatus(IEnumerable<dynamic> records, DateTime reportTime, DateTime fromTime, DateTime toTime)
         {
             var sb = new StringBuilder();
+            int total = records.Count();
+            int rescreenOk  = records.Cast<dynamic>().Count(r => (r.Result ?? "").ToString().ToUpper() == "RESCREEN" && r.IsRescreenCompleted == true);
+            int rescreenPending = records.Cast<dynamic>().Count(r => (r.Result ?? "").ToString().ToUpper() == "RESCREEN" && r.IsRescreenCompleted == false);
+            int hold  = records.Cast<dynamic>().Count(r => (r.Result ?? "").ToString().ToUpper() == "HOLD");
+            int scrap = records.Cast<dynamic>().Count(r => (r.Result ?? "").ToString().ToUpper() == "SCRAP");
+
             sb.AppendLine("<!DOCTYPE html>");
-            sb.AppendLine("<html><head><meta charset='UTF-8'></head>");
-            sb.AppendLine("<body style='font-family: Arial, sans-serif; margin: 20px;'>");
+            sb.AppendLine("<html><head><meta charset='UTF-8'>");
+            sb.AppendLine("<style>");
+            sb.AppendLine("  body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; color: #333; }");
+            sb.AppendLine("  .container { max-width: 760px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }");
+            sb.AppendLine("  .header { background: linear-gradient(135deg, #c62828, #e53935); padding: 24px 32px; color: #fff; }");
+            sb.AppendLine("  .header h1 { margin: 0 0 4px; font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }");
+            sb.AppendLine("  .header p { margin: 0; font-size: 13px; opacity: 0.85; }");
+            sb.AppendLine("  .summary { display: flex; gap: 12px; padding: 20px 32px; background: #fafafa; border-bottom: 1px solid #eee; }");
+            sb.AppendLine("  .stat { flex: 1; text-align: center; padding: 12px 8px; border-radius: 8px; }");
+            sb.AppendLine("  .stat-num { font-size: 28px; font-weight: 700; line-height: 1; }");
+            sb.AppendLine("  .stat-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; opacity: 0.7; }");
+            sb.AppendLine("  .stat-total   { background: #fff3e0; color: #e65100; }");
+            sb.AppendLine("  .stat-rescreen{ background: #ffebee; color: #c62828; }");
+            sb.AppendLine("  .stat-ok      { background: #e8f5e9; color: #2e7d32; }");
+            sb.AppendLine("  .stat-hold    { background: #e3f2fd; color: #1565c0; }");
+            sb.AppendLine("  .stat-scrap   { background: #fce4ec; color: #880e4f; }");
+            sb.AppendLine("  .content { padding: 24px 32px; }");
+            sb.AppendLine("  table { width: 100%; border-collapse: collapse; font-size: 13px; }");
+            sb.AppendLine("  thead tr { background: #f5f5f5; }");
+            sb.AppendLine("  th { padding: 10px 12px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #666; border-bottom: 2px solid #e0e0e0; }");
+            sb.AppendLine("  th.center, td.center { text-align: center; }");
+            sb.AppendLine("  td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }");
+            sb.AppendLine("  tr:last-child td { border-bottom: none; }");
+            sb.AppendLine("  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }");
+            sb.AppendLine("  .badge-rescreen { background: #ffebee; color: #c62828; }");
+            sb.AppendLine("  .badge-hold     { background: #e3f2fd; color: #1565c0; }");
+            sb.AppendLine("  .badge-scrap    { background: #fce4ec; color: #880e4f; }");
+            sb.AppendLine("  .badge-ok       { background: #e8f5e9; color: #2e7d32; }");
+            sb.AppendLine("  .footer { padding: 16px 32px; background: #f9f9f9; border-top: 1px solid #eee; font-size: 11px; color: #999; }");
+            sb.AppendLine("</style></head>");
+            sb.AppendLine("<body><div class='container'>");
 
             // Header
-            sb.AppendLine($"<h2 style='color: #d32f2f;'>🚨 Polishing Alert Report</h2>");
-            sb.AppendLine($"<p><strong>Report Time:</strong> {reportTime:yyyy-MM-dd HH:mm:ss}</p>");
-            sb.AppendLine($"<p><strong>Period:</strong> {fromTime:yyyy-MM-dd HH:mm} - {toTime:yyyy-MM-dd HH:mm}</p>");
-            sb.AppendLine($"<p><strong>Total Issues:</strong> {records.Count()} รายการ</p>");
+            sb.AppendLine($"<div class='header'>");
+            sb.AppendLine($"  <h1>Polishing Alert Report</h1>");
+            sb.AppendLine($"  <p>Period: {fromTime:yyyy-MM-dd HH:mm} &ndash; {reportTime:yyyy-MM-dd HH:mm}</p>");
+            sb.AppendLine("</div>");
+
+            // Summary stats
+            sb.AppendLine("<div class='summary'>");
+            sb.AppendLine($"  <div class='stat stat-total'><div class='stat-num'>{total}</div><div class='stat-lbl'>Total</div></div>");
+            sb.AppendLine($"  <div class='stat stat-rescreen'><div class='stat-num'>{rescreenPending}</div><div class='stat-lbl'>Rescreen</div></div>");
+            sb.AppendLine($"  <div class='stat stat-ok'><div class='stat-num'>{rescreenOk}</div><div class='stat-lbl'>Rescreen OK</div></div>");
+            sb.AppendLine($"  <div class='stat stat-hold'><div class='stat-num'>{hold}</div><div class='stat-lbl'>Hold</div></div>");
+            sb.AppendLine($"  <div class='stat stat-scrap'><div class='stat-num'>{scrap}</div><div class='stat-lbl'>Scrap</div></div>");
+            sb.AppendLine("</div>");
 
             // Table
-            sb.AppendLine("<table border='1' cellpadding='8' cellspacing='0' style='border-collapse: collapse; width: 100%; margin-top: 20px;'>");
+            sb.AppendLine("<div class='content'>");
+            sb.AppendLine("<table>");
+            sb.AppendLine("<thead><tr>");
+            sb.AppendLine("  <th class='center' style='width:44px'>No.</th>");
+            sb.AppendLine("  <th>PO Lot</th>");
+            sb.AppendLine("  <th class='center' style='width:60px'>MC</th>");
+            sb.AppendLine("  <th class='center'>Status Thickness</th>");
+            sb.AppendLine("  <th class='center'>Status</th>");
+            sb.AppendLine("</tr></thead><tbody>");
 
-            // Table Header
-            sb.AppendLine("<thead>");
-            sb.AppendLine("<tr style='background-color: #f5f5f5;'>");
-            sb.AppendLine("<th style='text-align: center; font-weight: bold;'>No.</th>");
-            sb.AppendLine("<th style='text-align: center; font-weight: bold;'>Status Thickness</th>");
-            sb.AppendLine("<th style='text-align: center; font-weight: bold;'>PO Lot</th>");
-            sb.AppendLine("<th style='text-align: center; font-weight: bold;'>MC</th>");
-            sb.AppendLine("<th style='text-align: center; font-weight: bold;'>Status</th>"); // ✅ เพิ่มคอลัมน์ Status
-            sb.AppendLine("</tr>");
-            sb.AppendLine("</thead>");
-
-            // Table Body
-            sb.AppendLine("<tbody>");
             int rowNumber = 1;
-
             foreach (var record in records)
             {
-                // สร้าง PO-Lot จาก LotPo + McPo + NoPo
-                string poLot = $"{record.LotPo ?? ""}{record.McPo ?? ""}{record.NoPo ?? ""}";
+                string poLot   = $"{record.LotPo ?? ""}{record.McPo ?? ""}{record.NoPo ?? ""}";
+                string mc      = record.McPo ?? "";
+                string status  = (record.Result ?? "").ToString().ToUpper();
+                bool rescreenDone = record.IsRescreenCompleted == true;
 
-                // MC คือ McPo
-                string mc = record.McPo ?? "";
-
-                // Status Thickness คือ Result
-                string statusThickness = record.Result ?? "";
-
-
-                // ✅ Status สุดท้าย - แสดง "Rescreen OK" เฉพาะที่มีใน TH100
-                string finalStatus = "";
-                if (statusThickness.ToUpper() == "RESCREEN" && record.IsRescreenCompleted)
+                string bgColor = status switch
                 {
-                    finalStatus = "<span style='color: #4caf50; font-weight: bold;'>Rescreen OK</span>";
-                }
-
-                // กำหนดสีพื้นหลังตาม Status
-                string bgColor = statusThickness.ToUpper() switch
-                {
-                    "RESCREEN" when record.IsRescreenCompleted => "#e8f5e8", // สีเขียวอ่อนสำหรับ Rescreen OK
-                    "RESCREEN" => "#ffebee", // สีแดงอ่อนสำหรับ Rescreen ที่ยังไม่เสร็จ
-                    "HOLD" => "#fff3e0",     // สีส้มอ่อน
-                    "SCRAP" => "#ffebee",    // สีแดงอ่อน
-                    _ => "#ffffff"           // สีขาว
+                    "RESCREEN" when rescreenDone => "#f1f8e9",
+                    "RESCREEN"                   => "#fff8f8",
+                    "HOLD"                       => "#f3f8ff",
+                    "SCRAP"                      => "#fff0f3",
+                    _                            => "#ffffff"
                 };
 
-                sb.AppendLine($"<tr style='background-color: {bgColor};'>");
-                sb.AppendLine($"<td style='text-align: center;'>{rowNumber}</td>");
-                sb.AppendLine($"<td style='text-align: center;'>{statusThickness}</td>");
-                sb.AppendLine($"<td style='text-align: center;'>{poLot}</td>");
-                sb.AppendLine($"<td style='text-align: center;'>{mc}</td>");
-// statusRescreen td removed
-                sb.AppendLine($"<td style='text-align: center;'>{finalStatus}</td>"); // ✅ เพิ่มคอลัมน์ Status สุดท้าย
-                sb.AppendLine("</tr>");
+                string badgeClass = status switch
+                {
+                    "RESCREEN" => "badge-rescreen",
+                    "HOLD"     => "badge-hold",
+                    "SCRAP"    => "badge-scrap",
+                    _          => ""
+                };
 
+                string finalStatus = "";
+                if (status == "RESCREEN" && rescreenDone)
+                    finalStatus = "<span class='badge badge-ok'>Rescreen OK</span>";
+
+                sb.AppendLine($"<tr style='background:{bgColor}'>");
+                sb.AppendLine($"  <td class='center' style='color:#999;font-size:12px'>{rowNumber}</td>");
+                sb.AppendLine($"  <td style='font-family:monospace;font-size:12px'>{poLot}</td>");
+                sb.AppendLine($"  <td class='center'>{mc}</td>");
+                sb.AppendLine($"  <td class='center'><span class='badge {badgeClass}'>{status}</span></td>");
+                sb.AppendLine($"  <td class='center'>{finalStatus}</td>");
+                sb.AppendLine("</tr>");
                 rowNumber++;
             }
 
-            sb.AppendLine("</tbody>");
-            sb.AppendLine("</table>");
-
-            // ✅ Additional Info with Rescreen Status
-            sb.AppendLine("<div style='margin-top: 20px; padding: 15px; background-color: #f0f0f0; border-radius: 5px;'>");
-            sb.AppendLine("<h3 style='margin-top: 0; color: #333;'>📊 Summary</h3>");
-
-            // นับจำนวนแต่ละ Status
-            var statusCounts = records.GroupBy(r => r.Result ?? "Unknown")
-                                     .ToDictionary(g => g.Key, g => g.Count());
-
-            foreach (var status in statusCounts)
-            {
-                if (status.Key.ToUpper() == "RESCREEN")
-                {
-                    var rescreenRecords = records.Where(r => (r.Result ?? "").ToUpper() == "RESCREEN").ToList();
-                    var completedCount = rescreenRecords.Count(r => r.IsRescreenCompleted);
-                    var pendingCount = rescreenRecords.Count() - completedCount;
-
-                    sb.AppendLine($"<p><strong>{status.Key}:</strong> {status.Value} รายการ");
-                    sb.AppendLine($"<span style='margin-left: 20px; color: #4caf50;'>✅ Completed: {completedCount}</span>");
-                    sb.AppendLine($"<span style='margin-left: 10px; color: #ff9800;'>⏳ Pending: {pendingCount}</span></p>");
-                }
-                else
-                {
-                    sb.AppendLine($"<p><strong>{status.Key}:</strong> {status.Value} รายการ</p>");
-                }
-            }
-            sb.AppendLine("</div>");
+            sb.AppendLine("</tbody></table></div>");
 
             // Footer
-            sb.AppendLine("<hr style='margin-top: 30px;'>");
-            sb.AppendLine("<p style='color: #666; font-size: 12px;'>");
-            sb.AppendLine("This is an automated alert from Polishing System.<br>");
-            sb.AppendLine($"Generated at: {DateTime.Now:yyyy-MM-dd HH:mm:ss}<br>");
-            sb.AppendLine("✅ Rescreen OK = Found matching record in Th100Record table");
-            sb.AppendLine("</p>");
-
-            sb.AppendLine("</body></html>");
+            sb.AppendLine($"<div class='footer'>Generated at {DateTime.Now:yyyy-MM-dd HH:mm:ss} &bull; Polishing Alert System &bull; This is an automated email</div>");
+            sb.AppendLine("</div></body></html>");
             return sb.ToString();
         }
+
         private string GenerateEmptyReportBodyUpdated(DateTime reportTime, DateTime fromTime, DateTime toTime)
         {
             var sb = new StringBuilder();
