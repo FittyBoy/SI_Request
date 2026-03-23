@@ -55,13 +55,7 @@ namespace SI24004.Services
             }
         }
     }
-    // EmailRecipients class ?????????????????????????
-    public class EmailRecipients
-    {
-        public List<string> To { get; set; } = new();
-        public List<string> Cc { get; set; } = new();
-        public List<string> Bcc { get; set; } = new();
-    }
+    // EmailRecipients class -> use SI24004.Models.DTOs.EmailRecipients
     public class EnrichedRecord
     {
         public object Record { get; set; }
