@@ -651,57 +651,42 @@ namespace SI24004.Services
             sb.AppendLine("<!DOCTYPE html>");
             sb.AppendLine("<html><head><meta charset='UTF-8'>");
             sb.AppendLine("<style>");
-            sb.AppendLine("  body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; color: #333; }");
-            sb.AppendLine("  .container { max-width: 760px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }");
-            sb.AppendLine("  .header { background: linear-gradient(135deg, #c62828, #e53935); padding: 24px 32px; color: #fff; }");
-            sb.AppendLine("  .header h1 { margin: 0 0 4px; font-size: 22px; font-weight: 700; }");
-            sb.AppendLine("  .header p { margin: 0; font-size: 13px; opacity: 0.85; }");
-            sb.AppendLine("  .summary { display: flex; gap: 12px; padding: 20px 32px; background: #fafafa; border-bottom: 1px solid #eee; }");
-            sb.AppendLine("  .stat { flex: 1; text-align: center; padding: 12px 8px; border-radius: 8px; }");
-            sb.AppendLine("  .stat-num { font-size: 28px; font-weight: 700; line-height: 1; }");
-            sb.AppendLine("  .stat-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; opacity: 0.7; }");
-            sb.AppendLine("  .stat-total   { background: #fff3e0; color: #e65100; }");
-            sb.AppendLine("  .stat-rescreen{ background: #ffebee; color: #c62828; }");
-            sb.AppendLine("  .stat-ok      { background: #e8f5e9; color: #2e7d32; }");
-            sb.AppendLine("  .stat-hold    { background: #e3f2fd; color: #1565c0; }");
-            sb.AppendLine("  .stat-scrap   { background: #fce4ec; color: #880e4f; }");
-            sb.AppendLine("  .content { padding: 24px 32px; }");
-            sb.AppendLine("  table { width: 100%; border-collapse: collapse; font-size: 13px; }");
-            sb.AppendLine("  thead tr { background: #f5f5f5; }");
-            sb.AppendLine("  th { padding: 10px 12px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #666; border-bottom: 2px solid #e0e0e0; }");
-            sb.AppendLine("  th.center, td.center { text-align: center; }");
-            sb.AppendLine("  td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }");
-            sb.AppendLine("  tr:last-child td { border-bottom: none; }");
-            sb.AppendLine("  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }");
+            sb.AppendLine("  body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f0f2f5; color: #333; }");
+            sb.AppendLine("  .badge { display: inline-block; padding: 3px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; }");
             sb.AppendLine("  .badge-rescreen { background: #ffebee; color: #c62828; }");
             sb.AppendLine("  .badge-hold     { background: #e3f2fd; color: #1565c0; }");
             sb.AppendLine("  .badge-scrap    { background: #fce4ec; color: #880e4f; }");
             sb.AppendLine("  .badge-ok       { background: #e8f5e9; color: #2e7d32; }");
-            sb.AppendLine("  .footer { padding: 16px 32px; background: #f9f9f9; border-top: 1px solid #eee; font-size: 11px; color: #999; }");
             sb.AppendLine("</style></head>");
-            sb.AppendLine("<body><div class='container'>");
+            sb.AppendLine("<body style='font-family:Arial,sans-serif;margin:0;padding:20px;background:#f0f2f5;color:#333'>");
+            sb.AppendLine("<table width='760' cellpadding='0' cellspacing='0' border='0' align='center' style='max-width:760px;background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e0e0e0'>");
 
             // Header
-            sb.AppendLine($"<div class='header'><h1>🔔 แจ้งเตือน LOT ผิดปกติ — OE Polishing</h1>");
-            sb.AppendLine($"<p>ช่วงเวลา: {fromTime:dd/MM/yyyy HH:mm} &ndash; {reportTime:dd/MM/yyyy HH:mm} &nbsp;|&nbsp; {GetTimeSlotName(reportTime.Hour)}</p></div>");
+            sb.AppendLine("<tr><td style='background:#c62828;padding:24px 32px'>");
+            sb.AppendLine($"<p style='margin:0 0 4px;font-size:22px;font-weight:700;color:#ffffff'>&#128276; แจ้งเตือน LOT ผิดปกติ &mdash; OE Polishing</p>");
+            sb.AppendLine($"<p style='margin:0;font-size:13px;color:#ffcdd2'>ช่วงเวลา: {fromTime:dd/MM/yyyy HH:mm} &ndash; {reportTime:dd/MM/yyyy HH:mm} &nbsp;|&nbsp; {GetTimeSlotName(reportTime.Hour)}</p>");
+            sb.AppendLine("</td></tr>");
 
-            // Summary stats
-            sb.AppendLine("<div class='summary'>");
-            sb.AppendLine($"  <div class='stat stat-total'><div class='stat-num'>{total}</div><div class='stat-lbl'>Total</div></div>");
-            sb.AppendLine($"  <div class='stat stat-rescreen'><div class='stat-num'>{rescreenPending}</div><div class='stat-lbl'>Rescreen</div></div>");
-            sb.AppendLine($"  <div class='stat stat-ok'><div class='stat-num'>{rescreenOk}</div><div class='stat-lbl'>Rescreen OK</div></div>");
-            sb.AppendLine($"  <div class='stat stat-hold'><div class='stat-num'>{hold}</div><div class='stat-lbl'>Hold</div></div>");
-            sb.AppendLine($"  <div class='stat stat-scrap'><div class='stat-num'>{scrap}</div><div class='stat-lbl'>Scrap</div></div>");
-            sb.AppendLine("</div>");
+            // Summary stats row — table-based for Outlook compatibility
+            sb.AppendLine("<tr><td style='background:#fafafa;padding:20px 32px;border-bottom:1px solid #eeeeee'>");
+            sb.AppendLine("<table width='100%' cellpadding='0' cellspacing='8' border='0'><tr>");
+            sb.AppendLine($"<td width='20%' align='center' style='background:#fff3e0;padding:14px 8px;border-radius:8px;border:1px solid #ffe0b2'><p style='margin:0;font-size:30px;font-weight:700;color:#e65100;line-height:1'>{total}</p><p style='margin:4px 0 0;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#bf360c'>TOTAL</p></td>");
+            sb.AppendLine($"<td width='20%' align='center' style='background:#ffebee;padding:14px 8px;border-radius:8px;border:1px solid #ffcdd2'><p style='margin:0;font-size:30px;font-weight:700;color:#c62828;line-height:1'>{rescreenPending}</p><p style='margin:4px 0 0;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#b71c1c'>RESCREEN</p></td>");
+            sb.AppendLine($"<td width='20%' align='center' style='background:#e8f5e9;padding:14px 8px;border-radius:8px;border:1px solid #c8e6c9'><p style='margin:0;font-size:30px;font-weight:700;color:#2e7d32;line-height:1'>{rescreenOk}</p><p style='margin:4px 0 0;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#1b5e20'>RESCREEN OK</p></td>");
+            sb.AppendLine($"<td width='20%' align='center' style='background:#e3f2fd;padding:14px 8px;border-radius:8px;border:1px solid #bbdefb'><p style='margin:0;font-size:30px;font-weight:700;color:#1565c0;line-height:1'>{hold}</p><p style='margin:4px 0 0;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#0d47a1'>HOLD</p></td>");
+            sb.AppendLine($"<td width='20%' align='center' style='background:#fce4ec;padding:14px 8px;border-radius:8px;border:1px solid #f8bbd0'><p style='margin:0;font-size:30px;font-weight:700;color:#880e4f;line-height:1'>{scrap}</p><p style='margin:4px 0 0;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#880e4f'>SCRAP</p></td>");
+            sb.AppendLine("</tr></table>");
+            sb.AppendLine("</td></tr>");
 
             // Table
-            sb.AppendLine("<div class='content'><table>");
-            sb.AppendLine("<thead><tr>");
-            sb.AppendLine("  <th class='center' style='width:44px'>No.</th>");
-            sb.AppendLine("  <th>PO Lot</th>");
-            sb.AppendLine("  <th class='center' style='width:60px'>MC</th>");
-            sb.AppendLine("  <th class='center'>Status Thickness</th>");
-            sb.AppendLine("  <th class='center'>Status</th>");
+            sb.AppendLine("<tr><td style='padding:24px 32px'>");
+            sb.AppendLine("<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse:collapse;font-size:13px'>");
+            sb.AppendLine("<thead><tr style='background:#f5f5f5'>");
+            sb.AppendLine("  <th align='center' style='padding:10px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#666;border-bottom:2px solid #e0e0e0;width:44px'>No.</th>");
+            sb.AppendLine("  <th align='left'   style='padding:10px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#666;border-bottom:2px solid #e0e0e0'>PO Lot</th>");
+            sb.AppendLine("  <th align='center' style='padding:10px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#666;border-bottom:2px solid #e0e0e0;width:60px'>MC</th>");
+            sb.AppendLine("  <th align='center' style='padding:10px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#666;border-bottom:2px solid #e0e0e0'>Status Thickness</th>");
+            sb.AppendLine("  <th align='center' style='padding:10px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#666;border-bottom:2px solid #e0e0e0'>Status</th>");
             sb.AppendLine("</tr></thead><tbody>");
 
             int rowNumber = 1;
@@ -732,18 +717,20 @@ namespace SI24004.Services
                     ? "<span class='badge badge-ok'>Rescreen OK</span>" : "";
 
                 sb.AppendLine($"<tr style='background:{bgColor}'>");
-                sb.AppendLine($"  <td class='center' style='color:#999;font-size:12px'>{rowNumber}</td>");
-                sb.AppendLine($"  <td style='font-family:monospace;font-size:12px'>{poLot}</td>");
-                sb.AppendLine($"  <td class='center'>{mc}</td>");
-                sb.AppendLine($"  <td class='center'><span class='badge {badgeClass}'>{status}</span></td>");
-                sb.AppendLine($"  <td class='center'>{finalStatus}</td>");
+                sb.AppendLine($"  <td align='center' style='padding:10px 12px;border-bottom:1px solid #f0f0f0;color:#999;font-size:12px'>{rowNumber}</td>");
+                sb.AppendLine($"  <td style='padding:10px 12px;border-bottom:1px solid #f0f0f0;font-family:monospace;font-size:12px'>{poLot}</td>");
+                sb.AppendLine($"  <td align='center' style='padding:10px 12px;border-bottom:1px solid #f0f0f0'>{mc}</td>");
+                sb.AppendLine($"  <td align='center' style='padding:10px 12px;border-bottom:1px solid #f0f0f0'><span class='badge {badgeClass}'>{status}</span></td>");
+                sb.AppendLine($"  <td align='center' style='padding:10px 12px;border-bottom:1px solid #f0f0f0'>{finalStatus}</td>");
                 sb.AppendLine("</tr>");
                 rowNumber++;
             }
 
-            sb.AppendLine("</tbody></table></div>");
-            sb.AppendLine($"<div class='footer'>สร้างอัตโนมัติเมื่อ {DateTime.Now:dd/MM/yyyy HH:mm:ss} &bull; ระบบแจ้งเตือน OE-Polishing &bull; กรุณาอย่า Reply อีเมลฉบับนี้</div>");
-            sb.AppendLine("</div></body></html>");
+            sb.AppendLine("</tbody></table>");
+            sb.AppendLine("</td></tr>");
+            sb.AppendLine($"<tr><td style='padding:14px 32px;background:#f9f9f9;border-top:1px solid #eeeeee;font-size:11px;color:#999'>สร้างอัตโนมัติเมื่อ {DateTime.Now:dd/MM/yyyy HH:mm:ss} &bull; ระบบแจ้งเตือน OE-Polishing &bull; กรุณาอย่า Reply อีเมลฉบับนี้</td></tr>");
+            sb.AppendLine("</table>");
+            sb.AppendLine("</body></html>");
             return sb.ToString();
         }
 
