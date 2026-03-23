@@ -481,12 +481,12 @@ namespace SI24004.Services
             if (enrichedRecords?.Any() == true)
             {
                 emailBody = GenerateEnhancedEmailBody(enrichedRecords, reportTime, fromTime, toTime);
-                subject = $"Polishing Alert Report - {timeSlot} {reportTime:yyyy-MM-dd HH:mm} ({enrichedRecords.Count} items)";
+                subject = $"[OE-Polishing] แจ้งเตือน LOT ผิดปกติ {timeSlot} — {reportTime:dd/MM/yyyy HH:mm} ({enrichedRecords.Count} รายการ)";
             }
             else if (_scheduleSettings.SendEmptyReports)
             {
                 emailBody = GenerateEmptyReportBody(reportTime, fromTime, toTime);
-                subject = $"Polishing Report - {timeSlot} {reportTime:yyyy-MM-dd HH:mm} (No Issues)";
+                subject = $"[OE-Polishing] รายงานสถานะ {timeSlot} — {reportTime:dd/MM/yyyy HH:mm} (ปกติ ไม่มีรายการผิดปกติ)";
             }
             else
             {
@@ -682,8 +682,8 @@ namespace SI24004.Services
             sb.AppendLine("<body><div class='container'>");
 
             // Header
-            sb.AppendLine($"<div class='header'><h1>Polishing Alert Report</h1>");
-            sb.AppendLine($"<p>Period: {fromTime:yyyy-MM-dd HH:mm} &ndash; {reportTime:yyyy-MM-dd HH:mm}</p></div>");
+            sb.AppendLine($"<div class='header'><h1>🔔 แจ้งเตือน LOT ผิดปกติ — OE Polishing</h1>");
+            sb.AppendLine($"<p>ช่วงเวลา: {fromTime:dd/MM/yyyy HH:mm} &ndash; {reportTime:dd/MM/yyyy HH:mm} &nbsp;|&nbsp; {GetTimeSlotName(reportTime.Hour)}</p></div>");
 
             // Summary stats
             sb.AppendLine("<div class='summary'>");
@@ -742,7 +742,7 @@ namespace SI24004.Services
             }
 
             sb.AppendLine("</tbody></table></div>");
-            sb.AppendLine($"<div class='footer'>Generated at {DateTime.Now:yyyy-MM-dd HH:mm:ss} &bull; Polishing Alert System</div>");
+            sb.AppendLine($"<div class='footer'>สร้างอัตโนมัติเมื่อ {DateTime.Now:dd/MM/yyyy HH:mm:ss} &bull; ระบบแจ้งเตือน OE-Polishing &bull; กรุณาอย่า Reply อีเมลฉบับนี้</div>");
             sb.AppendLine("</div></body></html>");
             return sb.ToString();
         }
@@ -750,19 +750,32 @@ namespace SI24004.Services
         private string GenerateEmptyReportBody(DateTime reportTime, DateTime fromTime, DateTime toTime)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("<!DOCTYPE html>");
-            sb.AppendLine("<html><head><meta charset='UTF-8'></head>");
-            sb.AppendLine("<body style='font-family: Arial, sans-serif; margin: 20px;'>");
-
             var timeSlot = GetTimeSlotName(reportTime.Hour);
-            sb.AppendLine($"<h2 style='color: #4caf50;'>? Polishing Report - All Clear ({timeSlot})</h2>");
-            sb.AppendLine($"<p><strong>Report Time:</strong> {reportTime:yyyy-MM-dd HH:mm:ss}</p>");
-            sb.AppendLine($"<p><strong>Period:</strong> {fromTime:yyyy-MM-dd HH:mm} - {toTime:yyyy-MM-dd HH:mm}</p>");
-            sb.AppendLine("<p style='color: #4caf50; font-size: 16px;'><strong>?? No issues found in this period</strong></p>");
-            sb.AppendLine("<p>All Polishing processes are running normally with no Rescreen, Hold, or Scrap items.</p>");
-            sb.AppendLine("<hr><p><small>?? Automated Report - Polishing System</small></p>");
-            sb.AppendLine("</body></html>");
-
+            sb.AppendLine("<!DOCTYPE html>");
+            sb.AppendLine("<html><head><meta charset='UTF-8'>");
+            sb.AppendLine("<style>");
+            sb.AppendLine("  body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; color: #333; }");
+            sb.AppendLine("  .container { max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }");
+            sb.AppendLine("  .header { background: linear-gradient(135deg, #2e7d32, #43a047); padding: 24px 32px; color: #fff; }");
+            sb.AppendLine("  .header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 700; }");
+            sb.AppendLine("  .header p { margin: 0; font-size: 13px; opacity: 0.85; }");
+            sb.AppendLine("  .body { padding: 28px 32px; }");
+            sb.AppendLine("  .ok-icon { font-size: 48px; text-align: center; margin-bottom: 12px; }");
+            sb.AppendLine("  .ok-msg { font-size: 18px; font-weight: 700; color: #2e7d32; text-align: center; margin-bottom: 8px; }");
+            sb.AppendLine("  .period { background: #f1f8e9; border-left: 4px solid #66bb6a; padding: 12px 16px; border-radius: 4px; font-size: 13px; margin-top: 20px; }");
+            sb.AppendLine("  .footer { padding: 14px 32px; background: #f9f9f9; border-top: 1px solid #eee; font-size: 11px; color: #999; }");
+            sb.AppendLine("</style></head>");
+            sb.AppendLine("<body><div class='container'>");
+            sb.AppendLine($"<div class='header'><h1>✅ รายงานสถานะ OE-Polishing — {timeSlot}</h1>");
+            sb.AppendLine($"<p>{reportTime:dd/MM/yyyy HH:mm}</p></div>");
+            sb.AppendLine("<div class='body'>");
+            sb.AppendLine("<div class='ok-icon'>✅</div>");
+            sb.AppendLine("<div class='ok-msg'>ปกติ — ไม่พบ LOT ผิดปกติในช่วงเวลานี้</div>");
+            sb.AppendLine("<p style='text-align:center;color:#666;font-size:13px'>กระบวนการ Polishing ทำงานปกติ ไม่มีรายการ Rescreen / Hold / Scrap</p>");
+            sb.AppendLine($"<div class='period'><strong>ช่วงเวลาที่ตรวจสอบ:</strong><br>{fromTime:dd/MM/yyyy HH:mm} — {toTime:dd/MM/yyyy HH:mm}</div>");
+            sb.AppendLine("</div>");
+            sb.AppendLine($"<div class='footer'>สร้างอัตโนมัติเมื่อ {DateTime.Now:dd/MM/yyyy HH:mm:ss} &bull; ระบบแจ้งเตือน OE-Polishing &bull; กรุณาอย่า Reply อีเมลฉบับนี้</div>");
+            sb.AppendLine("</div></body></html>");
             return sb.ToString();
         }
 
@@ -787,13 +800,13 @@ namespace SI24004.Services
         {
             return hour switch
             {
-                0 => "Midnight Shift (00:00)",
-                >= 6 and < 12 => "Morning Shift (06:00)",
-                12 => "Noon Shift (12:00)",
-                >= 18 and < 24 => "Evening Shift (18:00)",
-                >= 1 and < 6 => "Early Morning Shift",
-                >= 13 and < 18 => "Afternoon Shift",
-                _ => "Unknown Shift"
+                0  => "กะดึก (00:00)",
+                >= 1 and < 6  => "กะดึก (ช่วงเช้ามืด)",
+                >= 6 and < 12 => "กะเช้า (06:00)",
+                12 => "กะบ่าย (12:00)",
+                >= 13 and < 18 => "กะบ่าย (ช่วงบ่าย)",
+                >= 18 and < 24 => "กะเย็น (18:00)",
+                _ => "ไม่ระบุกะ"
             };
         }
 
