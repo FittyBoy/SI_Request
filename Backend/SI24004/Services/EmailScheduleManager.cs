@@ -651,42 +651,48 @@ namespace SI24004.Services
             sb.AppendLine("<!DOCTYPE html>");
             sb.AppendLine("<html><head><meta charset='UTF-8'>");
             sb.AppendLine("<style>");
-            sb.AppendLine("  body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f0f2f5; color: #333; }");
-            sb.AppendLine("  .badge { display: inline-block; padding: 3px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; }");
-            sb.AppendLine("  .badge-rescreen { background: #ffebee; color: #c62828; }");
-            sb.AppendLine("  .badge-hold     { background: #e3f2fd; color: #1565c0; }");
-            sb.AppendLine("  .badge-scrap    { background: #fce4ec; color: #880e4f; }");
-            sb.AppendLine("  .badge-ok       { background: #e8f5e9; color: #2e7d32; }");
+            sb.AppendLine("  .badge { display:inline-block; padding:2px 10px; border-radius:3px; font-size:11px; font-weight:700; letter-spacing:0.04em; }");
+            sb.AppendLine("  .badge-rescreen { background:#ffebee; color:#c62828; }");
+            sb.AppendLine("  .badge-hold     { background:#e3f2fd; color:#1565c0; }");
+            sb.AppendLine("  .badge-scrap    { background:#fce4ec; color:#880e4f; }");
+            sb.AppendLine("  .badge-ok       { background:#e8f5e9; color:#2e7d32; }");
             sb.AppendLine("</style></head>");
-            sb.AppendLine("<body style='font-family:Arial,sans-serif;margin:0;padding:20px;background:#f0f2f5;color:#333'>");
-            sb.AppendLine("<table width='760' cellpadding='0' cellspacing='0' border='0' align='center' style='max-width:760px;background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e0e0e0'>");
+            sb.AppendLine("<body style='font-family:Arial,sans-serif;margin:0;padding:24px;background:#f0f2f5;color:#333'>");
+            sb.AppendLine("<table width='720' cellpadding='0' cellspacing='0' border='0' align='center' style='max-width:720px;background:#ffffff;border:1px solid #dddddd'>");
 
-            // Header
-            sb.AppendLine("<tr><td style='background:#c62828;padding:24px 32px'>");
-            sb.AppendLine($"<p style='margin:0 0 4px;font-size:22px;font-weight:700;color:#ffffff'>&#128276; แจ้งเตือน LOT ผิดปกติ &mdash; OE Polishing</p>");
-            sb.AppendLine($"<p style='margin:0;font-size:13px;color:#ffcdd2'>ช่วงเวลา: {fromTime:dd/MM/yyyy HH:mm} &ndash; {reportTime:dd/MM/yyyy HH:mm} &nbsp;|&nbsp; {GetTimeSlotName(reportTime.Hour)}</p>");
+            // Red top bar
+            sb.AppendLine("<tr><td height='5' style='background:#b71c1c;font-size:0;line-height:0'>&nbsp;</td></tr>");
+
+            // Dark header
+            sb.AppendLine("<tr><td style='background:#1a1a2e;padding:28px 36px'>");
+            sb.AppendLine("<table width='100%' cellpadding='0' cellspacing='0' border='0'><tr><td>");
+            sb.AppendLine("<p style='margin:0 0 10px'><span style='display:inline-block;background:#b71c1c;color:#ffffff;font-size:10px;font-weight:700;letter-spacing:0.12em;padding:3px 10px'>&#9888; ALERT</span></p>");
+            sb.AppendLine($"<p style='margin:0 0 10px;font-size:20px;font-weight:700;color:#ffffff;line-height:1.3'>แจ้งเตือน LOT ผิดปกติ &mdash; OE Polishing</p>");
+            sb.AppendLine($"<p style='margin:0;font-size:12px;color:#8888aa'>&#128337;&nbsp; {fromTime:dd/MM/yyyy HH:mm} &ndash; {reportTime:dd/MM/yyyy HH:mm} &nbsp;&nbsp;|&nbsp;&nbsp; {GetTimeSlotName(reportTime.Hour)} &nbsp;&nbsp;|&nbsp;&nbsp; &#128197;&nbsp; {reportTime:dd/MM/yyyy}</p>");
+            sb.AppendLine("</td></tr></table>");
             sb.AppendLine("</td></tr>");
 
-            // Summary stats row — table-based for Outlook compatibility
-            sb.AppendLine("<tr><td style='background:#fafafa;padding:20px 32px;border-bottom:1px solid #eeeeee'>");
+            // Stat cards — table-based for Outlook compatibility
+            sb.AppendLine("<tr><td style='background:#f8f8fb;padding:18px 36px;border-bottom:1px solid #e8e8ef'>");
             sb.AppendLine("<table width='100%' cellpadding='0' cellspacing='8' border='0'><tr>");
-            sb.AppendLine($"<td width='20%' align='center' style='background:#fff3e0;padding:14px 8px;border-radius:8px;border:1px solid #ffe0b2'><p style='margin:0;font-size:30px;font-weight:700;color:#e65100;line-height:1'>{total}</p><p style='margin:4px 0 0;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#bf360c'>TOTAL</p></td>");
-            sb.AppendLine($"<td width='20%' align='center' style='background:#ffebee;padding:14px 8px;border-radius:8px;border:1px solid #ffcdd2'><p style='margin:0;font-size:30px;font-weight:700;color:#c62828;line-height:1'>{rescreenPending}</p><p style='margin:4px 0 0;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#b71c1c'>RESCREEN</p></td>");
-            sb.AppendLine($"<td width='20%' align='center' style='background:#e8f5e9;padding:14px 8px;border-radius:8px;border:1px solid #c8e6c9'><p style='margin:0;font-size:30px;font-weight:700;color:#2e7d32;line-height:1'>{rescreenOk}</p><p style='margin:4px 0 0;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#1b5e20'>RESCREEN OK</p></td>");
-            sb.AppendLine($"<td width='20%' align='center' style='background:#e3f2fd;padding:14px 8px;border-radius:8px;border:1px solid #bbdefb'><p style='margin:0;font-size:30px;font-weight:700;color:#1565c0;line-height:1'>{hold}</p><p style='margin:4px 0 0;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#0d47a1'>HOLD</p></td>");
-            sb.AppendLine($"<td width='20%' align='center' style='background:#fce4ec;padding:14px 8px;border-radius:8px;border:1px solid #f8bbd0'><p style='margin:0;font-size:30px;font-weight:700;color:#880e4f;line-height:1'>{scrap}</p><p style='margin:4px 0 0;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#880e4f'>SCRAP</p></td>");
+            sb.AppendLine($"<td width='20%' align='center' style='background:#ffffff;padding:14px 6px;border:1px solid #eeeeee;border-top:3px solid #e65100'><p style='margin:0;font-size:28px;font-weight:700;color:#e65100;line-height:1'>{total}</p><p style='margin:5px 0 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#999999'>Total</p></td>");
+            sb.AppendLine($"<td width='20%' align='center' style='background:#ffffff;padding:14px 6px;border:1px solid #eeeeee;border-top:3px solid #c62828'><p style='margin:0;font-size:28px;font-weight:700;color:#c62828;line-height:1'>{rescreenPending}</p><p style='margin:5px 0 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#999999'>Rescreen</p></td>");
+            sb.AppendLine($"<td width='20%' align='center' style='background:#ffffff;padding:14px 6px;border:1px solid #eeeeee;border-top:3px solid #2e7d32'><p style='margin:0;font-size:28px;font-weight:700;color:#2e7d32;line-height:1'>{rescreenOk}</p><p style='margin:5px 0 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#999999'>Rescreen OK</p></td>");
+            sb.AppendLine($"<td width='20%' align='center' style='background:#ffffff;padding:14px 6px;border:1px solid #eeeeee;border-top:3px solid #1565c0'><p style='margin:0;font-size:28px;font-weight:700;color:#1565c0;line-height:1'>{hold}</p><p style='margin:5px 0 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#999999'>Hold</p></td>");
+            sb.AppendLine($"<td width='20%' align='center' style='background:#ffffff;padding:14px 6px;border:1px solid #eeeeee;border-top:3px solid #880e4f'><p style='margin:0;font-size:28px;font-weight:700;color:#880e4f;line-height:1'>{scrap}</p><p style='margin:5px 0 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#999999'>Scrap</p></td>");
             sb.AppendLine("</tr></table>");
             sb.AppendLine("</td></tr>");
 
-            // Table
-            sb.AppendLine("<tr><td style='padding:24px 32px'>");
+            // Section label + table
+            sb.AppendLine("<tr><td style='padding:24px 36px'>");
+            sb.AppendLine("<p style='margin:0 0 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:#aaaaaa'>รายการ LOT ที่ผิดปกติ</p>");
             sb.AppendLine("<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse:collapse;font-size:13px'>");
-            sb.AppendLine("<thead><tr style='background:#f5f5f5'>");
-            sb.AppendLine("  <th align='center' style='padding:10px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#666;border-bottom:2px solid #e0e0e0;width:44px'>No.</th>");
-            sb.AppendLine("  <th align='left'   style='padding:10px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#666;border-bottom:2px solid #e0e0e0'>PO Lot</th>");
-            sb.AppendLine("  <th align='center' style='padding:10px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#666;border-bottom:2px solid #e0e0e0;width:60px'>MC</th>");
-            sb.AppendLine("  <th align='center' style='padding:10px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#666;border-bottom:2px solid #e0e0e0'>Status Thickness</th>");
-            sb.AppendLine("  <th align='center' style='padding:10px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#666;border-bottom:2px solid #e0e0e0'>Status</th>");
+            sb.AppendLine("<thead><tr style='background:#f4f4f7'>");
+            sb.AppendLine("  <th align='center' style='padding:9px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#888888;border-bottom:2px solid #e4e4ec;width:40px'>No.</th>");
+            sb.AppendLine("  <th align='left'   style='padding:9px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#888888;border-bottom:2px solid #e4e4ec'>PO Lot</th>");
+            sb.AppendLine("  <th align='center' style='padding:9px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#888888;border-bottom:2px solid #e4e4ec;width:56px'>MC</th>");
+            sb.AppendLine("  <th align='center' style='padding:9px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#888888;border-bottom:2px solid #e4e4ec'>Status Thickness</th>");
+            sb.AppendLine("  <th align='center' style='padding:9px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#888888;border-bottom:2px solid #e4e4ec'>Status</th>");
             sb.AppendLine("</tr></thead><tbody>");
 
             int rowNumber = 1;
@@ -716,19 +722,33 @@ namespace SI24004.Services
                 string finalStatus = (status == "RESCREEN" && isRescreenCompleted)
                     ? "<span class='badge badge-ok'>Rescreen OK</span>" : "";
 
+                string leftBorder = status switch
+                {
+                    "RESCREEN" when isRescreenCompleted => "border-left:3px solid #66bb6a",
+                    "RESCREEN"                          => "border-left:3px solid #ef5350",
+                    "HOLD"                              => "border-left:3px solid #42a5f5",
+                    "SCRAP"                             => "border-left:3px solid #ec407a",
+                    _                                   => "border-left:3px solid transparent"
+                };
                 sb.AppendLine($"<tr style='background:{bgColor}'>");
-                sb.AppendLine($"  <td align='center' style='padding:10px 12px;border-bottom:1px solid #f0f0f0;color:#999;font-size:12px'>{rowNumber}</td>");
-                sb.AppendLine($"  <td style='padding:10px 12px;border-bottom:1px solid #f0f0f0;font-family:monospace;font-size:12px'>{poLot}</td>");
-                sb.AppendLine($"  <td align='center' style='padding:10px 12px;border-bottom:1px solid #f0f0f0'>{mc}</td>");
-                sb.AppendLine($"  <td align='center' style='padding:10px 12px;border-bottom:1px solid #f0f0f0'><span class='badge {badgeClass}'>{status}</span></td>");
-                sb.AppendLine($"  <td align='center' style='padding:10px 12px;border-bottom:1px solid #f0f0f0'>{finalStatus}</td>");
+                sb.AppendLine($"  <td align='center' style='padding:10px 12px;border-bottom:1px solid #f0f0f6;color:#bbbbbb;font-size:11px;{leftBorder}'>{rowNumber}</td>");
+                sb.AppendLine($"  <td style='padding:10px 12px;border-bottom:1px solid #f0f0f6;font-family:monospace;font-size:12px;color:#333333'>{poLot}</td>");
+                sb.AppendLine($"  <td align='center' style='padding:10px 12px;border-bottom:1px solid #f0f0f6;font-weight:700'>{mc}</td>");
+                sb.AppendLine($"  <td align='center' style='padding:10px 12px;border-bottom:1px solid #f0f0f6'><span class='badge {badgeClass}'>{status}</span></td>");
+                sb.AppendLine($"  <td align='center' style='padding:10px 12px;border-bottom:1px solid #f0f0f6'>{finalStatus}</td>");
                 sb.AppendLine("</tr>");
                 rowNumber++;
             }
 
             sb.AppendLine("</tbody></table>");
             sb.AppendLine("</td></tr>");
-            sb.AppendLine($"<tr><td style='padding:14px 32px;background:#f9f9f9;border-top:1px solid #eeeeee;font-size:11px;color:#999'>สร้างอัตโนมัติเมื่อ {DateTime.Now:dd/MM/yyyy HH:mm:ss} &bull; ระบบแจ้งเตือน OE-Polishing &bull; กรุณาอย่า Reply อีเมลฉบับนี้</td></tr>");
+            // Footer
+            sb.AppendLine($"<tr><td style='padding:14px 36px;background:#f4f4f7;border-top:1px solid #e8e8ef'>");
+            sb.AppendLine($"<table width='100%' cellpadding='0' cellspacing='0' border='0'><tr>");
+            sb.AppendLine($"  <td style='font-size:11px;color:#aaaaaa'>สร้างอัตโนมัติเมื่อ {DateTime.Now:dd/MM/yyyy HH:mm:ss} &bull; กรุณาอย่า Reply อีเมลฉบับนี้</td>");
+            sb.AppendLine($"  <td align='right' style='font-size:10px;font-weight:700;letter-spacing:0.08em;color:#b71c1c;text-transform:uppercase'>OE-Polishing System</td>");
+            sb.AppendLine($"</tr></table>");
+            sb.AppendLine("</td></tr>");
             sb.AppendLine("</table>");
             sb.AppendLine("</body></html>");
             return sb.ToString();
