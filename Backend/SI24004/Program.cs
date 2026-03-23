@@ -147,6 +147,10 @@ builder.Services.Configure<SI24004.Models.DTOs.EmailRecipients>(options =>
 // Email service registration
 builder.Services.AddSingleton<SI24004.Services.Interfaces.IEmailRecipientsService, SI24004.Services.EmailRecipientsService>();
 
+// Bind ScheduleSettings from appsettings.json
+builder.Services.Configure<SI24004.Models.DTOs.ScheduleSettings>(
+    builder.Configuration.GetSection("ScheduleSettings"));
+
 // Register EmailScheduleManager as singleton (accessible via DI)
 builder.Services.AddSingleton<SI24004.Services.EmailScheduleManager>();
 builder.Services.AddSingleton<SI24004.Services.Interfaces.IEmailScheduleManager>(provider =>
