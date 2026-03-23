@@ -395,7 +395,58 @@ app.MapPost("/trigger-email", async (IEmailScheduleManager emailManager, ILogger
     }
 });
 
-// Improved warmup endpoint
+// Debug SMTP endpoint - ดู settings จริงที่โหลดอยู่
+app.MapGet("/debug-smtp", (IOptions<SmtpSettings> smtpOptions, IOptions<EmailRecipients> recipientsOptions) =>
+{
+    var smtp = smtpOptions.Value;
+    var recipients = recipientsOptions.Value;
+    return Results.Ok(new
+    {
+        SmtpHost     = smtp.Host,
+        SmtpPort     = smtp.Port,
+        FromEmail    = smtp.FromEmail,
+        FromName     = smtp.FromName,
+        EnableSsl    = smtp.EnableSsl,
+        UseDefaultCredentials = smtp.UseDefaultCredentials,
+        HasUsername  = !string.IsNullOrEmpty(smtp.Username),
+        HasPassword  = !string.IsNullOrEmpty(smtp.Password),
+        ToCount      = recipients?.To?.Count ?? 0,
+        ToList       = recipients?.To ?? new List<string>(),
+        CcCount      = recipients?.Cc?.Count ?? 0,
+        BccCount     = recipients?.Bcc?.Count ?? 0,
+    });
+});
+
+// Test SMTP connection endpoint
+app.MapPost("/test-smtp-connection", async (IOptions<SmtpSettings> smtpOptions, ILogger<Program> logger) =>
+{
+    var smtp = smtpOptions.Value;
+    try
+    {
+        using var client = new System.Net.Mail.SmtpClient(smtp.Host, smtp.Port);
+        client.EnableSsl = smtp.EnableSsl;
+        client.UseDefaultCredentials = smtp.UseDefaultCredentials;
+        client.Timeout = 10000;
+
+        var msg = new System.Net.Mail.MailMessage();
+        msg.From = new System.Net.Mail.MailAddress(smtp.FromEmail, smtp.FromName);
+        msg.To.Add("anupong.ohok@agc.com");
+        msg.Subject = "SMTP Test - SI24004";
+        msg.Body = $"SMTP connection test from SI24004 at {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
+        msg.IsBodyHtml = false;
+
+        await client.SendMailAsync(msg);
+
+        return Results.Ok(new { Status = "Success", Message = "Test email sent to anupong.ohok@agc.com", Smtp = smtp.Host, Port = smtp.Port });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "SMTP test failed");
+        return Results.Problem($"SMTP failed: {ex.Message} | InnerException: {ex.InnerException?.Message}");
+    }
+});
+
+
 app.MapGet("/warmup", (IEmailScheduleManager emailManager, IServiceProvider serviceProvider, ILogger<Program> logger) =>
 {
     try
