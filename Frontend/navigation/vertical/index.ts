@@ -24,19 +24,6 @@ export default (roleName?: string | null, sectionName?: string) => {
       ],
     },
     {
-      title: 'Lapping',
-      icon: { icon: 'tabler-layers-difference' },
-      children: [
-        ...(role === 'admin' || section === 'OE-FP_Lapping'
-          ? [{
-              title: 'Material Control',
-              to: { name: 'lapping' },
-              icon: { icon: 'tabler-box' },
-            }]
-          : []),
-      ],
-    },
-    {
       title: 'QA',
       icon: { icon: 'tabler-microscope' },
       children: [
