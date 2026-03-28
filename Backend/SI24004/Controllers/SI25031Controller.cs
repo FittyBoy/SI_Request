@@ -515,24 +515,25 @@ namespace SI24004.Controllers
                     checkSt = thRecord.Status.ToUpper() == "OK";
                 }
 
-                // ✅ CT Suffix Rule: ถ้า NoPo ลงท้าย -C/-T และ TH_Record = OK
-                // → บังคับให้ลงหน้า Rescreen ก่อน แล้วค่อยลงหน้า check_flow
+                // ✅ CT Suffix Rule: ถ้า NoPo ลงท้าย -C/-T (ทุก status ไม่ใช่แค่ OK)
+                // → ต้องผ่านหน้า Rescreen Check ก่อนเสมอ ไม่ว่า TH_Record จะเป็น OK หรือ Rescreen
                 bool requiresCTRescreen = false;
-                if (IsCTSuffix(thRecord.NoPo) && thRecord.Status?.ToUpper() == "OK")
+                if (IsCTSuffix(thRecord.NoPo))
                 {
                     var ctRescreenRecord = await _context.RescreenCheckRecords1
                         .FirstOrDefaultAsync(r => r.ImobileLot == thRecord.ImobileLot);
 
                     if (ctRescreenRecord != null && ctRescreenRecord.FinalStatus?.ToUpper() == "OK")
                     {
-                        // ผ่านหน้า Rescreen แล้ว → บันทึกได้ด้วยสถานะ OK (Rescreen)
+                        // ผ่านหน้า Rescreen แล้วและ FinalStatus = OK → บันทึกได้
                         checkSt = true;
                         finalStatus = "OK (Rescreen)";
                         requiresCTRescreen = false;
                     }
                     else
                     {
-                        // ยังไม่ผ่านหน้า Rescreen → บังคับให้ไปลงก่อน
+                        // ยังไม่มีใน Rescreen Check หรือ FinalStatus ไม่ใช่ OK
+                        // → บังคับไปลงหน้า Rescreen ก่อน ไม่ว่า status เดิมจะเป็นอะไร
                         checkSt = false;
                         finalStatus = "Rescreen";
                         requiresCTRescreen = true;
@@ -987,9 +988,9 @@ namespace SI24004.Controllers
                         return BadRequest(new { success = false, message = $"LOT นี้อยู่ในสถานะ {thRecord.Status} ไม่สามารถบันทึกได้" });
                     }
 
-                    // ✅ CT Suffix Rule: NoPo ลงท้าย -C/-T และ TH_Record = OK
-                    // → ต้องผ่านหน้า Rescreen ก่อนบันทึก check_flow
-                    if (IsCTSuffix(thRecord.NoPo) && thRecord.Status.ToUpper() == "OK")
+                    // ✅ CT Suffix Rule: NoPo ลงท้าย -C/-T (ทุก status ไม่ใช่แค่ OK)
+                    // → ต้องผ่านหน้า Rescreen Check ก่อนเสมอ ไม่ว่า TH_Record จะเป็น OK หรือ Rescreen
+                    if (IsCTSuffix(thRecord.NoPo))
                     {
                         var ctRescreenRecord = await _context.RescreenCheckRecords1
                             .FirstOrDefaultAsync(r => r.ImobileLot == thRecord.ImobileLot);
@@ -1005,7 +1006,7 @@ namespace SI24004.Controllers
                             });
                         }
 
-                        // ผ่าน Rescreen แล้ว → บันทึกด้วยสถานะ OK (Rescreen)
+                        // ผ่าน Rescreen แล้วและ FinalStatus = OK → บันทึกได้ด้วยสถานะ OK (Rescreen)
                         checkSt = true;
                         finalStatus = "OK (Rescreen)";
                     }
