@@ -275,9 +275,6 @@
                                     • <strong>LOT ลงท้าย -C / -T</strong> ต้องลงหน้า <strong>Rescreen Check ก่อนเสมอ</strong>
                                 </small>
                             </div>
-                                    • <strong>REP Product</strong> (format: XXXXX-REP-001-N) บันทึกโดยไม่ต้องใส่ Qty
-                                </small>
-                            </div>
                         </div>
 
                         <transition name="fade">
