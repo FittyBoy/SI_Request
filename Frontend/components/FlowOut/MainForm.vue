@@ -2725,4 +2725,94 @@ onUnmounted(() => {
 
 .badge-skipped-hold { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
 .dark .badge-skipped-hold { background: rgba(59,130,246,.2); color: #93c5fd; border: 1px solid #1e40af; }
+
+/* ── Page-load animations ── */
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.94); }
+    to   { opacity: 1; transform: scale(1); }
+}
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(102,126,234,0.4); }
+    50%       { box-shadow: 0 0 0 8px rgba(102,126,234,0); }
+}
+@keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+}
+@keyframes bounceIn {
+    0%   { opacity: 0; transform: scale(0.3); }
+    50%  { transform: scale(1.08); }
+    70%  { transform: scale(0.96); }
+    100% { opacity: 1; transform: scale(1); }
+}
+@keyframes slideRight {
+    from { opacity: 0; transform: translateX(-20px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Apply entry animations */
+.header          { animation: fadeIn 0.35s ease-out both; }
+.lot-card        { animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) 0.05s both; }
+.stats-section   { animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) 0.1s both; }
+.mc-section      { animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) 0.15s both; }
+.lots-section    { animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) 0.2s both; }
+
+/* Stat cards stagger */
+.stat-card:nth-child(1) { animation: scaleIn 0.35s cubic-bezier(0.22,1,0.36,1) 0.12s both; }
+.stat-card:nth-child(2) { animation: scaleIn 0.35s cubic-bezier(0.22,1,0.36,1) 0.18s both; }
+.stat-card:nth-child(3) { animation: scaleIn 0.35s cubic-bezier(0.22,1,0.36,1) 0.24s both; }
+
+/* MC buttons pop in stagger */
+.mc-btn { animation: scaleIn 0.3s cubic-bezier(0.22,1,0.36,1) both; }
+.mc-btn:nth-child(1)  { animation-delay: 0.05s; }
+.mc-btn:nth-child(2)  { animation-delay: 0.08s; }
+.mc-btn:nth-child(3)  { animation-delay: 0.11s; }
+.mc-btn:nth-child(4)  { animation-delay: 0.14s; }
+.mc-btn:nth-child(5)  { animation-delay: 0.17s; }
+.mc-btn:nth-child(6)  { animation-delay: 0.20s; }
+.mc-btn:nth-child(7)  { animation-delay: 0.23s; }
+.mc-btn:nth-child(8)  { animation-delay: 0.26s; }
+
+/* Active MC pulse */
+.mc-btn.active { animation: pulseGlow 2s ease-in-out infinite; }
+
+/* Lot items slide in */
+.lot-item { animation: slideRight 0.3s cubic-bezier(0.22,1,0.36,1) both; }
+.lot-item:nth-child(1) { animation-delay: 0.05s; }
+.lot-item:nth-child(2) { animation-delay: 0.08s; }
+.lot-item:nth-child(3) { animation-delay: 0.11s; }
+.lot-item:nth-child(4) { animation-delay: 0.14s; }
+.lot-item:nth-child(5) { animation-delay: 0.17s; }
+
+/* Status card pop */
+.status-ok-card   { animation: bounceIn 0.5s cubic-bezier(0.22,1,0.36,1) both; }
+.status-ng-card   { animation: bounceIn 0.5s cubic-bezier(0.22,1,0.36,1) both; }
+.status-hold-card { animation: bounceIn 0.5s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* Duplicate banner slide down */
+.duplicate-banner { animation: slideDown 0.4s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* Success notice */
+.success-notice { animation: scaleIn 0.35s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* Input focus ring expand */
+.lot-input:focus {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease !important;
+}
+
+/* Button hover lift */
+.btn-save:not(:disabled):hover,
+.btn-sendback:not(:disabled):hover,
+.btn-cancel:hover {
+    transform: translateY(-2px);
+    transition: all 0.2s cubic-bezier(0.22,1,0.36,1) !important;
+}
 </style>

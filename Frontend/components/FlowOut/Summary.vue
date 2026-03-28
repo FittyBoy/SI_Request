@@ -1175,4 +1175,59 @@ onMounted(async () => {
   .rep-lot-item { min-width: 120px; }
   .rep-group { min-width: 100%; }
 }
+
+/* ── Page-load & micro-interaction animations ── */
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.92); }
+    to   { opacity: 1; transform: scale(1); }
+}
+@keyframes slideRight {
+    from { opacity: 0; transform: translateX(-16px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes countUp {
+    from { opacity: 0; transform: translateY(8px) scale(0.85); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Entry animations */
+.header         { animation: fadeUp 0.35s cubic-bezier(0.22,1,0.36,1) both; }
+.input-group    { animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) 0.05s both; }
+.stats-overview { animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) 0.1s both; }
+.content        { animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) 0.12s both; }
+
+/* Stat cards stagger */
+.stats-overview > *:nth-child(1) { animation: scaleIn 0.35s cubic-bezier(0.22,1,0.36,1) 0.1s both; }
+.stats-overview > *:nth-child(2) { animation: scaleIn 0.35s cubic-bezier(0.22,1,0.36,1) 0.15s both; }
+.stats-overview > *:nth-child(3) { animation: scaleIn 0.35s cubic-bezier(0.22,1,0.36,1) 0.2s both; }
+.stats-overview > *:nth-child(4) { animation: scaleIn 0.35s cubic-bezier(0.22,1,0.36,1) 0.25s both; }
+
+/* Rep group items slide in */
+.rep-group     { animation: slideRight 0.3s cubic-bezier(0.22,1,0.36,1) both; }
+.rep-group:nth-child(1) { animation-delay: 0.1s; }
+.rep-group:nth-child(2) { animation-delay: 0.15s; }
+.rep-group:nth-child(3) { animation-delay: 0.2s; }
+.rep-group:nth-child(4) { animation-delay: 0.25s; }
+
+/* Rep lot items appear */
+.rep-lot-item  { animation: scaleIn 0.25s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* Machine column slide down */
+.machine-wrapper { animation: slideDown 0.35s cubic-bezier(0.22,1,0.36,1) 0.08s both; }
+
+/* Button hover lift */
+.header-actions button:hover,
+.header-actions a:hover {
+    transform: translateY(-2px);
+    transition: transform 0.18s cubic-bezier(0.22,1,0.36,1),
+                box-shadow 0.18s ease !important;
+}
 </style>

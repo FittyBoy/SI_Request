@@ -1328,4 +1328,57 @@ onUnmounted(() => {
     .search-item { max-width: 100%; }
     .filter-result-count { margin-left: 0; }
 }
+
+/* ── Page-load & micro-interaction animations ── */
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.92); }
+    to   { opacity: 1; transform: scale(1); }
+}
+@keyframes slideRight {
+    from { opacity: 0; transform: translateX(-16px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes pulseRing {
+    0%   { box-shadow: 0 0 0 0 rgba(251,191,36,0.5); }
+    70%  { box-shadow: 0 0 0 10px rgba(251,191,36,0); }
+    100% { box-shadow: 0 0 0 0 rgba(251,191,36,0); }
+}
+@keyframes countUp {
+    from { opacity: 0; transform: translateY(6px) scale(0.85); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Entry animations */
+.header          { animation: fadeUp 0.35s cubic-bezier(0.22,1,0.36,1) both; }
+.scanner-wrapper { animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) 0.05s both; }
+.stats-grid      { animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) 0.1s both; }
+.content         { animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) 0.15s both; }
+
+/* Stat cards stagger */
+.stat-card:nth-child(1) { animation: scaleIn 0.35s cubic-bezier(0.22,1,0.36,1) 0.12s both; }
+.stat-card:nth-child(2) { animation: scaleIn 0.35s cubic-bezier(0.22,1,0.36,1) 0.18s both; }
+.stat-card:nth-child(3) { animation: scaleIn 0.35s cubic-bezier(0.22,1,0.36,1) 0.24s both; }
+
+/* Stat numbers pop */
+.stat-value { animation: countUp 0.4s cubic-bezier(0.22,1,0.36,1) 0.3s both; }
+
+/* Pending stat pulse to draw attention */
+.stat-card.pending { animation: scaleIn 0.35s cubic-bezier(0.22,1,0.36,1) 0.24s both,
+                                pulseRing 2.5s ease-out 1s infinite; }
+
+/* Table rows slide in */
+.lot-row { animation: slideRight 0.28s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* Button hover lift */
+.btn-check-status:hover,
+.btn-refresh:hover,
+.btn-add:hover {
+    transform: translateY(-2px);
+    transition: transform 0.18s cubic-bezier(0.22,1,0.36,1),
+                box-shadow 0.18s ease !important;
+}
 </style>
