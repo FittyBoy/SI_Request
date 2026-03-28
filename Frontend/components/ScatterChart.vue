@@ -7,7 +7,7 @@ import { ref, watch, onMounted, onBeforeUnmount, computed, nextTick } from "vue"
 import ThicknessMonitorDialog from "@/components/ThicknessMonitorDialog.vue";
 
 // ===== PROPS =====
-const props = withDefaults(defineProps<{
+const deepLinkProps = withDefaults(defineProps<{
     initialLot?: string | null
     initialSize?: string | null
     autoOpenMonitor?: boolean
@@ -1094,13 +1094,13 @@ onMounted(async () => {
             ImobileSizes.value = cleaned;
 
             // ── Deep-link: apply props first ──────────────────────────────
-            if (props.initialSize && cleaned.includes(props.initialSize)) {
+            if (deepLinkProps.initialSize && cleaned.includes(deepLinkProps.initialSize)) {
                 // Size ที่ส่งมาจาก query param ตรงกับข้อมูล → ใช้เลย
-                ImobileSize.value = props.initialSize;
-            } else if (props.initialLot && Records.value) {
+                ImobileSize.value = deepLinkProps.initialSize;
+            } else if (deepLinkProps.initialLot && Records.value) {
                 // หา size จาก lot ที่ระบุมา
                 const matchRec = Records.value.find(
-                    r => (r.ImobileLot || r.LotId) === props.initialLot
+                    r => (r.ImobileLot || r.LotId) === deepLinkProps.initialLot
                 );
                 if (matchRec) ImobileSize.value = matchRec.ImobileSize;
             } else {
@@ -1127,12 +1127,12 @@ onMounted(async () => {
         }
 
         // ── Deep-link: auto-open Monitor dialog ───────────────────────────
-        if (props.autoOpenMonitor && props.initialLot) {
+        if (deepLinkProps.autoOpenMonitor && deepLinkProps.initialLot) {
             await nextTick();
             // รอให้ LotChartList computed มีข้อมูล
             await nextTick();
             const target = LotChartList.value.find(
-                lc => lc.LotId === props.initialLot
+                lc => lc.LotId === deepLinkProps.initialLot
             ) ?? LotChartList.value[0] ?? null;
             if (target) OpenMonitorDialog(target);
         }
