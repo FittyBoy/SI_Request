@@ -122,12 +122,19 @@ namespace SI24004.Controllers
                 if (thRecord == null)
                     return NotFound(new { success = false, message = $"ไม่พบ LOT: {request.ImobileLot}" });
 
-                if (string.IsNullOrEmpty(thRecord.Status) || thRecord.Status.ToLower() != "rescreen")
-                    return BadRequest(new
-                    {
-                        success = false,
-                        message = $"LOT นี้ไม่ใช่ Rescreen\n\nStatus ปัจจุบัน: {thRecord.Status ?? "N/A"}"
-                    });
+                // ✅ CT Suffix Rule: ถ้า NoPo ลงท้าย -C/-T/-N → ข้ามการเช็ค status
+                // เพราะ business rule กำหนดให้ต้องผ่านหน้า Rescreen เสมอ ไม่ว่า status จะเป็นอะไร
+                bool isCTSuffix = IsCTSuffix(thRecord.NoPo);
+
+                if (!isCTSuffix)
+                {
+                    if (string.IsNullOrEmpty(thRecord.Status) || thRecord.Status.ToLower() != "rescreen")
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = $"LOT นี้ไม่ใช่ Rescreen\n\nStatus ปัจจุบัน: {thRecord.Status ?? "N/A"}"
+                        });
+                }
 
                 var existingRecord = await _context.RescreenCheckRecords1
                     .FirstOrDefaultAsync(r => r.ImobileLot == request.ImobileLot);

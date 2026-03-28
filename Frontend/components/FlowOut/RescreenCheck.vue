@@ -98,12 +98,21 @@
                             <svg v-if="alertType === 'success'" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
                             </svg>
+                            <svg v-else-if="alertType === 'info'" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
                             <svg v-else xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                             </svg>
                         </div>
                         <div class="alert-content">
                             <div class="alert-message" v-html="formatMessage(alertMessage)"></div>
+                            <button v-if="alertType === 'info'" class="btn-goto-checkflow" @click="$emit('go-back')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <polyline points="9 18 15 12 9 6"/>
+                                </svg>
+                                ไปหน้า Check Flow
+                            </button>
                         </div>
                         <button class="alert-close" @click="alertMessage = ''">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -357,7 +366,7 @@ const isMounted = ref(true)
 
 const imobileLot = ref('')
 const alertMessage = ref('')
-const alertType = ref<'success' | 'error'>('success')
+const alertType = ref<'success' | 'error' | 'info'>('success')
 const filterDate = ref('')
 const imobileLotInput = ref<HTMLInputElement | null>(null)
 const connectionError = ref(false)
@@ -530,9 +539,16 @@ const addRescreenLot = async () => {
             body: { imobileLot: imobileLot.value, checkedBy: 'System' }
         })
         if (response?.success) {
-            showAlert(response.message, 'success')
-            imobileLot.value = ''
-            await loadRescreenLots()
+            if (response.alreadyExists) {
+                // LOT อยู่แล้วและ Status=OK → แสดง info (ฟ้า) พร้อมปุ่มไป Check Flow
+                showAlert(response.message, 'info')
+                imobileLot.value = ''
+                // ไม่ต้อง reload list
+            } else {
+                showAlert(response.message, 'success')
+                imobileLot.value = ''
+                await loadRescreenLots()
+            }
             await nextTick()
             imobileLotInput.value?.focus()
         } else {
@@ -566,10 +582,10 @@ const deleteLot = async (lot: any) => {
     }
 }
 
-const showAlert = (message: string, type: 'success' | 'error') => {
+const showAlert = (message: string, type: 'success' | 'error' | 'info') => {
     alertMessage.value = message
     alertType.value = type
-    setTimeout(() => { alertMessage.value = '' }, 5000)
+    setTimeout(() => { alertMessage.value = '' }, type === 'info' ? 8000 : 5000)
 }
 
 const formatMessage = (message: string) => message.replace(/\n/g, '<br>')
@@ -1116,9 +1132,30 @@ onUnmounted(() => {
 }
 .alert.success { background: #dcfce7; border: 2px solid #86efac; color: #166534; }
 .alert.error   { background: #fee2e2; border: 2px solid #fca5a5; color: #991b1b; }
+.alert.info    { background: #eff6ff; border: 2px solid #93c5fd; color: #1e40af; }
 
 .dark .alert.success { background: #052e16; border-color: #166534; color: #86efac; }
 .dark .alert.error   { background: #450a0a; border-color: #991b1b; color: #fca5a5; }
+.dark .alert.info    { background: #0f2040; border-color: #1d4ed8; color: #93c5fd; }
+
+.btn-goto-checkflow {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 8px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: none;
+    background: #1d4ed8;
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-goto-checkflow:hover { background: #1e40af; transform: translateX(2px); }
+.dark .btn-goto-checkflow { background: #2563eb; }
+.dark .btn-goto-checkflow:hover { background: #1d4ed8; }
 
 .alert-title { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
 .alert-content { flex: 1; }
