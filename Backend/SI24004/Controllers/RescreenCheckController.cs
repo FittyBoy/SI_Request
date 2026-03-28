@@ -48,6 +48,16 @@ namespace SI24004.Controllers
             return (startOfDay, endOfDay);
         }
 
+        // Helper: ตรวจว่า NoPo ลงท้ายด้วย -C หรือ -T (case-insensitive)
+        // เช่น "001-C", "002-T" → ต้องผ่านหน้า Rescreen ก่อนบันทึก check_flow เสมอ
+        private bool IsCTSuffix(string? noPo)
+        {
+            if (string.IsNullOrEmpty(noPo)) return false;
+            var parts = noPo.Split('-');
+            var lastPart = parts[^1].ToLower().Trim();
+            return lastPart == "c" || lastPart == "t";
+        }
+
         // ✅ แก้: FindTH100Record — OrdinalIgnoreCase + เลือก TimeProcess ล่าสุด
         private async Task<Th100Record?> FindTH100Record(ThRecord thRecord)
         {
@@ -198,12 +208,19 @@ namespace SI24004.Controllers
                 if (thRecord == null)
                     return NotFound(new { success = false, message = $"ไม่พบ LOT: {request.ImobileLot}" });
 
-                if (string.IsNullOrEmpty(thRecord.Status) || thRecord.Status.ToLower() != "rescreen")
-                    return BadRequest(new
-                    {
-                        success = false,
-                        message = $"LOT นี้ไม่ใช่ Rescreen\n\nStatus ปัจจุบัน: {thRecord.Status ?? "N/A"}"
-                    });
+                // ✅ CT Suffix Rule: ถ้า NoPo ลงท้าย -C/-T → ข้ามการเช็ค status
+                // เพราะ business rule กำหนดให้ต้องผ่านหน้า Rescreen เสมอ ไม่ว่า status จะเป็นอะไร
+                bool isCTSuffix = IsCTSuffix(thRecord.NoPo);
+
+                if (!isCTSuffix)
+                {
+                    if (string.IsNullOrEmpty(thRecord.Status) || thRecord.Status.ToLower() != "rescreen")
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = $"LOT นี้ไม่ใช่ Rescreen\n\nStatus ปัจจุบัน: {thRecord.Status ?? "N/A"}"
+                        });
+                }
 
                 var existingRecord = await _context.RescreenCheckRecords1
                     .FirstOrDefaultAsync(r => r.ImobileLot == request.ImobileLot);
@@ -237,7 +254,9 @@ namespace SI24004.Controllers
                     FinalStatus = finalStatus,
                     IsApproved = isApproved,
                     ApprovedSource = approvedSource,
-                    Remarks = "Quick add - Auto status from TH100/PO Check Flow"
+                    Remarks = isCTSuffix
+                        ? "CT Suffix (-C/-T) - Auto add via Rescreen Check"
+                        : "Quick add - Auto status from TH100/PO Check Flow"
                 };
 
                 _context.RescreenCheckRecords1.Add(newRecord);
@@ -259,7 +278,8 @@ namespace SI24004.Controllers
                         isApproved = isApproved,
                         approvedSource = approvedSource,
                         th100Status = th100Status,
-                        checkDate = checkDate
+                        checkDate = checkDate,
+                        isCTSuffix = isCTSuffix
                     }
                 });
             }
