@@ -252,7 +252,7 @@ namespace SI24004.Controllers
 
         [HttpPost]
         [Consumes("multipart/form-data")]
-        public async Task<IActionResult> AddRequest([FromForm] DwRequestDto requestDto, [FromForm] IFormFile? attachmentFile)
+        public async Task<IActionResult> AddRequest([FromForm] DwRequestDto requestDto, IFormFile? attachmentFile)
         {
             if (requestDto == null)
                 return BadRequest("Request data is required.");
@@ -374,6 +374,7 @@ namespace SI24004.Controllers
         }
 
         [HttpPut("UpdateData")]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> UpdateDrawingRequest([FromForm] DwRequestDto requestDto)
         {
             if (requestDto == null || requestDto.Id == Guid.Empty)
