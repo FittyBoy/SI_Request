@@ -276,11 +276,47 @@ watch([chartsReady, allValues, histBuckets, sampleMean, stdevWithin, stdevOveral
         return pts.length ? {x:xi, y:_mean(pts)} : null
     }).filter(Boolean)
 
+    // ── แบ่งสีตามโซน ──
+    // 🔵 Hold     : y >= USL
+    // 🟠 Rescreen : RescreenLower <= y < RescreenUpper  หรือ  RescreenUpper <= y < USL
+    // 🟢 OK       : RescreenLower < y < RescreenUpper
+    // 🔴 LSL      : y <= LSL
+    const pointColor = (y: number): string => {
+        const usl  = USL.value
+        const rHi  = RescreenUpper.value
+        const rLo  = RescreenLower.value
+        const lsl  = LSL.value
+        if (y >= usl)        return '#1565c0'  // 🔵 Hold
+        if (y <= lsl)        return '#d32f2f'  // 🔴 ต่ำกว่า LSL
+        if (y >= rHi)        return '#f57c00'  // 🟠 Rescreen เกิน upper
+        if (y <= rLo)        return '#f57c00'  // 🟠 Rescreen ต่ำกว่า lower
+        return '#43a047'                        // 🟢 OK
+    }
+
+    const pointColors      = allPoints.map(p => pointColor(p.y))
+    const pointBorderColors = allPoints.map(p => {
+        const c = pointColor(p.y)
+        return c === '#43a047' ? '#2e7d32' : c  // darker border for green
+    })
+
     trendChartData.value = {
         labels: ['C1 IN','C1 OUT','C2 IN','C2 OUT','C3 IN','C3 OUT','C4 IN','C4 OUT','C5 IN','C5 OUT'],
         datasets: [
-            { type:'scatter', label:'Measurements', data:allPoints, backgroundColor:'#2196f3', pointRadius:5, order:2 },
-            { type:'line', label:'Trend', data:avgByX, borderColor:'#1565c0', borderWidth:1.5, pointRadius:0, fill:false, tension:0, order:1 },
+            {
+                type:'scatter', label:'Measurements', data:allPoints,
+                backgroundColor: pointColors,
+                borderColor: pointBorderColors,
+                borderWidth: 1.5,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                order:2,
+            },
+            {
+                type:'line', label:'Trend', data:avgByX,
+                borderColor:'#546e7a', borderWidth:1.5,
+                pointRadius:0, fill:false, tension:0, order:1,
+                borderDash:[3,2],
+            },
         ],
     }
 }, { immediate: false })
@@ -292,19 +328,40 @@ const trendChartOptions = computed(() => {
     const vals = allValues.value
     const yMin = vals.length ? Math.min(...vals, LSL.value)-0.003 : 0.180
     const yMax = vals.length ? Math.max(...vals, USL.value)+0.003 : 0.220
+    const usl  = USL.value
+    const rHi  = RescreenUpper.value
+    const rLo  = RescreenLower.value
+    const lsl  = LSL.value
     return {
         responsive:true, maintainAspectRatio:false,
-        animation: false,        // ← no per-point animation = instant render
+        animation: false,
         plugins:{
             legend:{ display:false },
             annotation:{ annotations:{
-                holdLine:       { type:'line', yMin:USL.value,         yMax:USL.value,         borderColor:'#1565c0', borderWidth:1.5, label:{content:'Hold',  display:true,position:'end',font:{size:9},color:'#1565c0'} },
-                rescreenLine:   { type:'line', yMin:RescreenUpper.value,yMax:RescreenUpper.value,borderColor:'#f57c00', borderWidth:1.5, label:{content:'Re-scr',display:true,position:'end',font:{size:9},color:'#f57c00'} },
-                targetLine:     { type:'line', yMin:Target.value,      yMax:Target.value,      borderColor:'#388e3c', borderWidth:1.5, borderDash:[4,3], label:{content:'Target',display:true,position:'end',font:{size:9},color:'#388e3c'} },
-                rescreenLowLine:{ type:'line', yMin:RescreenLower.value,yMax:RescreenLower.value,borderColor:'#f57c00', borderWidth:1.5 },
-                lslLine:        { type:'line', yMin:LSL.value,         yMax:LSL.value,         borderColor:'#d32f2f', borderWidth:1.5 },
+                // ── Zone backgrounds ──
+                zoneHold:    { type:'box', yMin:usl,  yMax:yMax, backgroundColor:'rgba(21,101,192,0.08)',  borderWidth:0 },
+                zoneReHi:    { type:'box', yMin:rHi,  yMax:usl,  backgroundColor:'rgba(245,124,0,0.10)',   borderWidth:0 },
+                zoneOK:      { type:'box', yMin:rLo,  yMax:rHi,  backgroundColor:'rgba(67,160,71,0.10)',   borderWidth:0 },
+                zoneReLo:    { type:'box', yMin:lsl,  yMax:rLo,  backgroundColor:'rgba(245,124,0,0.10)',   borderWidth:0 },
+                zoneDanger:  { type:'box', yMin:yMin, yMax:lsl,  backgroundColor:'rgba(211,47,47,0.08)',   borderWidth:0 },
+                // ── Reference lines ──
+                holdLine:       { type:'line', yMin:usl,  yMax:usl,  borderColor:'#1565c0', borderWidth:1.5, label:{content:'Hold',   display:true, position:'end', font:{size:9}, color:'white', backgroundColor:'#1565c0', padding:3, borderRadius:3 } },
+                rescreenLine:   { type:'line', yMin:rHi,  yMax:rHi,  borderColor:'#f57c00', borderWidth:1.5, label:{content:'Re-scr', display:true, position:'end', font:{size:9}, color:'white', backgroundColor:'#f57c00', padding:3, borderRadius:3 } },
+                targetLine:     { type:'line', yMin:Target.value, yMax:Target.value, borderColor:'#388e3c', borderWidth:1.5, borderDash:[4,3], label:{content:'Target', display:true, position:'end', font:{size:9}, color:'white', backgroundColor:'#388e3c', padding:3, borderRadius:3 } },
+                rescreenLowLine:{ type:'line', yMin:rLo,  yMax:rLo,  borderColor:'#f57c00', borderWidth:1.5 },
+                lslLine:        { type:'line', yMin:lsl,  yMax:lsl,  borderColor:'#d32f2f', borderWidth:1.5 },
             }},
-            tooltip:{ callbacks:{ label:(ctx:any)=>`${Number(ctx.parsed.y).toFixed(3)} μm` }},
+            tooltip:{ callbacks:{
+                label:(ctx:any) => {
+                    const v = Number(ctx.parsed.y)
+                    const zone = v >= usl ? '🔵 Hold'
+                        : v <= lsl       ? '🔴 < LSL'
+                        : v >= rHi       ? '🟠 Rescreen'
+                        : v <= rLo       ? '🟠 Rescreen'
+                        : '🟢 OK'
+                    return `${v.toFixed(3)} μm  ${zone}`
+                }
+            }},
         },
         scales:{
             x:{ type:'linear' as const, min:-0.5, max:9.5,
