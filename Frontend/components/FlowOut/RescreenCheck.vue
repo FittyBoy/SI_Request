@@ -315,7 +315,12 @@
                                     <span class="lot-badge" v-html="highlightText(lot.poLot, searchLot)"></span>
                                 </td>
                                 <td>
-                                    <span class="imobile-badge" v-html="highlightText(lot.imobileLot, searchLot)"></span>
+                                    <div class="imobile-cell">
+                                        <span class="imobile-badge" v-html="highlightText(lot.imobileLot, searchLot)"></span>
+                                        <span v-if="isCTSuffixLot(lot.poLot)" class="ct-badge">
+                                            {{ lot.poLot?.split('-').pop()?.toUpperCase() }}
+                                        </span>
+                                    </div>
                                 </td>
                                 <td>
                                     <span class="mc-badge" v-if="lot.mc">{{ lot.mc }}</span>
@@ -439,6 +444,12 @@ const startAutoRefresh = () => {
     }, 1000)
 
     refreshTimer = setInterval(async () => {
+        // ✅ ถ้า input กำลัง focused อยู่ → skip reload เพื่อไม่ให้ blur แย่ง focus
+        const inputIsFocused = document.activeElement === imobileLotInput.value
+        if (inputIsFocused) {
+            nextRefreshIn.value = REFRESH_EVERY
+            return
+        }
         try {
             await $fetch('/api/RescreenCheck/refresh-rescreen-status', {
                 baseURL: apiBaseUrl.value,
@@ -448,6 +459,9 @@ const startAutoRefresh = () => {
         } catch (_) { /* silent fail */ }
         await loadRescreenLots()
         nextRefreshIn.value = REFRESH_EVERY
+        // ✅ refocus หลัง reload จบ (กรณี input เคย focused แต่หลุดระหว่าง fetch)
+        await nextTick()
+        if (isMounted.value) imobileLotInput.value?.focus()
     }, REFRESH_EVERY * 1000)
 }
 
@@ -545,7 +559,9 @@ const addRescreenLot = async () => {
                 imobileLot.value = ''
                 // ไม่ต้อง reload list
             } else {
-                showAlert(response.message, 'success')
+                // ✅ LOT ใหม่ที่เพิ่งเพิ่ม: ถ้า isApproved=true → แสดงปุ่มไป Check Flow ด้วย
+                const type = response.data?.isApproved ? 'info' : 'success'
+                showAlert(response.message, type)
                 imobileLot.value = ''
                 await loadRescreenLots()
             }
@@ -606,6 +622,14 @@ const getStatusClass = (status: string) => {
     if (lower === 'scrap') return 'scrap'
     if (lower === 'rescreen') return 'rescreen'
     return 'default'
+}
+
+// ✅ ตรวจ suffix -C/-T/-N จาก poLot string (format: LotPo-McPo-NoPo)
+const isCTSuffixLot = (poLot: string): boolean => {
+    if (!poLot) return false
+    const parts = poLot.split('-')
+    const last = parts[parts.length - 1].toLowerCase().trim()
+    return last === 'c' || last === 't' || last === 'n'
 }
 
 onMounted(async () => {
@@ -1248,6 +1272,26 @@ onUnmounted(() => {
 .lot-badge    { display: inline-block; padding: 5px 10px; border-radius: 6px; font-size: 13px; font-weight: 600; background: #dbeafe; color: #1e40af; }
 .imobile-badge { display: inline-block; padding: 5px 10px; border-radius: 6px; font-size: 13px; font-weight: 600; background: #f3e8ff; color: #7c3aed; }
 .mc-badge { display: inline-block; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; background: #ecfdf5; color: #065f46; border: 1px solid #6ee7b7; }
+
+.imobile-cell { display: inline-flex; align-items: center; gap: 6px; }
+
+.ct-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+    color: white;
+    letter-spacing: 0.02em;
+    box-shadow: 0 1px 3px rgba(99,102,241,0.35);
+    flex-shrink: 0;
+}
+.dark .ct-badge { background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); box-shadow: 0 1px 3px rgba(79,70,229,0.4); }
 
 .dark .lot-badge    { background: #1e3a5f; color: #93c5fd; }
 .dark .imobile-badge { background: #2e1065; color: #c4b5fd; }
