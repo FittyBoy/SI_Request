@@ -33,6 +33,16 @@ namespace SI24004.Controllers
             return parts.Length >= 3 && parts[1].ToUpper() == "REP";
         }
 
+        // ✅ CT Suffix: ตรวจว่า NoPo ลงท้ายด้วย -C หรือ -T (case-insensitive)
+        // เช่น "001-C", "002-T" → ต้องผ่านหน้า Rescreen ก่อนบันทึก check_flow
+        private bool IsCTSuffix(string? noPo)
+        {
+            if (string.IsNullOrEmpty(noPo)) return false;
+            var parts = noPo.Split('-');
+            var lastPart = parts[^1].ToLower().Trim();
+            return lastPart == "c" || lastPart == "t";
+        }
+
         private (string prefix, int sequence, string suffix) ParseRepLot(string lotNumber)
         {
             var parts = lotNumber.Split('-');
@@ -505,6 +515,30 @@ namespace SI24004.Controllers
                     checkSt = thRecord.Status.ToUpper() == "OK";
                 }
 
+                // ✅ CT Suffix Rule: ถ้า NoPo ลงท้าย -C/-T และ TH_Record = OK
+                // → บังคับให้ลงหน้า Rescreen ก่อน แล้วค่อยลงหน้า check_flow
+                bool requiresCTRescreen = false;
+                if (IsCTSuffix(thRecord.NoPo) && thRecord.Status?.ToUpper() == "OK")
+                {
+                    var ctRescreenRecord = await _context.RescreenCheckRecords1
+                        .FirstOrDefaultAsync(r => r.ImobileLot == thRecord.ImobileLot);
+
+                    if (ctRescreenRecord != null && ctRescreenRecord.FinalStatus?.ToUpper() == "OK")
+                    {
+                        // ผ่านหน้า Rescreen แล้ว → บันทึกได้ด้วยสถานะ OK (Rescreen)
+                        checkSt = true;
+                        finalStatus = "OK (Rescreen)";
+                        requiresCTRescreen = false;
+                    }
+                    else
+                    {
+                        // ยังไม่ผ่านหน้า Rescreen → บังคับให้ไปลงก่อน
+                        checkSt = false;
+                        finalStatus = "Rescreen";
+                        requiresCTRescreen = true;
+                    }
+                }
+
                 string poLot = $"{thRecord.LotPo}-{thRecord.McPo}-{thRecord.NoPo}";
 
                 // ✅ เช็ค duplicate ด้วย PoLot เป็น key หลัก
@@ -531,7 +565,8 @@ namespace SI24004.Controllers
                         autoAddedScrapLots = autoAddedScrapLots,
                         rescreenSkippedLots = rescreenSkippedLots,
                         rescreenCanAddLots = rescreenCanAddLots,
-                        cassetteNo = thRecord.Ca5In9
+                        cassetteNo = thRecord.Ca5In9,
+                        requiresCTRescreen = requiresCTRescreen
                     }
                 });
             }
@@ -950,6 +985,29 @@ namespace SI24004.Controllers
                     if (thRecord.Status.ToLower() == "hold" || thRecord.Status.ToLower() == "scrap")
                     {
                         return BadRequest(new { success = false, message = $"LOT นี้อยู่ในสถานะ {thRecord.Status} ไม่สามารถบันทึกได้" });
+                    }
+
+                    // ✅ CT Suffix Rule: NoPo ลงท้าย -C/-T และ TH_Record = OK
+                    // → ต้องผ่านหน้า Rescreen ก่อนบันทึก check_flow
+                    if (IsCTSuffix(thRecord.NoPo) && thRecord.Status.ToUpper() == "OK")
+                    {
+                        var ctRescreenRecord = await _context.RescreenCheckRecords1
+                            .FirstOrDefaultAsync(r => r.ImobileLot == thRecord.ImobileLot);
+
+                        if (ctRescreenRecord == null || ctRescreenRecord.FinalStatus?.ToUpper() != "OK")
+                        {
+                            return BadRequest(new
+                            {
+                                success = false,
+                                message = $"❌ LOT นี้เป็นประเภท -C/-T\n\n⚠️ ต้องลงในหน้า Rescreen ก่อนเท่านั้น\n\nกรุณาไปที่หน้า 'Rescreen Check' แล้วบันทึก LOT นี้ก่อน",
+                                status = "NEEDS_RESCREEN",
+                                requiresCTRescreen = true
+                            });
+                        }
+
+                        // ผ่าน Rescreen แล้ว → บันทึกด้วยสถานะ OK (Rescreen)
+                        checkSt = true;
+                        finalStatus = "OK (Rescreen)";
                     }
                 }
 

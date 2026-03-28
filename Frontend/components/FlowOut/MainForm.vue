@@ -271,6 +271,10 @@
                                 <small style="opacity: 0.8; margin-top: 4px; display: block;">
                                     • ถ้าไม่มี LOT เลย ต้องเริ่มด้วย 001 เท่านั้น<br>
                                     • ถ้ามี LOT แล้ว ต้องเพิ่มตามลำดับต่อเนื่อง<br>
+                                    • <strong>REP Product</strong> (format: XXXXX-REP-001-N) บันทึกโดยไม่ต้องใส่ Qty<br>
+                                    • <strong>LOT ลงท้าย -C / -T</strong> ต้องลงหน้า <strong>Rescreen Check ก่อนเสมอ</strong>
+                                </small>
+                            </div>
                                     • <strong>REP Product</strong> (format: XXXXX-REP-001-N) บันทึกโดยไม่ต้องใส่ Qty
                                 </small>
                             </div>
@@ -438,6 +442,13 @@
                                 </svg>
                                 บันทึก
                             </button>
+                            <button v-else-if="modalData?.requiresCTRescreen" class="btn btn-goto-rescreen" @click="() => { closeModal(); handleGoToRescreen() }">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 11l3 3L22 4" />
+                                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                                </svg>
+                                ไปหน้า Rescreen Check
+                            </button>
                             <button v-else class="btn btn-sendback" @click="handleSendBack">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="15 18 9 12 15 6" />
@@ -588,6 +599,8 @@ interface ModalData {
     quantity?: number
     // ✅ NEW: Cassette Number จาก TH_Record.ca5_in9
     cassetteNo?: string | null
+    // ✅ NEW: CT Suffix (-C/-T) ต้องผ่าน Rescreen ก่อน
+    requiresCTRescreen?: boolean
 }
 
 const emit = defineEmits(['go-to-summary', 'go-to-rescreen', 'goToSummary', 'goToRescreen'])
@@ -763,8 +776,11 @@ const closeModal = () => { showModal.value = false; modalData.value = null; lotQ
 const canSaveLot = () => {
     if (!modalData.value) return false
     if (isRepProduct.value) return true
+    // ✅ CT Suffix: ถ้าต้องผ่าน Rescreen ก่อน → ห้ามบันทึก
+    if (modalData.value.requiresCTRescreen) return false
     const status = modalData.value.statusTn?.toLowerCase()
     if (status === 'ok') return true
+    if (status?.includes('ok') && modalData.value.checkSt) return true
     if (status === 'rescreen' && modalData.value.checkSt) return true
     return false
 }
@@ -779,8 +795,10 @@ const getSubStatusValue = () => { if (!modalData.value) return ''; return modalD
 const getStatusClass = () => {
     if (!modalData.value) return ''
     if (isRepProduct.value) return 'status-ok'
+    if (modalData.value.requiresCTRescreen) return 'status-rescreen'
     const status = modalData.value.statusTn?.toLowerCase()
     if (status === 'ok') return 'status-ok'
+    if (status?.includes('ok')) return 'status-ok'
     if (status === 'rescreen') return 'status-rescreen'
     if (status === 'hold') return 'status-hold'
     if (status === 'scrap') return 'status-scrap'
@@ -792,8 +810,10 @@ const getSubStatusClass = () => { if (!modalData.value) return ''; return modalD
 const getModalHeaderClass = () => {
     if (!modalData.value) return ''
     if (isRepProduct.value) return 'header-rep'
+    if (modalData.value.requiresCTRescreen) return 'header-ct-rescreen'
     const status = modalData.value.statusTn?.toLowerCase()
     if (status === 'ok') return 'header-ok'
+    if (status?.includes('ok') && modalData.value.checkSt) return 'header-rescreen-ok'
     if (status === 'rescreen' && modalData.value.checkSt) return 'header-rescreen-ok'
     if (status === 'rescreen') return 'header-rescreen-pending'
     if (status === 'hold') return 'header-hold'
@@ -804,8 +824,10 @@ const getModalHeaderClass = () => {
 const getStatusIcon = () => {
     if (!modalData.value) return 'check'
     if (isRepProduct.value) return 'check'
+    if (modalData.value.requiresCTRescreen) return 'alert'
     const status = modalData.value.statusTn?.toLowerCase()
     if (status === 'ok') return 'check'
+    if (status?.includes('ok')) return 'check'
     if (status === 'rescreen') return 'alert'
     if (status === 'hold') return 'info'
     if (status === 'scrap') return 'x'
@@ -814,6 +836,7 @@ const getStatusIcon = () => {
 
 const getWarningBoxClass = () => {
     if (!modalData.value) return ''
+    if (modalData.value.requiresCTRescreen) return 'warning-ct-rescreen'
     const status = modalData.value.statusTn?.toLowerCase()
     if (status === 'hold') return 'warning-hold'
     if (status === 'scrap') return 'warning-scrap'
@@ -823,6 +846,7 @@ const getWarningBoxClass = () => {
 
 const getWarningTitle = () => {
     if (!modalData.value) return ''
+    if (modalData.value.requiresCTRescreen) return '⚠️ ต้องผ่านหน้า Rescreen ก่อน'
     const status = modalData.value.statusTn?.toLowerCase()
     if (status === 'rescreen' && !modalData.value.checkSt) return 'Rescreen Pending'
     if (status === 'hold') return 'Hold Status'
@@ -832,6 +856,7 @@ const getWarningTitle = () => {
 
 const getWarningMessage = () => {
     if (!modalData.value) return ''
+    if (modalData.value.requiresCTRescreen) return 'LOT นี้เป็นประเภท -C/-T กรุณาไปบันทึกในหน้า Rescreen Check ก่อน แล้วค่อยกลับมาสแกนใหม่'
     const status = modalData.value.statusTn?.toLowerCase()
     if (status === 'rescreen' && !modalData.value.checkSt) return 'LOT นี้อยู่ในสถานะ Rescreen และยังไม่มีข้อมูลใน TH100 กรุณาส่งกลับไปตรวจสอบ'
     if (status === 'hold') return 'LOT นี้อยู่ในสถานะ Hold ไม่สามารถบันทึกเข้าระบบได้ กรุณาส่งกลับ'
@@ -1828,6 +1853,11 @@ onUnmounted(() => {
     background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
 }
 
+/* ✅ CT Suffix (-C/-T): ต้องผ่าน Rescreen ก่อน */
+.modal-header.header-ct-rescreen {
+    background: linear-gradient(135deg, #fdba74 0%, #f97316 100%);
+}
+
 .modal-header.header-hold {
     background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
 }
@@ -2221,6 +2251,30 @@ onUnmounted(() => {
 .btn-sendback:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(220, 38, 38, 0.4);
+}
+
+/* ✅ CT Suffix (-C/-T): ปุ่มไปหน้า Rescreen */
+.btn-goto-rescreen {
+    background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
+    color: white;
+}
+
+.btn-goto-rescreen:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(234, 88, 12, 0.4);
+}
+
+/* ✅ CT warning box */
+.warning-ct-rescreen {
+    background: #fff7ed;
+    border-color: #fb923c;
+    color: #9a3412;
+}
+
+.dark .warning-ct-rescreen {
+    background: rgba(249, 115, 22, 0.12);
+    border-color: #c2410c;
+    color: #fb923c;
 }
 
 .btn-cancel {
