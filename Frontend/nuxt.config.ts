@@ -154,12 +154,9 @@ export default defineNuxtConfig({
     },
 
     optimizeDeps: {
-      // ✅ แก้จาก exclude → include: ให้ Vite pre-bundle vuetify ตั้งแต่ต้น
-      //    (exclude คือสาเหตุหลักที่ warmup ช้า 62 วิ)
+      // ✅ vuetify ต้องอยู่ใน build.transpile เท่านั้น ห้ามใส่ใน include ด้วย
+      // ✅ vue-router จัดการโดย Nuxt อัตโนมัติ ไม่ต้องใส่
       include: [
-        'vuetify',
-        'vuetify/components',
-        'vuetify/directives',
         'pinia',
         'axios',
         'date-fns',
