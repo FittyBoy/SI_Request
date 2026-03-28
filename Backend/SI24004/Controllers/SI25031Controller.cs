@@ -40,7 +40,7 @@ namespace SI24004.Controllers
             if (string.IsNullOrEmpty(noPo)) return false;
             var parts = noPo.Split('-');
             var lastPart = parts[^1].ToLower().Trim();
-            return lastPart == "c" || lastPart == "t";
+            return lastPart == "c" || lastPart == "t" || lastPart == "n";
         }
 
         private (string prefix, int sequence, string suffix) ParseRepLot(string lotNumber)
