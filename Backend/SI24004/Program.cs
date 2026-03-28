@@ -286,6 +286,18 @@ builder.Services.AddSwaggerGen(options =>
         Description = "API including PDF vs Excel comparison functionality. Use Bearer token for authentication."
     });
 
+    // ✅ FIX: บอก Swagger ว่า IFormFile = binary string
+    // แก้ crash: "Error reading parameter(s) as [FromForm] attribute used with IFormFile"
+    options.MapType<IFormFile>(() => new OpenApiSchema { Type = "string", Format = "binary" });
+    options.MapType<IFormFileCollection>(() => new OpenApiSchema
+    {
+        Type = "array",
+        Items = new OpenApiSchema { Type = "string", Format = "binary" }
+    });
+
+    // ✅ รองรับ $ref schema ที่ถูก extend ด้วย allOf (จำเป็นเมื่อใช้ FromForm + complex DTO)
+    options.UseAllOfToExtendReferenceSchemas();
+
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -705,6 +717,8 @@ public class FileUploadOperationFilter : Swashbuckle.AspNetCore.SwaggerGen.IOper
                         {
                             allProperties[prop.Name] = GetSchemaForType(prop.PropertyType);
                         }
+                        // ✅ ข้าม navigation property / complex type (เช่น Attachment?) เพื่อป้องกัน swagger crash
+                        // else → skip silently
                     }
                 }
             }
