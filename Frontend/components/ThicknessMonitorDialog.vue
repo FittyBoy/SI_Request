@@ -34,9 +34,23 @@ const close = () => emit('update:modelValue', false)
 // Charts render AFTER the dialog slide-in animation completes (~300 ms)
 // so the opening feels instant and the animation is smooth
 const chartsReady = ref(false)
-const onDialogAfterEnter = () => { chartsReady.value = true }
+let chartsReadyTimer: ReturnType<typeof setTimeout> | null = null
+
+const onDialogAfterEnter = () => {
+    chartsReady.value = true
+    if (chartsReadyTimer) { clearTimeout(chartsReadyTimer); chartsReadyTimer = null }
+}
+
 watch(() => props.modelValue, (open) => {
-    if (!open) chartsReady.value = false   // reset when closed
+    if (open) {
+        // fallback: ถ้า after-enter ไม่ยิงภายใน 600ms ให้ render chart เลย
+        chartsReadyTimer = setTimeout(() => {
+            if (!chartsReady.value) chartsReady.value = true
+        }, 600)
+    } else {
+        chartsReady.value = false
+        if (chartsReadyTimer) { clearTimeout(chartsReadyTimer); chartsReadyTimer = null }
+    }
 })
 
 // ===== LIVE CLOCK =====
@@ -48,7 +62,10 @@ const updateClock = () => {
         .map(n => String(n).padStart(2, '0')).join(':')
 }
 onMounted(() => { updateClock(); clockTimer = setInterval(updateClock, 1000) })
-onUnmounted(() => { if (clockTimer) clearInterval(clockTimer) })
+onUnmounted(() => {
+    if (clockTimer) clearInterval(clockTimer)
+    if (chartsReadyTimer) clearTimeout(chartsReadyTimer)
+})
 
 // ===== THRESHOLD HELPERS (computed once, reused everywhere) =====
 const sortedThresholds = computed(() =>
