@@ -3,7 +3,7 @@ import { VForm } from 'vuetify/components/VForm';
 import { onMounted, watch, watchEffect, ref, computed, nextTick } from 'vue';
 import Swal from 'sweetalert2';
 import type { InaRequestDTO } from '@/types/inaRequest';
-import { defineProps } from 'vue';
+
 import '@mdi/font/css/materialdesignicons.css';
 import { v4 as uuidv4 } from 'uuid';
 

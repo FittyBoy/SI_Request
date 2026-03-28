@@ -19,7 +19,8 @@ export default defineNuxtConfig({
   },
 
   devtools: {
-    enabled: true,
+    // ✅ ปิด devtools ใน dev — ลด overhead ได้มาก
+    enabled: false,
   },
 
   css: [
@@ -31,10 +32,6 @@ export default defineNuxtConfig({
     '@mdi/font/css/materialdesignicons.css',
   ],
 
-  /*
-    ❗ Please read the docs before updating runtimeConfig
-    https://nuxt.com/docs/guide/going-further/runtime-config
-  */
   runtimeConfig: {
     // 🔒 Private keys — server-side only (จาก .env.development / .env.production)
     AUTH_ORIGIN: process.env.AUTH_ORIGIN,
@@ -42,16 +39,9 @@ export default defineNuxtConfig({
 
     // 🌐 Public keys — expose ให้ client อ่านได้
     public: {
-      // API URL จาก env:
-      //   dev  → .env.development  → http://localhost:9011
-      //   prod → .env.production   → http://172.18.106.100:9011
-      // fallback เฉพาะกรณีไม่มี env file (ไม่ควรเกิดใน production)
       apiBase: process.env.API_BASE_URL || 'http://localhost:9011',
-
-      apiTimeout: 600000, // 10 minutes สำหรับ PDF processing
-
+      apiTimeout: 600000,
       isDevelopment: process.env.NODE_ENV === 'development',
-
       endpoints: {
         login: '/api/User/login',
         compare: '/api/SI25011/compare',
@@ -96,9 +86,13 @@ export default defineNuxtConfig({
 
   experimental: {
     typedPages: true,
+    // ✅ เปิด payload extraction ลด hydration overhead
+    payloadExtraction: false,
   },
 
   typescript: {
+    // ✅ ปิด typecheck ตอน dev — ให้ IDE ทำแทน เร็วขึ้นมาก
+    typeCheck: false,
     tsConfig: {
       compilerOptions: {
         paths: {
@@ -126,7 +120,6 @@ export default defineNuxtConfig({
     }
   },
 
-  // ℹ️ Disable source maps until this is resolved: https://github.com/vuetifyjs/vuetify-loader/issues/290
   sourcemap: {
     server: false,
     client: false,
@@ -161,10 +154,30 @@ export default defineNuxtConfig({
     },
 
     optimizeDeps: {
-      exclude: ['vuetify'],
-      entries: [
-        './**/*.vue',
+      // ✅ แก้จาก exclude → include: ให้ Vite pre-bundle vuetify ตั้งแต่ต้น
+      //    (exclude คือสาเหตุหลักที่ warmup ช้า 62 วิ)
+      include: [
+        'vuetify',
+        'vuetify/components',
+        'vuetify/directives',
+        'pinia',
+        'axios',
+        'date-fns',
+        'uuid',
+        'jwt-decode',
       ],
+      // ✅ ลบ entries glob './**/*.vue' ออก — scan ทุก vue file ทำให้ช้ามาก
+    },
+
+    // ✅ warmup เฉพาะ pages หลัก แทนการ scan glob ทั้งหมด
+    server: {
+      warmup: {
+        clientFiles: [
+          './pages/index.vue',
+          './layouts/*.vue',
+          './components/FlowOut/MainForm.vue',
+        ],
+      },
     },
 
     plugins: [

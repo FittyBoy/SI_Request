@@ -3,7 +3,7 @@
 // IMPORTS
 // ========================================
 import { VForm } from 'vuetify/components/VForm'
-import { defineProps, ref, computed, watch, onMounted, watchEffect, nextTick, type PropType } from 'vue';
+import { ref, computed, watch, onMounted, watchEffect, nextTick, type PropType } from 'vue';
 import Swal from 'sweetalert2';
 import type { DwRequestDTO } from '@/types/dwRequest';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
