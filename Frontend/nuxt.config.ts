@@ -36,20 +36,22 @@ export default defineNuxtConfig({
     https://nuxt.com/docs/guide/going-further/runtime-config
   */
   runtimeConfig: {
-    // Private keys are only available on the server
+    // 🔒 Private keys — server-side only (จาก .env.development / .env.production)
     AUTH_ORIGIN: process.env.AUTH_ORIGIN,
     AUTH_SECRET: process.env.AUTH_SECRET,
 
-    // Public keys that are exposed to the client.
+    // 🌐 Public keys — expose ให้ client อ่านได้
     public: {
-      // ✅ ใช้ environment variable สำหรับ API Base URL
-      apiBase: process.env.API_BASE_URL || 'http://172.18.106.100:9011',
-      apiTimeout: 600000, // 10 minutes timeout สำหรับ PDF processing
+      // API URL จาก env:
+      //   dev  → .env.development  → http://localhost:9011
+      //   prod → .env.production   → http://172.18.106.100:9011
+      // fallback เฉพาะกรณีไม่มี env file (ไม่ควรเกิดใน production)
+      apiBase: process.env.API_BASE_URL || 'http://localhost:9011',
 
-      // ✅ เพิ่ม config สำหรับ development
+      apiTimeout: 600000, // 10 minutes สำหรับ PDF processing
+
       isDevelopment: process.env.NODE_ENV === 'development',
 
-      // ✅ เพิ่ม API endpoints configuration
       endpoints: {
         login: '/api/User/login',
         compare: '/api/SI25011/compare',
