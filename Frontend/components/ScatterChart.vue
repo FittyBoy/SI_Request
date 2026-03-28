@@ -3,7 +3,7 @@
 <!-- ====================================== -->
 <script setup lang="ts">
 // ===== IMPORTS =====
-import { ref, watch, onMounted, onBeforeUnmount, computed, nextTick } from "vue";
+import { ref, shallowRef, watch, onMounted, onBeforeUnmount, computed, nextTick } from "vue";
 import ThicknessMonitorDialog from "@/components/ThicknessMonitorDialog.vue";
 
 // ===== PROPS =====
@@ -52,6 +52,8 @@ interface ChartDataset {
 interface LotChart {
     LotId: string;
     Datasets: ChartDataset[];
+    chartJsData: any;     // pre-built stable Chart.js data object
+    chartOptions: any;    // pre-built stable Chart.js options object
     Size: string;
     Status: string;
     PoLot: string;
@@ -167,6 +169,38 @@ const SeriesMap: SeriesMapItem[] = [
     { Key: "Ca5In", Label: "CA5 IN", Color: "black", Row: 2 },
     { Key: "Ca5Out", Label: "CA5 OUT", Color: "black", Row: 1 },
 ];
+
+// ── Pre-sorted once at module init — never changes ──────────────────────────
+const ORDERED_SERIES = [...SeriesMap].sort((a, b) => b.Row - a.Row);
+const X_AXIS_LABELS  = ORDERED_SERIES.map(s => s.Label);
+
+// ── Color maps as module constants ──────────────────────────────────────────
+const ZONE_COLOR_MAP: Record<string, string> = {
+    blue:   'rgba(33, 150, 243, 0.1)',
+    green:  'rgba(76, 175, 80, 0.1)',
+    orange: 'rgba(255, 152, 0, 0.1)',
+    red:    'rgba(244, 67, 54, 0.1)',
+};
+const LINE_COLOR_MAP: Record<string, string> = {
+    blue:   '#1976D2',
+    green:  '#388E3C',
+    orange: '#F57C00',
+    red:    '#D32F2F',
+};
+const STATUS_COLOR_MAP: Record<string, string> = {
+    hold:           '#1976d2',
+    ok:             '#388e3c',
+    scrap:          '#d32f2f',
+    rescreen:       '#f57c00',
+    scraprunbroken: '#c62828',
+    '':             '#616161',
+};
+
+// ── Chart-options cache: key = "size|min|max" ───────────────────────────────
+const _chartOptionsCache = new Map<string, object>();
+
+// ── Sorted-threshold cache per size key ─────────────────────────────────────
+const _sortedThresholdCache = new Map<string, ThresholdItem[]>();
 
 const ProductSizeThresholdMap: Record<string, ThresholdItem[]> = {
     "76x76x0.14": [
@@ -361,52 +395,40 @@ const { data: ProductData, error: ErrorProduct, refresh: RefreshProduct } = awai
 // ===== UTILITY FUNCTIONS =====
 const GetThresholdsForSize = (productSize?: string): ThresholdItem[] => {
     if (!productSize || typeof productSize !== 'string') return [];
+    const key = productSize.trim().toLowerCase();
 
-    const cleanProductSize = productSize.trim().toLowerCase();
-    const exactMatch = Object.keys(ProductSizeThresholdMap).find(key =>
-        key.toLowerCase() === cleanProductSize
-    );
+    // Return cached sorted result if available
+    if (_sortedThresholdCache.has(key)) return _sortedThresholdCache.get(key)!;
 
-    if (exactMatch) {
-        return ProductSizeThresholdMap[exactMatch];
-    }
+    const exactMatch = Object.keys(ProductSizeThresholdMap).find(k => k.toLowerCase() === key);
+    const raw = exactMatch
+        ? ProductSizeThresholdMap[exactMatch]
+        : ProductSizeThresholdMap[
+            Object.keys(ProductSizeThresholdMap).find(k =>
+                key.includes(k.toLowerCase()) || k.toLowerCase().includes(key)
+            ) ?? ''
+          ] ?? [];
 
-    const partialMatch = Object.keys(ProductSizeThresholdMap).find(key =>
-        cleanProductSize.includes(key.toLowerCase()) || key.toLowerCase().includes(cleanProductSize)
-    );
-
-    return partialMatch ? ProductSizeThresholdMap[partialMatch] : [];
+    // Cache already-sorted array so callers never re-sort
+    const sorted = [...raw].sort((a, b) => b.Value - a.Value);
+    _sortedThresholdCache.set(key, sorted);
+    return sorted;
 };
 
+// O(1) lookup — thresholds already sorted descending by GetThresholdsForSize
 const GetThresholdColor = (value: number, size: string): string => {
     const thresholds = GetThresholdsForSize(size);
-    if (!thresholds || thresholds.length === 0) return '#E0E0E0';
-
-    const sortedThresholds = [...thresholds].sort((a, b) => b.Value - a.Value);
-
-    for (const threshold of sortedThresholds) {
-        if (value >= threshold.Value) {
-            return threshold.Color;
-        }
+    if (!thresholds.length) return '#E0E0E0';
+    for (const t of thresholds) {
+        if (value >= t.Value) return t.Color;
     }
-
-    return sortedThresholds[sortedThresholds.length - 1]?.Color || '#E0E0E0';
+    return thresholds[thresholds.length - 1]?.Color || '#E0E0E0';
 };
 
+// O(1) status color — Map lookup, no branch chain
 const GetStatusColor = (status: string): string => {
-    if (!status || typeof status !== 'string') return 'grey darken-1';
-
-    const trimmedStatus = status.trim().toLowerCase();
-    const colorMap: Record<string, string> = {
-        "hold": "#1976d2",
-        "ok": "#388e3c",
-        "scrap": "#d32f2f",
-        "rescreen": "#f57c00",
-        "scraprunbroken": "#c62828",
-        "": "#616161",
-    };
-
-    return colorMap[trimmedStatus] || '#1976d2';
+    const key = (status ?? '').trim().toLowerCase();
+    return STATUS_COLOR_MAP[key] ?? '#1976d2';
 };
 
 const GetStatusIcon = (status: string) => {
@@ -485,178 +507,102 @@ const SetChartWrapperRef = (el: any, index: number) => {
     }
 };
 
+// ===== CHART OPTIONS — cached per "size|min|max" key =====
+// Called once per unique lot; subsequent renders return the cached object
+// so Chart.js receives the same reference → no spurious redraws
 const GetChartOptions = (size: string, minValue?: number, maxValue?: number) => {
-    const sizeAnnotations = GetThresholdsForSize(size) ?? [];
+    const cacheKey = `${size}|${minValue?.toFixed(4)}|${maxValue?.toFixed(4)}`;
+    if (_chartOptionsCache.has(cacheKey)) return _chartOptionsCache.get(cacheKey)!;
+
+    // Thresholds already sorted descending (cached in GetThresholdsForSize)
+    const sortedThresholds = GetThresholdsForSize(size);
     const annotations: any = {};
 
-    if (sizeAnnotations.length > 0) {
-        const sortedThresholds = [...sizeAnnotations].sort((a, b) => b.Value - a.Value);
-        const allValues = sortedThresholds.map(a => a.Value);
-
-        if (minValue !== undefined) allValues.push(minValue);
-        if (maxValue !== undefined) allValues.push(maxValue);
-
-        const yMin = allValues.length > 0 ? Math.min(...allValues) - 0.002 : 0;
-        const yMax = allValues.length > 0 ? Math.max(...allValues) + 0.002 : 1;
+    if (sortedThresholds.length > 0) {
+        const allVals = sortedThresholds.map(t => t.Value);
+        if (minValue !== undefined) allVals.push(minValue);
+        if (maxValue !== undefined) allVals.push(maxValue);
+        const yMin = Math.min(...allVals) - 0.002;
+        const yMax = Math.max(...allVals) + 0.002;
 
         sortedThresholds.forEach((threshold, index) => {
-            let zoneYMin: number;
-            let zoneYMax: number;
-
-            if (index === 0) {
-                zoneYMin = threshold.Value;
-                zoneYMax = yMax;
-            } else if (index === sortedThresholds.length - 1) {
-                zoneYMin = yMin;
-                zoneYMax = threshold.Value;
-            } else {
-                zoneYMin = threshold.Value;
-                zoneYMax = sortedThresholds[index - 1].Value;
-            }
-
-            const zoneColorMap: Record<string, string> = {
-                'blue': 'rgba(33, 150, 243, 0.1)',
-                'green': 'rgba(76, 175, 80, 0.1)',
-                'orange': 'rgba(255, 152, 0, 0.1)',
-                'red': 'rgba(244, 67, 54, 0.1)',
-            };
-            const zoneColor = zoneColorMap[threshold.Color.toLowerCase()] || 'rgba(158, 158, 158, 0.1)';
+            const zoneYMin = index === sortedThresholds.length - 1 ? yMin : threshold.Value;
+            const zoneYMax = index === 0 ? yMax : sortedThresholds[index - 1].Value;
 
             annotations[`zone_${threshold.Label.toLowerCase()}_${index}`] = {
-                type: 'box',
-                xMin: -0.6,
-                xMax: 9.6,
-                yMin: zoneYMin,
-                yMax: zoneYMax,
-                backgroundColor: zoneColor,
-                borderWidth: 0,
-                z: -10,
+                type: 'box', xMin: -0.6, xMax: 9.6,
+                yMin: zoneYMin, yMax: zoneYMax,
+                backgroundColor: ZONE_COLOR_MAP[threshold.Color.toLowerCase()] ?? 'rgba(158,158,158,0.1)',
+                borderWidth: 0, z: -10,
             };
-
-            const lineColorMap: Record<string, string> = {
-                'blue': '#1976D2',
-                'green': '#388E3C',
-                'orange': '#F57C00',
-                'red': '#D32F2F',
-            };
-            const lineColor = lineColorMap[threshold.Color.toLowerCase()] || '#616161';
-
-            const isTarget = threshold.Label.toLowerCase() === 'targetbar';
-
             annotations[`line_${threshold.Label.toLowerCase()}_${index}`] = {
-                type: 'line',
-                yMin: threshold.Value,
-                yMax: threshold.Value,
-                borderColor: lineColor,
+                type: 'line', yMin: threshold.Value, yMax: threshold.Value,
+                borderColor: LINE_COLOR_MAP[threshold.Color.toLowerCase()] ?? '#616161',
                 borderWidth: 2,
-                borderDash: isTarget ? [5, 3] : [],
+                borderDash: threshold.Label.toLowerCase() === 'targetbar' ? [5, 3] : [],
             };
         });
     }
 
-    const allThresholdValues = sizeAnnotations.map(a => a.Value);
-    if (minValue !== undefined) allThresholdValues.push(minValue);
-    if (maxValue !== undefined) allThresholdValues.push(maxValue);
+    const allThresholdVals = sortedThresholds.map(t => t.Value);
+    if (minValue !== undefined) allThresholdVals.push(minValue);
+    if (maxValue !== undefined) allThresholdVals.push(maxValue);
+    const yAxisMin = allThresholdVals.length ? Math.min(...allThresholdVals) - 0.002 : 0;
+    const yAxisMax = allThresholdVals.length ? Math.max(...allThresholdVals) + 0.002 : 1;
 
-    const yAxisMin = allThresholdValues.length > 0 ? Math.min(...allThresholdValues) - 0.002 : 0;
-    const yAxisMax = allThresholdValues.length > 0 ? Math.max(...allThresholdValues) + 0.002 : 1;
-
-    const orderedSeriesMap = [...SeriesMap].sort((a, b) => b.Row - a.Row);
-    const xAxisLabels = orderedSeriesMap.map(series => series.Label);
-
-    return {
+    const options = {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: {
-            intersect: true,
-            mode: 'point' as const,
-        },
+        animation: false,            // ← no per-point animation; renders in 1 frame
+        interaction: { intersect: true, mode: 'point' as const },
         plugins: {
             legend: { display: false },
-            annotation: {
-                annotations,
-                clip: false
-            },
+            annotation: { annotations, clip: false },
             tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                titleColor: 'white',
-                bodyColor: 'white',
-                borderColor: 'rgba(255, 255, 255, 0.2)',
-                borderWidth: 1,
-                cornerRadius: 8,
-                displayColors: false,
+                backgroundColor: 'rgba(0,0,0,0.8)', titleColor: 'white',
+                bodyColor: 'white', borderColor: 'rgba(255,255,255,0.2)',
+                borderWidth: 1, cornerRadius: 8, displayColors: false,
                 callbacks: {
-                    title: function (context: any) {
-                        if (context && context.length > 0) {
-                            const xValue = Math.round(context[0].parsed.x);
-                            return xAxisLabels[xValue] || '';
-                        }
+                    title: (context: any) => {
+                        if (context?.length > 0) return X_AXIS_LABELS[Math.round(context[0].parsed.x)] || '';
                         return '';
                     },
-                    label: function (context: any) {
-                        const value = context.parsed.y.toFixed(3);
-                        const thresholds = GetThresholdsForSize(size);
-                        let status = '';
-
-                        if (thresholds && thresholds.length > 0) {
-                            const sortedThresholds = [...thresholds].sort((a, b) => b.Value - a.Value);
-                            for (const threshold of sortedThresholds) {
-                                if (context.parsed.y >= threshold.Value) {
-                                    status = ` (${threshold.Label})`;
-                                    break;
-                                }
-                            }
+                    label: (context: any) => {
+                        const value = context.parsed.y;
+                        // Thresholds already sorted — first match wins, no re-sort
+                        const ts = GetThresholdsForSize(size);
+                        for (const t of ts) {
+                            if (value >= t.Value) return `Value: ${value.toFixed(3)} (${t.Label})`;
                         }
-
-                        return `Value: ${value}${status}`;
+                        return `Value: ${value.toFixed(3)}`;
                     },
-                }
+                },
             },
         },
         scales: {
             x: {
-                type: "linear" as const,
-                min: -0.5,
-                max: orderedSeriesMap.length - 0.5,
+                type: 'linear' as const, min: -0.5, max: ORDERED_SERIES.length - 0.5,
                 title: { display: false },
                 ticks: {
-                    stepSize: 1,
-                    maxRotation: 45,
-                    minRotation: 45,
-                    font: { size: 10 },
-                    color: '#616161',
-                    callback: function (value: any) {
-                        const intValue = Math.round(Number(value));
-                        return xAxisLabels[intValue] || '';
-                    }
+                    stepSize: 1, maxRotation: 45, minRotation: 45,
+                    font: { size: 10 }, color: '#616161',
+                    callback: (value: any) => X_AXIS_LABELS[Math.round(Number(value))] || '',
                 },
-                grid: {
-                    display: true,
-                    color: 'rgba(0, 0, 0, 0.1)',
-                    lineWidth: 1,
-                }
+                grid: { display: true, color: 'rgba(0,0,0,0.1)', lineWidth: 1 },
             },
             y: {
-                min: yAxisMin,
-                max: yAxisMax,
-                title: { display: false },
+                min: yAxisMin, max: yAxisMax, title: { display: false },
                 ticks: {
-                    stepSize: 0.001,
-                    precision: 3,
-                    font: { size: 10 },
-                    color: '#616161',
-                    callback: function (value: any) {
-                        return Number(value).toFixed(3);
-                    }
+                    stepSize: 0.001, precision: 3, font: { size: 10 }, color: '#616161',
+                    callback: (value: any) => Number(value).toFixed(3),
                 },
-                grid: {
-                    display: true,
-                    color: 'rgba(0, 0, 0, 0.1)',
-                    lineWidth: 1,
-                }
+                grid: { display: true, color: 'rgba(0,0,0,0.1)', lineWidth: 1 },
             },
         },
     };
+
+    _chartOptionsCache.set(cacheKey, options);
+    return options;
 };
 
 // ===== COMPUTED PROPERTIES =====
@@ -667,128 +613,108 @@ const FilteredSizes = computed(() => {
             .map(r => r.ImobileSize)
             .filter(size => size && size.trim() !== "" && size !== "Product Size")
     );
-
     return ImobileSizes.value.filter(size => sizesWithRecords.has(size));
 });
 
 const McPoList = computed((): McPoItem[] => {
     if (!Records.value || Records.value.length === 0 || !ImobileSize.value) return [];
-
     const filtered = Records.value.filter(r => r.ImobileSize === ImobileSize.value);
     const uniqueMcPo = [...new Set(filtered.map(r => r.McPo))];
-
     return uniqueMcPo
         .map(mc => ({ Label: mc || 'Unknown', Value: mc || '' }))
-        .sort((a, b) => {
-            const numA = parseFloat(a.Value) || 0;
-            const numB = parseFloat(b.Value) || 0;
-            return numA - numB;
-        });
+        .sort((a, b) => (parseFloat(a.Value)||0) - (parseFloat(b.Value)||0));
 });
 
-const LotChartList = computed(() => {
-    if (!Records.value || Records.value.length === 0 || !ImobileSize.value) return [];
+// ── LotChartList: shallowRef avoids deep Vue reactivity on large array ───────
+// Rebuilt by watch() only when filters actually change — not on every
+// reactive dependency touched inside a computed's body
+const LotChartList = shallowRef<LotChart[]>([]);
+
+// Today's MMDD computed once — never changes during a session
+const _todayMMDD = FormatDateToMMDD(new Date());
+
+const _rebuildLotChartList = () => {
+    if (!Records.value || Records.value.length === 0 || !ImobileSize.value) {
+        LotChartList.value = [];
+        return;
+    }
 
     let sameSizeRecords = Records.value.filter(r => r.ImobileSize === ImobileSize.value);
     if (FilterMc.value) {
         sameSizeRecords = sameSizeRecords.filter(r => r.McPo === FilterMc.value);
     }
-
-    if (sameSizeRecords.length === 0) return [];
+    if (!sameSizeRecords.length) { LotChartList.value = []; return; }
 
     let filteredRecords: any[];
-
     if (SelectedDate.value) {
         const targetMMDD = GetSelectedDateMMDD(SelectedDate.value);
-        filteredRecords = sameSizeRecords.filter(rec => {
-            const lotPoDate = ExtractDateFromLotPo(rec.LotPo);
-            return lotPoDate === targetMMDD;
-        });
+        filteredRecords = sameSizeRecords.filter(rec => ExtractDateFromLotPo(rec.LotPo) === targetMMDD);
     } else {
-        const todayMMDD = FormatDateToMMDD(new Date());
-        const todayRecords = sameSizeRecords.filter(rec => {
-            const lotPoDate = ExtractDateFromLotPo(rec.LotPo);
-            return lotPoDate === todayMMDD;
-        });
-
+        const todayRecords = sameSizeRecords.filter(rec => ExtractDateFromLotPo(rec.LotPo) === _todayMMDD);
         if (todayRecords.length > 0) {
             filteredRecords = todayRecords;
         } else {
-            const latestRecord = sameSizeRecords.reduce((latest, current) =>
-                new Date(current.DateProcess) > new Date(latest.DateProcess) ? current : latest
+            // latest date — parse DateProcess strings once, reduce once
+            const latestRecord = sameSizeRecords.reduce((latest, cur) =>
+                cur.DateProcess > latest.DateProcess ? cur : latest
             );
-            const latestDate = new Date(latestRecord.DateProcess).toISOString().split("T")[0];
-
-            filteredRecords = sameSizeRecords.filter(rec => {
-                const recordDate = new Date(rec.DateProcess).toISOString().split("T")[0];
-                return recordDate === latestDate;
-            });
+            const latestDate = latestRecord.DateProcess.split('T')[0];
+            filteredRecords = sameSizeRecords.filter(rec => rec.DateProcess.split('T')[0] === latestDate);
         }
     }
-
-    if (filteredRecords.length === 0) return [];
+    if (!filteredRecords.length) { LotChartList.value = []; return; }
 
     const sortedRecords = filteredRecords.sort((a, b) => CompareNoPo(a.NoPo, b.NoPo));
 
-    return sortedRecords.map(rec => {
+    LotChartList.value = sortedRecords.map(rec => {
         const allValues: number[] = [];
 
-        SeriesMap.forEach(({ Key }) => {
-            const values = (rec as any)[Key];
-            if (!Array.isArray(values)) return;
+        // Single pass: collect values AND build datasets simultaneously
+        const datasets: ChartDataset[] = ORDERED_SERIES.map(({ Key, Label, Color }, index) => {
+            const values: any[] = (rec as any)[Key];
+            if (!Array.isArray(values)) return null as any;
 
-            values
-                .filter((v): v is number => typeof v === 'number')
-                .forEach((value) => {
-                    allValues.push(value);
-                });
-        });
+            const dataPoints: { X: number; Y: number }[] = [];
+            for (const v of values) {
+                if (typeof v === 'number') {
+                    dataPoints.push({ X: index, Y: v });
+                    allValues.push(v);
+                }
+            }
+            return { Label, Data: dataPoints, BackgroundColor: Color, PointRadius: 5, PointHoverRadius: 7, ShowLine: false };
+        }).filter(Boolean);
 
-        const datasets: ChartDataset[] = SeriesMap
-            .map(({ Key, Label, Color }, index) => {
-                const values = (rec as any)[Key];
-                if (!Array.isArray(values)) return null;
+        const minValue = allValues.length ? Math.min(...allValues) : 0;
+        const maxValue = allValues.length ? Math.max(...allValues) : 0;
+        const avgValue = allValues.length ? allValues.reduce((s, v) => s + v, 0) / allValues.length : 0;
 
-                const dataPoints = values
-                    .filter((v): v is number => typeof v === 'number')
-                    .map((v) => ({
-                        X: index,
-                        Y: v,
-                        Value: v
-                    }));
-
-                return {
-                    Label,
-                    Data: dataPoints,
-                    BackgroundColor: Color,
-                    PointRadius: 5,
-                    PointHoverRadius: 7,
-                    ShowLine: false,
-                };
-            })
-            .filter((dataset): dataset is ChartDataset => dataset !== null);
-
-        const minValue = allValues.length > 0 ? Math.min(...allValues) : 0;
-        const maxValue = allValues.length > 0 ? Math.max(...allValues) : 0;
-        const totalPoints = allValues.length;
-
-        const avgValue = allValues.length > 0
-            ? allValues.reduce((sum, val) => sum + val, 0) / allValues.length
-            : 0;
+        // Pre-build Chart.js data object here — stable reference in template
+        // Chart.js only redraws when this reference changes
+        const chartJsData = {
+            datasets: datasets.map(d => ({
+                label: d.Label,
+                data: d.Data.map(p => ({ x: p.X, y: p.Y })),
+                backgroundColor: d.BackgroundColor,
+                pointRadius: d.PointRadius,
+                pointHoverRadius: d.PointHoverRadius,
+                showLine: d.ShowLine,
+            })),
+        };
 
         return {
             LotId: rec.ImobileLot || rec.LotId || 'Unknown',
             Datasets: datasets,
+            chartJsData,                                  // ← stable ref for template
+            chartOptions: GetChartOptions(rec.ImobileSize || '', Number(minValue.toFixed(4)), Number(maxValue.toFixed(4))),
             Size: rec.ImobileSize || 'Unknown',
             Status: rec.Status || '',
             PoLot: `${rec.LotPo}-${rec.McPo}-${rec.NoPo}`,
             MinValue: Number(minValue.toFixed(4)),
             MaxValue: Number(maxValue.toFixed(4)),
             AvgValue: Number(avgValue.toFixed(4)),
-            TotalPoints: totalPoints,
+            TotalPoints: allValues.length,
             DateProcess: rec.DateProcess,
             LotPo: rec.LotPo,
-            // Raw record fields for Monitor dialog
             ThBefore: rec.ThBefore ?? rec.thBefore,
             ProcessTime: rec.ProcessTime ?? rec.processTime,
             Rate: rec.PoRate ?? rec.poRate,
@@ -808,9 +734,16 @@ const LotChartList = computed(() => {
             Ca4Out: rec.Ca4Out ?? rec.ca4Out ?? [],
             Ca5In: rec.Ca5In ?? rec.ca5In ?? [],
             Ca5Out: rec.Ca5Out ?? rec.ca5Out ?? [],
-        };
+        } as LotChart & { chartJsData: any; chartOptions: any };
     });
-});
+};
+
+// Watch only the specific refs that affect filtering — not everything Records touches
+watch(
+    [() => Records.value, ImobileSize, FilterMc, SelectedDate],
+    _rebuildLotChartList,
+    { immediate: false }
+);
 
 const FormatValue = (value: number, decimalPlaces: number = 3): string => {
     if (typeof value !== 'number' || isNaN(value)) return 'N/A';
@@ -1121,6 +1054,9 @@ onMounted(async () => {
         HasError.value = false;
         LastRefreshTime.value = new Date();
 
+        // Build chart list now that data is loaded
+        _rebuildLotChartList();
+
         // Start auto-refresh
         if (AutoRefreshEnabled.value) {
             StartAutoRefresh();
@@ -1424,17 +1360,11 @@ onBeforeUnmount(() => {
 
                                 <!-- Chart Content -->
                                 <div class="chart-content-seamless">
-                                    <Scatter v-if="lotChart.Datasets && lotChart.Datasets.length > 0" :data="{
-                                        datasets: lotChart.Datasets.map(d => ({
-                                            label: d.Label,
-                                            data: d.Data.map(point => ({ x: point.X, y: point.Y })),
-                                            backgroundColor: d.BackgroundColor,
-                                            pointRadius: d.PointRadius,
-                                            pointHoverRadius: d.PointHoverRadius,
-                                            showLine: d.ShowLine
-                                        }))
-                                    }"
-                                        :options="GetChartOptions(lotChart.Size, lotChart.MinValue, lotChart.MaxValue)" />
+                                    <Scatter
+                                        v-if="lotChart.Datasets && lotChart.Datasets.length > 0"
+                                        :data="(lotChart as any).chartJsData"
+                                        :options="(lotChart as any).chartOptions"
+                                    />
                                 </div>
 
                                 <!-- Chart Footer -->
@@ -1512,7 +1442,6 @@ onBeforeUnmount(() => {
     background: rgba(255, 255, 255, 0.98);
     border-radius: 24px;
     padding: 32px;
-    backdrop-filter: blur(10px);
     min-height: calc(100vh - 40px);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
 }
