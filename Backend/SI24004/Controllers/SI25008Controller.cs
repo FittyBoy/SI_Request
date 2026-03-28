@@ -41,17 +41,34 @@ namespace SI24004.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ThRecordDTO>>> GetPolishingDataThickness()
+        public async Task<ActionResult<IEnumerable<ThRecordDTO>>> GetPolishingDataThickness(
+            [FromQuery] string? date = null)
         {
             try
             {
-                // ใช้เวลาไทยแทน DateTime.Now
                 var currentThailandTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _thailandTimeZone);
-                var ftdate = currentThailandTime.AddDays(-14);
 
-                // ดึงข้อมูลทั้งหมดจาก ThRecords
+                DateTime filterStart, filterEnd;
+
+                if (!string.IsNullOrWhiteSpace(date) && DateTime.TryParse(date, out var selectedDate))
+                {
+                    // ดึงข้อมูลเฉพาะวันที่ select (00:00:00 - 23:59:59)
+                    filterStart = selectedDate.Date;
+                    filterEnd   = selectedDate.Date.AddDays(1).AddTicks(-1);
+                    Console.WriteLine($"📅 Filtering by selected date: {filterStart:yyyy-MM-dd}");
+                }
+                else
+                {
+                    // fallback: ย้อนหลัง 14 วัน
+                    filterStart = currentThailandTime.AddDays(-14);
+                    filterEnd   = currentThailandTime;
+                    Console.WriteLine($"📅 Filtering last 14 days from {filterStart:yyyy-MM-dd}");
+                }
+
                 List<ThRecord> thRecords = await _sqlcontext.ThRecords
-                    .Where(th => th.DateProcess >= ftdate && th.ImobileType == "Polishing")
+                    .Where(th => th.DateProcess >= filterStart
+                              && th.DateProcess <= filterEnd
+                              && th.ImobileType == "Polishing")
                     .OrderByDescending(th => th.DateProcess)
                     .ToListAsync();
 

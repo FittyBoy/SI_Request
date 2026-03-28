@@ -373,24 +373,26 @@ const ProductSizeThresholdMap: Record<string, ThresholdItem[]> = {
 };
 
 // ===== API CALLS =====
-const config = useRuntimeConfig();
+const config = useRuntimeConfig()
 
+// SelectedDate เป็น query param ส่งไป API
 const { data: Records, error: ErrorRecords, refresh: RefreshRecords } = await useFetch<any[]>("/api/SI25008", {
     baseURL: config.public.apiBase as string,
     method: "GET",
     headers: { "Content-Type": "application/json" },
+    params: computed(() => SelectedDate.value ? { date: SelectedDate.value } : {}),
     transform: (data: any) => Array.isArray(data) ? data : [],
     onResponseError({ response }) {
-        console.error('❌ API Error:', response.status, response._data);
+        console.error('❌ API Error:', response.status, response._data)
     }
-});
+})
 
 const { data: ProductData, error: ErrorProduct, refresh: RefreshProduct } = await useFetch<string[]>("/api/SI25008/GetAllProduct", {
     baseURL: config.public.apiBase as string,
     method: "GET",
     headers: { "Content-Type": "application/json" },
     transform: (data: any) => Array.isArray(data) ? data : [],
-});
+})
 
 // ===== UTILITY FUNCTIONS =====
 const GetThresholdsForSize = (productSize?: string): ThresholdItem[] => {
@@ -805,18 +807,22 @@ const SilentRefreshData = async () => {
     }
 };
 
-const OnDateSelected = (val: string) => {
+const OnDateSelected = async (val: string) => {
     if (val) {
-        DisplayDate.value = format(new Date(val), 'dd/MM/yyyy');
-        SelectedDate.value = val;
+        DisplayDate.value = format(new Date(val), 'dd/MM/yyyy')
+        SelectedDate.value = val
+        // refresh ดึงข้อมูลใหม่ตามวันที่เลือก
+        await RefreshRecords()
     }
-    Menu.value = false;
-};
+    Menu.value = false
+}
 
-const ClearDateFilter = () => {
-    SelectedDate.value = null;
-    DisplayDate.value = '';
-};
+const ClearDateFilter = async () => {
+    SelectedDate.value = null
+    DisplayDate.value = ''
+    // refresh กลับมาดึง 14 วัน
+    await RefreshRecords()
+}
 
 // ===== AUTO-REFRESH FUNCTIONS =====
 const StartAutoRefresh = () => {
