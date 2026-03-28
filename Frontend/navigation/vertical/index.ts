@@ -51,19 +51,6 @@ export default (roleName?: string | null, sectionName?: string) => {
       ],
     },
     {
-      title: 'Master Data',
-      icon: { icon: 'tabler-database' },
-      children: [
-        ...(role === 'admin'
-          ? [{
-              title: 'Material Receive',
-              to: { name: 'master-material-receive' },
-              icon: { icon: 'tabler-truck' },
-            }]
-          : []),
-      ],
-    },
-    {
       title: 'Request',
       icon: { icon: 'tabler-file-text' },
       children: [
