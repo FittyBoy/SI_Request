@@ -550,7 +550,7 @@ const handleDialogRefresh = async () => {
             <!-- Request By -->
             <template #item.RequestBy="{ item }">
                 <div class="text-body-2">
-                    <v-chip v-if="item.RequestBy" color="blue" size="small" variant="tonal" class="text-capitalize">
+                    <v-chip v-if="item.RequestBy" color="primary" size="small" variant="tonal" class="text-capitalize">
                         <v-icon start icon="tabler-user" size="14"></v-icon>
                         {{ item.RequestBy }}
                     </v-chip>
@@ -561,7 +561,7 @@ const handleDialogRefresh = async () => {
             <!-- Request Product -->
             <template #item.RequestProduct="{ item }">
                 <div class="text-body-2">
-                    <v-chip v-if="item.RequestProduct" color="teal" size="small" variant="tonal">
+                    <v-chip v-if="item.RequestProduct" color="info" size="small" variant="tonal">
                         <v-icon start icon="tabler-package" size="14"></v-icon>
                         {{ item.RequestProduct }}
                     </v-chip>

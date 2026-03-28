@@ -411,7 +411,7 @@ onMounted(() => {
             </template>
 
             <template #item.SubstanceIdentifier="{ item }">
-              <v-chip size="small" color="indigo" variant="flat">
+              <v-chip size="small" color="primary" variant="tonal">
                 {{ item.SubstanceIdentifier }}
               </v-chip>
             </template>
