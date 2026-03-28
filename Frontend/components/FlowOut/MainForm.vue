@@ -1515,6 +1515,26 @@ onUnmounted(() => {
     opacity: 0.9;
 }
 
+.mc-select-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.mc-select-wrapper::after {
+    content: '';
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 7px solid rgba(255, 255, 255, 0.85);
+    pointer-events: none;
+}
+
 .mc-select {
     appearance: none;
     background: rgba(255, 255, 255, 0.2);
