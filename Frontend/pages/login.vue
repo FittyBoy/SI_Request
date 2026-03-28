@@ -141,8 +141,12 @@ const login = async () => {
       timerProgressBar: true
     })
 
-    // 🔄 Redirect ไปหน้าหลัก
-    await router.push('/request/ina-page')
+    // 🔄 Redirect ไปหน้าที่ตั้งใจเข้า (จาก ?redirect=) หรือหน้าหลัก
+    const route = useRoute()
+    const redirectTo = route.query.redirect
+      ? decodeURIComponent(String(route.query.redirect))
+      : '/request/ina-page'
+    await router.push(redirectTo)
 
   } catch (error: any) {
     console.error('❌ Login Failed:', error)

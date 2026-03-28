@@ -5,6 +5,17 @@
 // ===== IMPORTS =====
 import { ref, watch, onMounted, onBeforeUnmount, computed, nextTick } from "vue";
 import ThicknessMonitorDialog from "@/components/ThicknessMonitorDialog.vue";
+
+// ===== PROPS =====
+const props = withDefaults(defineProps<{
+    initialLot?: string | null
+    initialSize?: string | null
+    autoOpenMonitor?: boolean
+}>(), {
+    initialLot: null,
+    initialSize: null,
+    autoOpenMonitor: false,
+})
 import {
     Chart as ChartJS,
     ScatterController,
@@ -1082,16 +1093,28 @@ onMounted(async () => {
             );
             ImobileSizes.value = cleaned;
 
-            const validRecord = Records.value?.find(r =>
-                ImobileSizes.value.includes(r.ImobileSize)
-            );
-
-            if (validRecord) {
-                Lot.value = validRecord.LotId || 'LOTNAME';
-                ImobileSize.value = validRecord.ImobileSize;
-            } else if (Records.value?.[0]) {
-                Lot.value = Records.value[0].LotId || 'LOTNAME';
-                ImobileSize.value = Records.value[0].ImobileSize;
+            // ── Deep-link: apply props first ──────────────────────────────
+            if (props.initialSize && cleaned.includes(props.initialSize)) {
+                // Size ที่ส่งมาจาก query param ตรงกับข้อมูล → ใช้เลย
+                ImobileSize.value = props.initialSize;
+            } else if (props.initialLot && Records.value) {
+                // หา size จาก lot ที่ระบุมา
+                const matchRec = Records.value.find(
+                    r => (r.ImobileLot || r.LotId) === props.initialLot
+                );
+                if (matchRec) ImobileSize.value = matchRec.ImobileSize;
+            } else {
+                // fallback เดิม
+                const validRecord = Records.value?.find(r =>
+                    ImobileSizes.value.includes(r.ImobileSize)
+                );
+                if (validRecord) {
+                    Lot.value = validRecord.LotId || 'LOTNAME';
+                    ImobileSize.value = validRecord.ImobileSize;
+                } else if (Records.value?.[0]) {
+                    Lot.value = Records.value[0].LotId || 'LOTNAME';
+                    ImobileSize.value = Records.value[0].ImobileSize;
+                }
             }
         }
 
@@ -1102,6 +1125,18 @@ onMounted(async () => {
         if (AutoRefreshEnabled.value) {
             StartAutoRefresh();
         }
+
+        // ── Deep-link: auto-open Monitor dialog ───────────────────────────
+        if (props.autoOpenMonitor && props.initialLot) {
+            await nextTick();
+            // รอให้ LotChartList computed มีข้อมูล
+            await nextTick();
+            const target = LotChartList.value.find(
+                lc => lc.LotId === props.initialLot
+            ) ?? LotChartList.value[0] ?? null;
+            if (target) OpenMonitorDialog(target);
+        }
+
     } catch (error) {
         console.error('❌ Error during component initialization:', error);
         HasError.value = true;
