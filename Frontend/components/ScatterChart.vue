@@ -4,6 +4,7 @@
 <script setup lang="ts">
 // ===== IMPORTS =====
 import { ref, watch, onMounted, onBeforeUnmount, computed, nextTick } from "vue";
+import ThicknessMonitorDialog from "@/components/ThicknessMonitorDialog.vue";
 import {
     Chart as ChartJS,
     ScatterController,
@@ -49,6 +50,26 @@ interface LotChart {
     TotalPoints?: number;
     DateProcess?: string;
     LotPo?: string;
+    // Raw record fields for Monitor dialog
+    ThBefore?: number | null;
+    ProcessTime?: number | null;
+    Rate?: number | null;
+    Margin?: number | null;
+    Process?: string;
+    McPo?: string;
+    NoPo?: string;
+    Program?: string | null;
+    Result?: string;
+    Ca1In?: (number | null)[];
+    Ca1Out?: (number | null)[];
+    Ca2In?: (number | null)[];
+    Ca2Out?: (number | null)[];
+    Ca3In?: (number | null)[];
+    Ca3Out?: (number | null)[];
+    Ca4In?: (number | null)[];
+    Ca4Out?: (number | null)[];
+    Ca5In?: (number | null)[];
+    Ca5Out?: (number | null)[];
 }
 
 interface McPoItem {
@@ -117,6 +138,10 @@ const ViewMode = ref<'horizontal' | 'vertical'>('horizontal');
 const Menu = ref<boolean>(false);
 const SelectedDate = ref<string | null>(null);
 const DisplayDate = ref<string>('');
+
+// Monitor Dialog States
+const ShowMonitorDialog = ref<boolean>(false);
+const SelectedLotChart = ref<LotChart | null>(null);
 
 // ===== CONSTANTS =====
 const SeriesMap: SeriesMapItem[] = [
@@ -752,6 +777,26 @@ const LotChartList = computed(() => {
             TotalPoints: totalPoints,
             DateProcess: rec.DateProcess,
             LotPo: rec.LotPo,
+            // Raw record fields for Monitor dialog
+            ThBefore: rec.ThBefore ?? rec.thBefore,
+            ProcessTime: rec.ProcessTime ?? rec.processTime,
+            Rate: rec.PoRate ?? rec.poRate,
+            Margin: rec.Margin ?? rec.margin,
+            Process: rec.Process ?? rec.process,
+            McPo: rec.McPo ?? rec.mcPo,
+            NoPo: rec.NoPo ?? rec.noPo,
+            Program: rec.Program ?? rec.program,
+            Result: rec.Result ?? rec.result,
+            Ca1In: rec.Ca1In ?? rec.ca1In ?? [],
+            Ca1Out: rec.Ca1Out ?? rec.ca1Out ?? [],
+            Ca2In: rec.Ca2In ?? rec.ca2In ?? [],
+            Ca2Out: rec.Ca2Out ?? rec.ca2Out ?? [],
+            Ca3In: rec.Ca3In ?? rec.ca3In ?? [],
+            Ca3Out: rec.Ca3Out ?? rec.ca3Out ?? [],
+            Ca4In: rec.Ca4In ?? rec.ca4In ?? [],
+            Ca4Out: rec.Ca4Out ?? rec.ca4Out ?? [],
+            Ca5In: rec.Ca5In ?? rec.ca5In ?? [],
+            Ca5Out: rec.Ca5Out ?? rec.ca5Out ?? [],
         };
     });
 });
@@ -890,6 +935,12 @@ const OnRefreshIntervalChange = () => {
     if (AutoRefreshEnabled.value) {
         StartAutoRefresh(); // Restart with new interval
     }
+};
+
+// ===== MONITOR DIALOG =====
+const OpenMonitorDialog = (lotChart: LotChart) => {
+    SelectedLotChart.value = lotChart;
+    ShowMonitorDialog.value = true;
 };
 
 // ===== PDF EXPORT FUNCTIONS =====
@@ -1280,14 +1331,17 @@ onBeforeUnmount(() => {
                         <template v-for="(lotChart, index) in LotChartList" :key="`${lotChart.LotId}-${index}`">
                             <!-- Chart Item -->
                             <div class="chart-item-seamless" :ref="(el) => SetChartWrapperRef(el, index)">
-                                <!-- Chart Header -->
-                                <div class="chart-header-seamless">
+                                <!-- Chart Header (clickable → opens Monitor Dialog) -->
+                                <div class="chart-header-seamless chart-header-clickable"
+                                    @click="OpenMonitorDialog(lotChart)"
+                                    title="Click to open Thickness Measurement Monitor">
                                     <v-row no-gutters>
                                         <!-- Left: Product Info -->
                                         <v-col cols="6">
                                             <div class="product-info">
-                                                <div class="text-h6 font-weight-bold text-primary mb-1">
+                                                <div class="text-h6 font-weight-bold text-primary mb-1 d-flex align-center gap-1">
                                                     {{ lotChart.Size }}
+                                                    <v-icon size="14" color="primary" class="ml-1 header-open-icon">mdi-open-in-new</v-icon>
                                                 </div>
                                                 <div class="text-body-2 text-grey-darken-2 mb-1">
                                                     {{ lotChart.LotId }}
@@ -1395,6 +1449,13 @@ onBeforeUnmount(() => {
                 </v-card-text>
             </v-card>
         </v-dialog>
+
+        <!-- ===== THICKNESS MONITOR DIALOG ===== -->
+        <ThicknessMonitorDialog
+            v-model="ShowMonitorDialog"
+            :lot-data="SelectedLotChart"
+            :thresholds="SelectedLotChart ? GetThresholdsForSize(SelectedLotChart.Size) : []"
+        />
     </div>
 </template>
 
@@ -1545,6 +1606,29 @@ onBeforeUnmount(() => {
     padding: 16px;
     background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
     border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+}
+
+/* Clickable header variant */
+.chart-header-clickable {
+    cursor: pointer;
+    transition: background 0.18s ease, box-shadow 0.18s ease;
+    user-select: none;
+    position: relative;
+}
+
+.chart-header-clickable:hover {
+    background: linear-gradient(135deg, #e8f0fe 0%, #f0f6ff 100%);
+    box-shadow: 0 2px 8px rgba(25, 118, 210, 0.12);
+}
+
+.chart-header-clickable:hover .header-open-icon {
+    opacity: 1;
+    transform: scale(1.15);
+}
+
+.header-open-icon {
+    opacity: 0.45;
+    transition: opacity 0.18s, transform 0.18s;
 }
 
 .chart-content-seamless {
