@@ -39,7 +39,7 @@ export default defineNuxtConfig({
 
     // 🌐 Public keys — expose ให้ client อ่านได้
     public: {
-      apiBase: process.env.API_BASE_URL || 'http://localhost:9011',
+      apiBase: process.env.API_BASE_URL || 'https://localhost:7247',
       apiTimeout: 600000,
       isDevelopment: process.env.NODE_ENV === 'development',
       endpoints: {
