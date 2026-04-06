@@ -313,181 +313,48 @@ namespace SI24004.Controllers
                 // ✅ BR29x30x0.6: ข้าม sequence check ได้เลย
                 if (isBrSize) goto SkipSequenceCheck;
 
-
-                if (!existingNoPos.Any())
+                // ✅ PERF FIX: Pre-load data once, then run loop in-memory (no N+1 queries)
+                if (currentNoPo > 1)
                 {
-                    if (currentNoPo > 1)
-                    {
-                        var missingNormalLots = new List<int>();
+                    var seqCtx = await PreloadForSequenceCheckAsync(thRecord.LotPo, thRecord.McPo, currentNoPo);
+                    var existingNoPoSet = new HashSet<int>(existingNoPos);
 
-                        for (int i = 1; i < currentNoPo; i++)
-                        {
-                            var lotStatus = await CheckLotStatusEnhanced(thRecord.LotPo, thRecord.McPo, i);
+                    var (missingNormalLots, addedScrap, skippedRescreen, canAddRescreen) =
+                        await RunSequenceCheckAsync(thRecord.LotPo, thRecord.McPo, currentNoPo, existingNoPoSet, seqCtx);
 
-                            if (lotStatus.isScrap && lotStatus.thRecord != null)
-                            {
-                                await AutoAddScrapLot(lotStatus.thRecord);
-                                autoAddedScrapLots.Add($"{thRecord.LotPo}-{thRecord.McPo}-{lotStatus.thRecord.NoPo}");
-                            }
-                            else if (lotStatus.isRescreen)
-                            {
-                                if (lotStatus.thRecord == null)
-                                {
-                                    missingNormalLots.Add(i);
-                                    continue;
-                                }
-
-                                var (canSkip, canAdd, source) = await CheckRescreenLotStatus(
-                                    lotStatus.thRecord.ImobileLot,
-                                    thRecord.LotPo,
-                                    thRecord.McPo,
-                                    i
-                                );
-
-                                if (canSkip)
-                                {
-                                    rescreenSkippedLots.Add($"{thRecord.LotPo}-{thRecord.McPo}-{i:D3}");
-                                }
-                                else if (canAdd)
-                                {
-                                    rescreenCanAddLots.Add($"{thRecord.LotPo}-{thRecord.McPo}-{i:D3}");
-                                    missingNormalLots.Add(i);
-                                }
-                                else
-                                {
-                                    missingNormalLots.Add(i);
-                                }
-                            }
-                            else if (!lotStatus.isHold)
-                            {
-                                missingNormalLots.Add(i);
-                            }
-                        }
-
-                        if (missingNormalLots.Any())
-                        {
-                            var errorMessage = $"❌ ไม่มี LOT ของ {thRecord.LotPo}-{thRecord.McPo} ในระบบ\n\n📋 กรุณาเริ่มต้นด้วย: {thRecord.LotPo}-{thRecord.McPo}-001\n\n🔍 LOT ที่พยายามเพิ่ม: {currentPoLot}{statusInfo}";
-
-                            if (rescreenSkippedLots.Any())
-                            {
-                                errorMessage += $"\n\n✅ LOT ที่ข้ามได้ (มีใน Rescreen Check):\n• {string.Join("\n• ", rescreenSkippedLots)}";
-                            }
-
-                            if (rescreenCanAddLots.Any())
-                            {
-                                errorMessage += $"\n\n📌 LOT Rescreen ที่ต้องเพิ่มก่อน (มีใน TH100):\n• {string.Join("\n• ", rescreenCanAddLots)}";
-                            }
-
-                            return BadRequest(new
-                            {
-                                success = false,
-                                message = errorMessage,
-                                requiredLot = $"{thRecord.LotPo}-{thRecord.McPo}-001",
-                                currentLot = currentPoLot,
-                                status = thRecord.Status,
-                                rescreenSkippedLots = rescreenSkippedLots,
-                                rescreenCanAddLots = rescreenCanAddLots
-                            });
-                        }
-
-                        if (autoAddedScrapLots.Any())
-                        {
-                            statusInfo += $"\n\n✅ Auto-add SCRAP LOT:\n• {string.Join("\n• ", autoAddedScrapLots)}";
-                        }
-
-                        if (rescreenSkippedLots.Any())
-                        {
-                            statusInfo += $"\n\n✅ ข้าม Rescreen LOT (มีใน Rescreen Check):\n• {string.Join("\n• ", rescreenSkippedLots)}";
-                        }
-                    }
-                }
-                else
-                {
-                    var missingNormalLots = new List<int>();
-
-                    for (int i = 1; i < currentNoPo; i++)
-                    {
-                        if (!existingNoPos.Contains(i))
-                        {
-                            var lotStatus = await CheckLotStatusEnhanced(thRecord.LotPo, thRecord.McPo, i);
-
-                            if (lotStatus.isScrap && lotStatus.thRecord != null)
-                            {
-                                await AutoAddScrapLot(lotStatus.thRecord);
-                                autoAddedScrapLots.Add($"{thRecord.LotPo}-{thRecord.McPo}-{lotStatus.thRecord.NoPo}");
-                            }
-                            else if (lotStatus.isRescreen)
-                            {
-                                if (lotStatus.thRecord == null)
-                                {
-                                    missingNormalLots.Add(i);
-                                    continue;
-                                }
-
-                                var (canSkip, canAdd, source) = await CheckRescreenLotStatus(
-                                    lotStatus.thRecord.ImobileLot,
-                                    thRecord.LotPo,
-                                    thRecord.McPo,
-                                    i
-                                );
-
-                                if (canSkip)
-                                {
-                                    rescreenSkippedLots.Add($"{thRecord.LotPo}-{thRecord.McPo}-{i:D3}");
-                                }
-                                else if (canAdd)
-                                {
-                                    rescreenCanAddLots.Add($"{thRecord.LotPo}-{thRecord.McPo}-{i:D3}");
-                                    missingNormalLots.Add(i);
-                                }
-                                else
-                                {
-                                    missingNormalLots.Add(i);
-                                }
-                            }
-                            else if (!lotStatus.isHold)
-                            {
-                                missingNormalLots.Add(i);
-                            }
-                        }
-                    }
+                    autoAddedScrapLots  = addedScrap;
+                    rescreenSkippedLots = skippedRescreen;
+                    rescreenCanAddLots  = canAddRescreen;
 
                     if (missingNormalLots.Any())
                     {
-                        var missingLotsList = string.Join("\n• ", missingNormalLots.Select(n => $"{thRecord.LotPo}-{thRecord.McPo}-{n:D3}"));
-                        var errorMessage = $"❌ ไม่สามารถเพิ่ม LOT นี้ได้\n\n⚠️ ยังมี LOT ก่อนหน้าที่ยังไม่ได้เพิ่ม:\n• {missingLotsList}\n\n🔍 LOT ที่พยายามเพิ่ม: {currentPoLot}{statusInfo}";
+                        var isFirstLot = !existingNoPos.Any();
+                        var errorMessage = isFirstLot
+                            ? $"❌ ไม่มี LOT ของ {thRecord.LotPo}-{thRecord.McPo} ในระบบ\n\n📋 กรุณาเริ่มต้นด้วย: {thRecord.LotPo}-{thRecord.McPo}-001\n\n🔍 LOT ที่พยายามเพิ่ม: {currentPoLot}{statusInfo}"
+                            : $"❌ ไม่สามารถเพิ่ม LOT นี้ได้\n\n⚠️ ยังมี LOT ก่อนหน้าที่ยังไม่ได้เพิ่ม:\n• {string.Join("\n• ", missingNormalLots)}\n\n🔍 LOT ที่พยายามเพิ่ม: {currentPoLot}{statusInfo}";
 
                         if (rescreenSkippedLots.Any())
-                        {
                             errorMessage += $"\n\n✅ LOT ที่ข้ามได้ (มีใน Rescreen Check):\n• {string.Join("\n• ", rescreenSkippedLots)}";
-                        }
-
                         if (rescreenCanAddLots.Any())
-                        {
                             errorMessage += $"\n\n📌 LOT Rescreen ที่ต้องเพิ่มก่อน (มีใน TH100):\n• {string.Join("\n• ", rescreenCanAddLots)}";
-                        }
 
                         return BadRequest(new
                         {
                             success = false,
                             message = errorMessage,
-                            missingLots = missingNormalLots.Select(n => $"{thRecord.LotPo}-{thRecord.McPo}-{n:D3}").ToList(),
-                            rescreenSkippedLots = rescreenSkippedLots,
-                            rescreenCanAddLots = rescreenCanAddLots,
+                            requiredLot = isFirstLot ? $"{thRecord.LotPo}-{thRecord.McPo}-001" : (string?)null,
+                            missingLots = missingNormalLots,
                             currentLot = currentPoLot,
-                            status = thRecord.Status
+                            status = thRecord.Status,
+                            rescreenSkippedLots = rescreenSkippedLots,
+                            rescreenCanAddLots  = rescreenCanAddLots
                         });
                     }
 
                     if (autoAddedScrapLots.Any())
-                    {
                         statusInfo += $"\n\n✅ Auto-add SCRAP LOT:\n• {string.Join("\n• ", autoAddedScrapLots)}";
-                    }
-
                     if (rescreenSkippedLots.Any())
-                    {
                         statusInfo += $"\n\n✅ ข้าม Rescreen LOT (มีใน Rescreen Check):\n• {string.Join("\n• ", rescreenSkippedLots)}";
-                    }
                 }
 
             SkipSequenceCheck:
@@ -811,149 +678,32 @@ namespace SI24004.Controllers
                 // ✅ BR29x30x0.6: ข้าม sequence check ได้เลย
                 if (isBrSizeSave) goto SkipSequenceCheckSave;
 
-
-                if (!existingNoPos.Any())
+                // ✅ PERF FIX: Pre-load data once, then run loop in-memory (no N+1 queries)
+                if (currentNoPo > 1)
                 {
-                    if (currentNoPo > 1)
-                    {
-                        var missingNormalLots = new List<int>();
+                    var seqCtx = await PreloadForSequenceCheckAsync(thRecord.LotPo, thRecord.McPo, currentNoPo);
+                    var existingNoPoSet = new HashSet<int>(existingNoPos);
 
-                        for (int i = 1; i < currentNoPo; i++)
-                        {
-                            var lotStatus = await CheckLotStatusEnhanced(thRecord.LotPo, thRecord.McPo, i);
+                    var (missingNormalLots, addedScrap, skippedRescreen, canAddRescreen) =
+                        await RunSequenceCheckAsync(thRecord.LotPo, thRecord.McPo, currentNoPo, existingNoPoSet, seqCtx);
 
-                            if (lotStatus.isScrap && lotStatus.thRecord != null)
-                            {
-                                await AutoAddScrapLot(lotStatus.thRecord);
-                                autoAddedScrapLots.Add($"{thRecord.LotPo}-{thRecord.McPo}-{lotStatus.thRecord.NoPo}");
-                            }
-                            else if (lotStatus.isRescreen)
-                            {
-                                if (lotStatus.thRecord == null)
-                                {
-                                    missingNormalLots.Add(i);
-                                    continue;
-                                }
-
-                                var (canSkip, canAdd, source) = await CheckRescreenLotStatus(
-                                    lotStatus.thRecord.ImobileLot,
-                                    thRecord.LotPo,
-                                    thRecord.McPo,
-                                    i
-                                );
-
-                                if (canSkip)
-                                {
-                                    rescreenSkippedLots.Add($"{thRecord.LotPo}-{thRecord.McPo}-{i:D3}");
-                                }
-                                else if (canAdd)
-                                {
-                                    rescreenCanAddLots.Add($"{thRecord.LotPo}-{thRecord.McPo}-{i:D3}");
-                                    missingNormalLots.Add(i);
-                                }
-                                else
-                                {
-                                    missingNormalLots.Add(i);
-                                }
-                            }
-                            else if (!lotStatus.isHold)
-                            {
-                                missingNormalLots.Add(i);
-                            }
-                        }
-
-                        if (missingNormalLots.Any())
-                        {
-                            var validationMessage = $"ไม่มี LOT ของ {thRecord.LotPo}-{thRecord.McPo} ในระบบ กรุณาเริ่มต้นด้วย {thRecord.LotPo}-{thRecord.McPo}-001";
-
-                            if (rescreenSkippedLots.Any())
-                            {
-                                validationMessage += $"\n\n✅ LOT ที่ข้ามได้ (มีใน Rescreen Check): {string.Join(", ", rescreenSkippedLots)}";
-                            }
-
-                            if (rescreenCanAddLots.Any())
-                            {
-                                validationMessage += $"\n\n📌 LOT Rescreen ที่ต้องเพิ่มก่อน (มีใน TH100): {string.Join(", ", rescreenCanAddLots)}";
-                            }
-
-                            return BadRequest(new
-                            {
-                                success = false,
-                                message = validationMessage
-                            });
-                        }
-                    }
-                }
-                else
-                {
-                    var missingNormalLots = new List<int>();
-
-                    for (int i = 1; i < currentNoPo; i++)
-                    {
-                        if (!existingNoPos.Contains(i))
-                        {
-                            var lotStatus = await CheckLotStatusEnhanced(thRecord.LotPo, thRecord.McPo, i);
-
-                            if (lotStatus.isScrap && lotStatus.thRecord != null)
-                            {
-                                await AutoAddScrapLot(lotStatus.thRecord);
-                                autoAddedScrapLots.Add($"{thRecord.LotPo}-{thRecord.McPo}-{lotStatus.thRecord.NoPo}");
-                            }
-                            else if (lotStatus.isRescreen)
-                            {
-                                if (lotStatus.thRecord == null)
-                                {
-                                    missingNormalLots.Add(i);
-                                    continue;
-                                }
-
-                                var (canSkip, canAdd, source) = await CheckRescreenLotStatus(
-                                    lotStatus.thRecord.ImobileLot,
-                                    thRecord.LotPo,
-                                    thRecord.McPo,
-                                    i
-                                );
-
-                                if (canSkip)
-                                {
-                                    rescreenSkippedLots.Add($"{thRecord.LotPo}-{thRecord.McPo}-{i:D3}");
-                                }
-                                else if (canAdd)
-                                {
-                                    rescreenCanAddLots.Add($"{thRecord.LotPo}-{thRecord.McPo}-{i:D3}");
-                                    missingNormalLots.Add(i);
-                                }
-                                else
-                                {
-                                    missingNormalLots.Add(i);
-                                }
-                            }
-                            else if (!lotStatus.isHold)
-                            {
-                                missingNormalLots.Add(i);
-                            }
-                        }
-                    }
+                    autoAddedScrapLots  = addedScrap;
+                    rescreenSkippedLots = skippedRescreen;
+                    rescreenCanAddLots  = canAddRescreen;
 
                     if (missingNormalLots.Any())
                     {
-                        var validationMessage = $"ไม่สามารถเพิ่ม LOT นี้ได้ เนื่องจากยังมี LOT ก่อนหน้าที่ยังไม่ได้เพิ่ม: {string.Join(", ", missingNormalLots.Select(n => $"{thRecord.LotPo}-{thRecord.McPo}-{n:D3}"))}";
+                        var isFirstLot = !existingNoPos.Any();
+                        var validationMessage = isFirstLot
+                            ? $"ไม่มี LOT ของ {thRecord.LotPo}-{thRecord.McPo} ในระบบ กรุณาเริ่มต้นด้วย {thRecord.LotPo}-{thRecord.McPo}-001"
+                            : $"ไม่สามารถเพิ่ม LOT นี้ได้ เนื่องจากยังมี LOT ก่อนหน้าที่ยังไม่ได้เพิ่ม: {string.Join(", ", missingNormalLots)}";
 
                         if (rescreenSkippedLots.Any())
-                        {
                             validationMessage += $"\n\n✅ LOT ที่ข้ามได้ (มีใน Rescreen Check): {string.Join(", ", rescreenSkippedLots)}";
-                        }
-
                         if (rescreenCanAddLots.Any())
-                        {
                             validationMessage += $"\n\n📌 LOT Rescreen ที่ต้องเพิ่มก่อน (มีใน TH100): {string.Join(", ", rescreenCanAddLots)}";
-                        }
 
-                        return BadRequest(new
-                        {
-                            success = false,
-                            message = validationMessage
-                        });
+                        return BadRequest(new { success = false, message = validationMessage });
                     }
                 }
 
@@ -1227,6 +977,20 @@ namespace SI24004.Controllers
                         thByNoPo[num] = th;
                 }
 
+                // ✅ PERF FIX: Pre-fetch rescreen records ก่อน loop — ไม่ต้อง query ทุก iteration
+                var rescreenImobileLots = thByNoPo.Values
+                    .Where(t => t.Status?.ToUpper() == "RESCREEN" && t.ImobileLot != null)
+                    .Select(t => t.ImobileLot!)
+                    .ToList();
+
+                var rescreenInCheckSet = rescreenImobileLots.Any()
+                    ? (await _context.RescreenCheckRecords1
+                        .Where(r => rescreenImobileLots.Contains(r.ImobileLot))
+                        .Select(r => r.ImobileLot)
+                        .ToListAsync())
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase)
+                    : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
                 var combinedList = new List<object>();
 
                 for (int i = 1; i <= maxNoPo; i++)
@@ -1275,10 +1039,8 @@ namespace SI24004.Controllers
                         }
                         else if (statusUp == "RESCREEN")
                         {
-                            var rescreenRec = await _context.RescreenCheckRecords1
-                                .FirstOrDefaultAsync(r => r.ImobileLot == th.ImobileLot);
-
-                            if (rescreenRec != null)
+                            // ✅ PERF FIX: ใช้ HashSet ที่ pre-fetch ไว้แล้ว แทน query ในลูป
+                            if (rescreenInCheckSet.Contains(th.ImobileLot ?? ""))
                             {
                                 rowColor = "waiting_rescreen";
                                 displaySt = "Waiting Rescreen";
@@ -1561,6 +1323,176 @@ namespace SI24004.Controllers
                 .OrderByDescending(t => t.TimeProcess)
                 .FirstOrDefaultAsync();
         }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // ✅ PERF FIX: Pre-load helpers — eliminates N+1 queries in sequence check
+        // ─────────────────────────────────────────────────────────────────────────
+
+        private record SequenceCheckContext(
+            Dictionary<int, ThRecord> ThByNoPo,
+            HashSet<int> Th100NoPoSet,
+            HashSet<string> RescreenApprovedImobileLots
+        );
+
+        /// <summary>
+        /// Fetches all ThRecords, Th100Records, and RescreenCheck records for a
+        /// LotPo+McPo combination in 3 bulk queries — to be used before sequence-check loops.
+        /// </summary>
+        private async Task<SequenceCheckContext> PreloadForSequenceCheckAsync(
+            string lotPo, string mcPo, int currentNoPo)
+        {
+            // 1. All ThRecords for LotPo+McPo — build noPoNumber → latest record map
+            var allTh = await _thicknessContext.ThRecords
+                .Where(t => t.LotPo == lotPo && t.McPo == mcPo)
+                .OrderBy(t => t.TimeProcess)
+                .ToListAsync();
+
+            var thByNoPo = new Dictionary<int, ThRecord>();
+            foreach (var th in allTh)
+            {
+                var m = System.Text.RegularExpressions.Regex.Match(th.NoPo ?? "", @"^(\d+)");
+                if (m.Success && int.TryParse(m.Groups[1].Value, out int n))
+                    thByNoPo[n] = th; // overwrite → keeps latest TimeProcess
+            }
+
+            // 2. All Th100Records for LotPo+McPo — build noPoNumber set
+            var allTh100 = await _thicknessContext.Th100Records
+                .Where(t => t.LotPo == lotPo && t.McPo == mcPo)
+                .ToListAsync();
+
+            var th100NoPoSet = new HashSet<int>();
+            foreach (var t in allTh100)
+            {
+                var m = System.Text.RegularExpressions.Regex.Match(t.NoPo ?? "", @"^(\d+)");
+                if (m.Success && int.TryParse(m.Groups[1].Value, out int n))
+                    th100NoPoSet.Add(n);
+            }
+
+            // 3. Collect imobileLots of rescreen lots in range → query RescreenCheck once
+            var rescreenImobileLots = thByNoPo
+                .Where(kv => kv.Key < currentNoPo &&
+                             string.Equals(kv.Value.Status, "rescreen", StringComparison.OrdinalIgnoreCase) &&
+                             kv.Value.ImobileLot != null)
+                .Select(kv => kv.Value.ImobileLot!)
+                .ToList();
+
+            HashSet<string> rescreenApproved;
+            if (rescreenImobileLots.Any())
+            {
+                var approvedList = await _context.RescreenCheckRecords1
+                    .Where(r => rescreenImobileLots.Contains(r.ImobileLot) && r.IsApproved == true)
+                    .Select(r => r.ImobileLot)
+                    .ToListAsync();
+                rescreenApproved = approvedList
+                    .Where(x => x != null)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase)!;
+            }
+            else
+            {
+                rescreenApproved = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            return new SequenceCheckContext(thByNoPo, th100NoPoSet, rescreenApproved);
+        }
+
+        /// <summary>
+        /// Runs the sequence-check loop entirely in-memory using pre-loaded data.
+        /// Returns missing lots, auto-added scrap lots, and rescreen classification lists.
+        /// SaveChanges for scrap lots is batched (single round-trip).
+        /// </summary>
+        private async Task<(
+            List<string> missingNormalLots,
+            List<string> autoAddedScrapLots,
+            List<string> rescreenSkippedLots,
+            List<string> rescreenCanAddLots
+        )> RunSequenceCheckAsync(
+            string lotPo, string mcPo, int currentNoPo,
+            ISet<int> existingNoPos,
+            SequenceCheckContext ctx)
+        {
+            var missingNormalLots   = new List<string>();
+            var autoAddedScrapLots  = new List<string>();
+            var rescreenSkippedLots = new List<string>();
+            var rescreenCanAddLots  = new List<string>();
+            var scrapLotsToAdd      = new List<ThRecord>();
+
+            for (int i = 1; i < currentNoPo; i++)
+            {
+                if (existingNoPos.Contains(i)) continue;
+
+                if (!ctx.ThByNoPo.TryGetValue(i, out var th))
+                {
+                    missingNormalLots.Add($"{lotPo}-{mcPo}-{i:D3}");
+                    continue;
+                }
+
+                var statusLower = th.Status?.ToLower().Trim() ?? "";
+
+                if (statusLower == "scrap")
+                {
+                    scrapLotsToAdd.Add(th);
+                    autoAddedScrapLots.Add($"{lotPo}-{mcPo}-{th.NoPo}");
+                }
+                else if (statusLower == "rescreen")
+                {
+                    bool inRescreen = ctx.RescreenApprovedImobileLots.Contains(th.ImobileLot ?? "");
+                    bool hasTh100   = ctx.Th100NoPoSet.Contains(i);
+
+                    if (inRescreen)
+                        rescreenSkippedLots.Add($"{lotPo}-{mcPo}-{i:D3}");
+                    else if (hasTh100)
+                    {
+                        rescreenCanAddLots.Add($"{lotPo}-{mcPo}-{i:D3}");
+                        missingNormalLots.Add($"{lotPo}-{mcPo}-{i:D3}");
+                    }
+                    else
+                        missingNormalLots.Add($"{lotPo}-{mcPo}-{i:D3}");
+                }
+                else if (statusLower == "hold")
+                {
+                    // hold lots do not block progression — skip silently
+                }
+                else
+                {
+                    missingNormalLots.Add($"{lotPo}-{mcPo}-{i:D3}");
+                }
+            }
+
+            // ✅ Batch: check existing scrap lots in one query, then single SaveChanges
+            if (scrapLotsToAdd.Any())
+            {
+                var scrapImobileLots = scrapLotsToAdd
+                    .Select(t => t.ImobileLot)
+                    .Where(x => x != null)
+                    .ToList();
+
+                var alreadySaved = (await _context.PoCheckFlows
+                    .Where(p => scrapImobileLots.Contains(p.Imobilelot))
+                    .Select(p => p.Imobilelot)
+                    .ToListAsync())
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var scrapTh in scrapLotsToAdd)
+                {
+                    if (alreadySaved.Contains(scrapTh.ImobileLot ?? "")) continue;
+                    _context.PoCheckFlows.Add(new PoCheckFlow
+                    {
+                        PoLot      = $"{scrapTh.LotPo}-{scrapTh.McPo}-{scrapTh.NoPo}",
+                        Imobilelot = scrapTh.ImobileLot,
+                        StatusTn   = "SCRAP",
+                        CheckSt    = false,
+                        CheckDate  = DateOnly.FromDateTime(DateTime.UtcNow),
+                        McNo       = scrapTh.McPo,
+                        LotQty     = 0
+                    });
+                }
+                await _context.SaveChangesAsync();
+            }
+
+            return (missingNormalLots, autoAddedScrapLots, rescreenSkippedLots, rescreenCanAddLots);
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
 
         private async Task AutoAddScrapLot(ThRecord thRecord)
         {
