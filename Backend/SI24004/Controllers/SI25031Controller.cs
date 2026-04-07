@@ -917,19 +917,28 @@ namespace SI24004.Controllers
                     return m.Success && int.TryParse(m.Groups[1].Value, out int n) ? n : 0;
                 }
 
-                int maxNoPo = savedRecords.Max(r => ParseNoPo(r.PoLot));
-
-                var savedNoPoSet = savedRecords
-                    .Select(r => ParseNoPo(r.PoLot))
-                    .Where(n => n > 0)
-                    .ToHashSet();
-
                 var firstRecord = savedRecords.First();
                 var firstParts = firstRecord.PoLot?.Split('-');
                 if (firstParts == null || firstParts.Length < 2)
                     return Ok(new { success = true, data = new List<object>() });
 
                 string lotPoPrefix = firstParts[0];
+
+                // ✅ BUG FIX: โหลด ALL batch records (ทุกวัน) สำหรับ LotPo prefix นี้
+                // เพื่อให้ lot ที่บันทึกข้ามวัน (เช่น Day 6 และ Day 7) แสดงสถานะถูกต้อง
+                // แทนที่จะโชว์จาก ThRecord เป็น RESCREEN เพราะ date filter เก่าพลาดไป
+                var allBatchRecords = await _context.PoCheckFlows
+                    .Where(p => p.McNo == mcNo &&
+                                p.PoLot != null &&
+                                p.PoLot.StartsWith($"{lotPoPrefix}-{mcNo}-"))
+                    .ToListAsync();
+
+                int maxNoPo = allBatchRecords.Max(r => ParseNoPo(r.PoLot));
+
+                var savedNoPoSet = allBatchRecords
+                    .Select(r => ParseNoPo(r.PoLot))
+                    .Where(n => n > 0)
+                    .ToHashSet();
 
                 var allThRecords = await _thicknessContext.ThRecords
                     .Where(t => t.LotPo == lotPoPrefix && t.McPo == mcNo)
@@ -964,7 +973,7 @@ namespace SI24004.Controllers
                 {
                     if (savedNoPoSet.Contains(i))
                     {
-                        var matched = savedRecords
+                        var matched = allBatchRecords
                             .Where(p => ParseNoPo(p.PoLot) == i)
                             .OrderBy(p => p.PoLot?.ToUpper())
                             .ToList();
@@ -1036,9 +1045,10 @@ namespace SI24004.Controllers
                     }
                 }
 
-                int totalCount = savedRecords.Count;
-                int okCount = savedRecords.Count(r => r.CheckSt == true);
-                int ngCount = savedRecords.Count(r => r.CheckSt != true);
+                // stats: ใช้ allBatchRecords เพื่อให้นับ lot ทั้ง batch ถูกต้อง
+                int totalCount = allBatchRecords.Count;
+                int okCount = allBatchRecords.Count(r => r.CheckSt == true);
+                int ngCount = allBatchRecords.Count(r => r.CheckSt != true);
 
                 return Ok(new
                 {
