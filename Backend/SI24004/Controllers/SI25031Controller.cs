@@ -141,40 +141,31 @@ namespace SI24004.Controllers
 
                 ThRecord thRecord = null;
 
+                // ✅ PERF FIX (Bug1): Pre-fetch saved PoLots in 1 query แทน N+1 AnyAsync loop
+                var searchCandidatePoLots = allThRecords
+                    .Select(tr => $"{tr.LotPo}-{tr.McPo}-{tr.NoPo}")
+                    .ToList();
+                var searchSavedPoLotSet = (await _context.PoCheckFlows
+                    .Where(p => searchCandidatePoLots.Contains(p.PoLot))
+                    .Select(p => p.PoLot)
+                    .ToListAsync())
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
                 if (isBrSize)
                 {
-                    // หา Colloidal ที่ยังไม่ถูกบันทึกก่อน
-                    var colloidalRecords = allThRecords
+                    // หา Colloidal ที่ยังไม่ถูกบันทึกก่อน (in-memory, no DB call)
+                    thRecord = allThRecords
                         .Where(t => t.Process != null &&
                                     t.Process.Equals("Colloidal", StringComparison.OrdinalIgnoreCase))
-                        .OrderByDescending(t => t.TimeProcess);
+                        .OrderByDescending(t => t.TimeProcess)
+                        .FirstOrDefault(tr => !searchSavedPoLotSet.Contains($"{tr.LotPo}-{tr.McPo}-{tr.NoPo}"));
 
-                    foreach (var tr in colloidalRecords)
-                    {
-                        string candidatePoLot = $"{tr.LotPo}-{tr.McPo}-{tr.NoPo}";
-                        var existsInFlow = await _context.PoCheckFlows
-                            .AnyAsync(p => p.PoLot == candidatePoLot && p.McNo == tr.McPo);
-                        if (!existsInFlow)
-                        {
-                            thRecord = tr;
-                            break;
-                        }
-                    }
-
-                    // ถ้า Colloidal ถูกบันทึกหมดแล้ว หาตัวอื่นที่ยังไม่ถูกบันทึก
+                    // ถ้า Colloidal ถูกบันทึกหมดแล้ว หาตัวอื่นที่ยังไม่ถูกบันทึก (in-memory)
                     if (thRecord == null)
                     {
-                        foreach (var tr in allThRecords.OrderByDescending(t => t.TimeProcess))
-                        {
-                            string candidatePoLot = $"{tr.LotPo}-{tr.McPo}-{tr.NoPo}";
-                            var existsInFlow = await _context.PoCheckFlows
-                                .AnyAsync(p => p.PoLot == candidatePoLot && p.McNo == tr.McPo);
-                            if (!existsInFlow)
-                            {
-                                thRecord = tr;
-                                break;
-                            }
-                        }
+                        thRecord = allThRecords
+                            .OrderByDescending(t => t.TimeProcess)
+                            .FirstOrDefault(tr => !searchSavedPoLotSet.Contains($"{tr.LotPo}-{tr.McPo}-{tr.NoPo}"));
                     }
 
                     if (thRecord == null)
@@ -191,18 +182,10 @@ namespace SI24004.Controllers
                 }
                 else
                 {
-                    // ปกติ: หา ThRecord ที่ยังไม่มีใน po_check_flow
-                    foreach (var tr in allThRecords.OrderByDescending(t => t.TimeProcess))
-                    {
-                        string candidatePoLot = $"{tr.LotPo}-{tr.McPo}-{tr.NoPo}";
-                        var existsInFlow = await _context.PoCheckFlows
-                            .AnyAsync(p => p.PoLot == candidatePoLot && p.McNo == tr.McPo);
-                        if (!existsInFlow)
-                        {
-                            thRecord = tr;
-                            break;
-                        }
-                    }
+                    // ปกติ: หา ThRecord ที่ยังไม่มีใน po_check_flow (in-memory, no DB call)
+                    thRecord = allThRecords
+                        .OrderByDescending(t => t.TimeProcess)
+                        .FirstOrDefault(tr => !searchSavedPoLotSet.Contains($"{tr.LotPo}-{tr.McPo}-{tr.NoPo}"));
 
                     if (thRecord == null)
                     {
@@ -555,40 +538,31 @@ namespace SI24004.Controllers
 
                 ThRecord thRecord = null;
 
+                // ✅ PERF FIX (Bug1): Pre-fetch saved PoLots in 1 query แทน N+1 AnyAsync loop
+                var saveCandidatePoLots = allThRecordsSave
+                    .Select(tr => $"{tr.LotPo}-{tr.McPo}-{tr.NoPo}")
+                    .ToList();
+                var saveSavedPoLotSet = (await _context.PoCheckFlows
+                    .Where(p => saveCandidatePoLots.Contains(p.PoLot))
+                    .Select(p => p.PoLot)
+                    .ToListAsync())
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
                 if (isBrSizeSave)
                 {
-                    // หา Colloidal ที่ยังไม่ถูกบันทึกก่อน
-                    var colloidalSave = allThRecordsSave
+                    // หา Colloidal ที่ยังไม่ถูกบันทึกก่อน (in-memory, no DB call)
+                    thRecord = allThRecordsSave
                         .Where(t => t.Process != null &&
                                     t.Process.Equals("Colloidal", StringComparison.OrdinalIgnoreCase))
-                        .OrderByDescending(t => t.TimeProcess);
+                        .OrderByDescending(t => t.TimeProcess)
+                        .FirstOrDefault(tr => !saveSavedPoLotSet.Contains($"{tr.LotPo}-{tr.McPo}-{tr.NoPo}"));
 
-                    foreach (var tr in colloidalSave)
-                    {
-                        string candidatePoLot = $"{tr.LotPo}-{tr.McPo}-{tr.NoPo}";
-                        var existsInFlow = await _context.PoCheckFlows
-                            .AnyAsync(p => p.PoLot == candidatePoLot && p.McNo == tr.McPo);
-                        if (!existsInFlow)
-                        {
-                            thRecord = tr;
-                            break;
-                        }
-                    }
-
-                    // ถ้า Colloidal หมดแล้ว หาตัวอื่น
+                    // ถ้า Colloidal หมดแล้ว หาตัวอื่น (in-memory)
                     if (thRecord == null)
                     {
-                        foreach (var tr in allThRecordsSave.OrderByDescending(t => t.TimeProcess))
-                        {
-                            string candidatePoLot = $"{tr.LotPo}-{tr.McPo}-{tr.NoPo}";
-                            var existsInFlow = await _context.PoCheckFlows
-                                .AnyAsync(p => p.PoLot == candidatePoLot && p.McNo == tr.McPo);
-                            if (!existsInFlow)
-                            {
-                                thRecord = tr;
-                                break;
-                            }
-                        }
+                        thRecord = allThRecordsSave
+                            .OrderByDescending(t => t.TimeProcess)
+                            .FirstOrDefault(tr => !saveSavedPoLotSet.Contains($"{tr.LotPo}-{tr.McPo}-{tr.NoPo}"));
                     }
 
                     if (thRecord == null)
@@ -598,17 +572,10 @@ namespace SI24004.Controllers
                 }
                 else
                 {
-                    foreach (var tr in allThRecordsSave.OrderByDescending(t => t.TimeProcess))
-                    {
-                        string candidatePoLot = $"{tr.LotPo}-{tr.McPo}-{tr.NoPo}";
-                        var existsInFlow = await _context.PoCheckFlows
-                            .AnyAsync(p => p.PoLot == candidatePoLot && p.McNo == tr.McPo);
-                        if (!existsInFlow)
-                        {
-                            thRecord = tr;
-                            break;
-                        }
-                    }
+                    // ปกติ: หา ThRecord ที่ยังไม่มีใน po_check_flow (in-memory, no DB call)
+                    thRecord = allThRecordsSave
+                        .OrderByDescending(t => t.TimeProcess)
+                        .FirstOrDefault(tr => !saveSavedPoLotSet.Contains($"{tr.LotPo}-{tr.McPo}-{tr.NoPo}"));
 
                     if (thRecord == null)
                     {
@@ -1379,8 +1346,12 @@ namespace SI24004.Controllers
             HashSet<string> rescreenApproved;
             if (rescreenImobileLots.Any())
             {
+                // ✅ BUG FIX (Bug2): ใช้ FinalStatus=="OK" แทน IsApproved==true
+                // เพื่อให้ตรงกับ logic ที่ UI แสดง "Waiting Rescreen" (สีส้ม)
+                // → lot ที่บันทึกใน RescreenCheck และ FinalStatus=OK ข้ามได้ในลำดับ
                 var approvedList = await _context.RescreenCheckRecords1
-                    .Where(r => rescreenImobileLots.Contains(r.ImobileLot) && r.IsApproved == true)
+                    .Where(r => rescreenImobileLots.Contains(r.ImobileLot) &&
+                                r.FinalStatus != null && r.FinalStatus.ToUpper() == "OK")
                     .Select(r => r.ImobileLot)
                     .ToListAsync();
                 rescreenApproved = approvedList
