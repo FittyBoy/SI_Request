@@ -1356,12 +1356,12 @@ namespace SI24004.Controllers
             HashSet<string> rescreenApproved;
             if (rescreenImobileLots.Any())
             {
-                // ✅ BUG FIX (Bug2): ใช้ FinalStatus=="OK" แทน IsApproved==true
-                // เพื่อให้ตรงกับ logic ที่ UI แสดง "Waiting Rescreen" (สีส้ม)
-                // → lot ที่บันทึกใน RescreenCheck และ FinalStatus=OK ข้ามได้ในลำดับ
+                // ✅ BUG FIX: ใช้เพียง "exists in RescreenCheckRecords1" เท่านั้น
+                // ให้ตรงกับ logic ของ get-lots-by-mc ที่แสดงสีส้ม "Waiting Rescreen"
+                // → lot ที่ถูกบันทึกในหน้า Rescreen แล้ว (ไม่ต้องรอ FinalStatus=OK)
+                //    สามารถข้ามได้ในลำดับ sequence check
                 var approvedList = await _context.RescreenCheckRecords1
-                    .Where(r => rescreenImobileLots.Contains(r.ImobileLot) &&
-                                r.FinalStatus != null && r.FinalStatus.ToUpper() == "OK")
+                    .Where(r => rescreenImobileLots.Contains(r.ImobileLot))
                     .Select(r => r.ImobileLot)
                     .ToListAsync();
                 rescreenApproved = approvedList
