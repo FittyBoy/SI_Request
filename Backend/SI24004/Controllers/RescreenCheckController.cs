@@ -232,22 +232,43 @@ namespace SI24004.Controllers
                 var existingRecord = await _context.RescreenCheckRecords1
                     .FirstOrDefaultAsync(r => r.ImobileLot == request.ImobileLot);
 
+                // ✅ FIX: ถ้าเคยสแกนแล้วให้ยิงซ้ำได้ (re-evaluate status ใหม่)
+                // เพราะ Flow-out check ต้องการ verify อีกรอบที่เครื่องอื่น
                 if (existingRecord != null)
                 {
-                    // ถ้าถูกเพิ่มแล้วและ Status = OK → แจ้งว่าผ่านแล้ว (ไม่ใช่ error)
-                    if (existingRecord.FinalStatus?.ToUpper() == "OK")
-                        return Ok(new
-                        {
-                            success = true,
-                            alreadyExists = true,
-                            message = $"✅ LOT นี้อยู่ใน Rescreen Check แล้ว และ Status = OK\n\nPO LOT: {existingRecord.LotPo}-{existingRecord.McPo}-{existingRecord.NoPo}\nสามารถนำไป Check Flow ได้เลย"
-                        });
+                    var th100RecordRe = await FindTH100Record(thRecord);
+                    var poCheckFlowRe = await FindPoCheckFlowRecord(thRecord.ImobileLot);
+                    var (finalStatusRe, isApprovedRe, approvedSourceRe, th100StatusRe) =
+                        EvaluateStatus(th100RecordRe, poCheckFlowRe);
 
-                    // ถ้าเพิ่มแล้วแต่ยัง Pending → แจ้ง error ตามปกติ
-                    return BadRequest(new
+                    existingRecord.CheckDate     = GetBangkokNow();
+                    existingRecord.CheckedBy     = request.CheckedBy;
+                    existingRecord.Th100Status   = th100StatusRe;
+                    existingRecord.FinalStatus   = finalStatusRe;
+                    existingRecord.IsApproved    = isApprovedRe;
+                    existingRecord.ApprovedSource = approvedSourceRe;
+                    existingRecord.Remarks       = "Re-scanned: updated status";
+
+                    await _context.SaveChangesAsync();
+
+                    string reLotPo = $"{existingRecord.LotPo}-{existingRecord.McPo}-{existingRecord.NoPo}";
+                    return Ok(new
                     {
-                        success = false,
-                        message = $"LOT นี้ถูกเพิ่มแล้ว\n\nPO LOT: {existingRecord.LotPo}-{existingRecord.McPo}-{existingRecord.NoPo}\nStatus: {existingRecord.FinalStatus}"
+                        success = true,
+                        reScanned = true,
+                        message = $"🔄 ยิง Rescreen ซ้ำสำเร็จ\n\nPO LOT: {reLotPo}\nStatus: {finalStatusRe}\nApproved By: {approvedSourceRe}",
+                        data = new
+                        {
+                            id          = existingRecord.Id,
+                            imobileLot  = existingRecord.ImobileLot,
+                            poLot       = reLotPo,
+                            mc          = existingRecord.McPo,
+                            finalStatus = finalStatusRe,
+                            isApproved  = isApprovedRe,
+                            approvedSource = approvedSourceRe,
+                            th100Status = th100StatusRe,
+                            checkDate   = existingRecord.CheckDate
+                        }
                     });
                 }
 
