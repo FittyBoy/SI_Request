@@ -373,17 +373,15 @@ namespace SI24004.Controllers
                     var ctRescreenRecord = await _context.RescreenCheckRecords1
                         .FirstOrDefaultAsync(r => r.ImobileLot == thRecord.ImobileLot);
 
-                    if (ctRescreenRecord != null && ctRescreenRecord.FinalStatus?.ToUpper() == "OK")
+                    // ✅ FIX: ขอแค่มีใน Rescreen Check แล้วก็ผ่านได้ ไม่สนสถานะ
+                    if (ctRescreenRecord != null)
                     {
-                        // ผ่านหน้า Rescreen แล้วและ FinalStatus = OK → บันทึกได้
                         checkSt = true;
                         finalStatus = "OK (Rescreen)";
                         requiresCTRescreen = false;
                     }
                     else
                     {
-                        // ยังไม่มีใน Rescreen Check หรือ FinalStatus ไม่ใช่ OK
-                        // → บังคับไปลงหน้า Rescreen ก่อน ไม่ว่า status เดิมจะเป็นอะไร
                         checkSt = false;
                         finalStatus = "Rescreen";
                         requiresCTRescreen = true;
@@ -679,21 +677,35 @@ namespace SI24004.Controllers
 
                 if (thRecord.Status?.ToLower() == "rescreen")
                 {
-                    var th100Record = await FindTH100Record(thRecord);
+                    // ✅ FIX: ถ้าลงใน Rescreen Check แล้ว → ผ่านได้เลย ไม่สนสถานะ
+                    var rescreenRec = await _context.RescreenCheckRecords1
+                        .FirstOrDefaultAsync(r => r.ImobileLot == thRecord.ImobileLot);
 
-                    if (th100Record != null && th100Record.Status?.ToUpper() == "OK")
+                    if (rescreenRec != null)
                     {
-                        checkSt = true;
-                        finalStatus = "OK (Rescreen)";
-                    }
-                    else if (th100Record != null)
-                    {
-                        checkSt = false;
-                        finalStatus = th100Record.Status ?? "Rescreen";
+                        // มีใน Rescreen Check → ใช้ TH100 ช่วย set checkSt ถ้ามี
+                        var th100Record = await FindTH100Record(thRecord);
+                        checkSt = th100Record?.Status?.ToUpper() == "OK";
+                        finalStatus = checkSt ? "OK (Rescreen)" : "Rescreen";
                     }
                     else
                     {
-                        return BadRequest(new { success = false, message = "LOT นี้ Rescreen Pending ไม่สามารถบันทึกได้" });
+                        // ยังไม่ได้ลงใน Rescreen Check เลย → บล็อค
+                        var th100Record = await FindTH100Record(thRecord);
+                        if (th100Record != null && th100Record.Status?.ToUpper() == "OK")
+                        {
+                            checkSt = true;
+                            finalStatus = "OK (Rescreen)";
+                        }
+                        else if (th100Record != null)
+                        {
+                            checkSt = false;
+                            finalStatus = th100Record.Status ?? "Rescreen";
+                        }
+                        else
+                        {
+                            return BadRequest(new { success = false, message = "LOT นี้ Rescreen Pending ไม่สามารถบันทึกได้\n\nกรุณาลงในหน้า Rescreen Check ก่อน" });
+                        }
                     }
                 }
                 else if (!string.IsNullOrEmpty(thRecord.Status))
@@ -712,7 +724,8 @@ namespace SI24004.Controllers
                         var ctRescreenRecord = await _context.RescreenCheckRecords1
                             .FirstOrDefaultAsync(r => r.ImobileLot == thRecord.ImobileLot);
 
-                        if (ctRescreenRecord == null || ctRescreenRecord.FinalStatus?.ToUpper() != "OK")
+                        // ✅ FIX: ขอแค่มีใน Rescreen Check แล้วก็ผ่านได้ ไม่สนสถานะ
+                        if (ctRescreenRecord == null)
                         {
                             return BadRequest(new
                             {
@@ -723,7 +736,6 @@ namespace SI24004.Controllers
                             });
                         }
 
-                        // ผ่าน Rescreen แล้วและ FinalStatus = OK → บันทึกได้ด้วยสถานะ OK (Rescreen)
                         checkSt = true;
                         finalStatus = "OK (Rescreen)";
                     }
