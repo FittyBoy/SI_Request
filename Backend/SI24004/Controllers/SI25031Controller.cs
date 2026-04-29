@@ -967,6 +967,16 @@ namespace SI24004.Controllers
                         .ToHashSet(StringComparer.OrdinalIgnoreCase)
                     : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+                // ✅ FIX: Pre-fetch ImobileLots ที่บันทึกใน po_check_flow ทุก machine
+                // เพื่อซ่อน SKIP lots ที่ผ่านเครื่องนี้ไปแล้วแต่ไปบันทึกจริงที่เครื่องอื่น
+                // เช่น lot ผ่าน 918/920 (SKIP) แล้วบันทึกที่ 904 → ไม่แสดงใน column 918/920
+                var savedImobileLotSet = (await _context.PoCheckFlows
+                    .Where(p => p.PoLot != null && p.PoLot.StartsWith($"{lotPoPrefix}-"))
+                    .Select(p => p.Imobilelot)
+                    .Where(x => x != null)
+                    .ToListAsync())
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase)!;
+
                 var combinedList = new List<object>();
 
                 for (int i = 1; i <= maxNoPo; i++)
@@ -997,6 +1007,10 @@ namespace SI24004.Controllers
                     }
                     else if (thByNoPo.TryGetValue(i, out ThRecord? th))
                     {
+                        // ✅ ซ่อน lot ที่ ImobileLot เดียวกันบันทึกในเครื่องอื่นแล้ว
+                        // (ผ่านเครื่องนี้แบบ SKIP แต่ไปบันทึกจริงที่เครื่องอื่น เช่น 918→904)
+                        if (th.ImobileLot != null && savedImobileLotSet.Contains(th.ImobileLot))
+                            continue;
                         string status = th.Status?.Trim() ?? "";
                         string statusUp = status.ToUpper();
                         string rowColor = "default";
