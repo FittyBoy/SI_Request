@@ -1308,7 +1308,9 @@ namespace SI24004.Controllers
         private record SequenceCheckContext(
             Dictionary<int, ThRecord> ThByNoPo,
             HashSet<int> Th100NoPoSet,
-            HashSet<string> RescreenApprovedImobileLots
+            HashSet<string> RescreenApprovedImobileLots,
+            // TH100 status per NoPo — used to auto-approve Rescreen lots with TH100=OK
+            Dictionary<int, string> Th100StatusByNoPo
         );
 
         /// <summary>
@@ -1332,17 +1334,22 @@ namespace SI24004.Controllers
                     thByNoPo[n] = th; // overwrite → keeps latest TimeProcess
             }
 
-            // 2. All Th100Records for LotPo+McPo — build noPoNumber set
+            // 2. All Th100Records for LotPo+McPo — build noPoNumber set AND status map
             var allTh100 = await _thicknessContext.Th100Records
                 .Where(t => t.LotPo == lotPo && t.McPo == mcPo)
                 .ToListAsync();
 
             var th100NoPoSet = new HashSet<int>();
+            var th100StatusByNoPo = new Dictionary<int, string>(); // NoPo → latest TH100 status
             foreach (var t in allTh100)
             {
                 var m = System.Text.RegularExpressions.Regex.Match(t.NoPo ?? "", @"^(\d+)");
                 if (m.Success && int.TryParse(m.Groups[1].Value, out int n))
+                {
                     th100NoPoSet.Add(n);
+                    // overwrite → keeps latest status (same logic as thByNoPo)
+                    th100StatusByNoPo[n] = t.Status ?? "";
+                }
             }
 
             // 3. Collect imobileLots of rescreen lots in range → query RescreenCheck once
@@ -1373,7 +1380,7 @@ namespace SI24004.Controllers
                 rescreenApproved = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             }
 
-            return new SequenceCheckContext(thByNoPo, th100NoPoSet, rescreenApproved);
+            return new SequenceCheckContext(thByNoPo, th100NoPoSet, rescreenApproved, th100StatusByNoPo);
         }
 
         /// <summary>
@@ -1417,17 +1424,61 @@ namespace SI24004.Controllers
                 else if (statusLower == "rescreen")
                 {
                     bool inRescreen = ctx.RescreenApprovedImobileLots.Contains(th.ImobileLot ?? "");
-                    bool hasTh100   = ctx.Th100NoPoSet.Contains(i);
 
                     if (inRescreen)
-                        rescreenSkippedLots.Add($"{lotPo}-{mcPo}-{i:D3}");
-                    else if (hasTh100)
                     {
-                        rescreenCanAddLots.Add($"{lotPo}-{mcPo}-{i:D3}");
-                        missingNormalLots.Add($"{lotPo}-{mcPo}-{i:D3}");
+                        rescreenSkippedLots.Add($"{lotPo}-{mcPo}-{i:D3}");
                     }
                     else
-                        missingNormalLots.Add($"{lotPo}-{mcPo}-{i:D3}");
+                    {
+                        // ตรวจ TH100 status สำหรับ NoPo นี้
+                        bool hasTh100Ok = ctx.Th100StatusByNoPo.TryGetValue(i, out var th100St)
+                                          && string.Equals(th100St, "OK", StringComparison.OrdinalIgnoreCase);
+
+                        if (hasTh100Ok && th.ImobileLot != null)
+                        {
+                            // ✅ AUTO-APPROVE: Rescreen + TH100=OK → auto-create RescreenCheckRecord1
+                            // เหมือนกับที่ SCRAP ถูก auto-add เข้า po_check_flow
+                            // ป้องกันบล็อคช่วงดึก (ตี 1-5) ที่ Rescreen lots สะสมแต่ยังไม่ได้สแกนใน Rescreen Check
+                            var existingRescreenRec = await _context.RescreenCheckRecords1
+                                .AnyAsync(r => r.ImobileLot == th.ImobileLot);
+
+                            if (!existingRescreenRec)
+                            {
+                                _context.RescreenCheckRecords1.Add(new RescreenCheckRecord1
+                                {
+                                    Id            = Guid.NewGuid(),
+                                    ImobileLot    = th.ImobileLot,
+                                    LotPo         = th.LotPo,
+                                    McPo          = th.McPo,
+                                    NoPo          = th.NoPo,
+                                    Status        = th.Status,
+                                    DateProcess   = th.TimeProcess ?? DateTime.UtcNow,
+                                    CheckDate     = DateTime.UtcNow,
+                                    CheckedBy     = "SYSTEM",
+                                    Th100Status   = th100St,
+                                    FinalStatus   = "OK",
+                                    IsApproved    = true,
+                                    ApprovedSource = "TH100 Auto-Approve",
+                                    Remarks       = "Auto-approved: Rescreen + TH100=OK (system auto at sequence check)"
+                                });
+                                await _context.SaveChangesAsync();
+                            }
+
+                            rescreenSkippedLots.Add($"{lotPo}-{mcPo}-{i:D3}");
+                        }
+                        else if (ctx.Th100NoPoSet.Contains(i))
+                        {
+                            // มี TH100 แต่ Status ไม่ใช่ OK → ต้องไปสแกน Rescreen Check เอง
+                            rescreenCanAddLots.Add($"{lotPo}-{mcPo}-{i:D3}");
+                            missingNormalLots.Add($"{lotPo}-{mcPo}-{i:D3}");
+                        }
+                        else
+                        {
+                            // ไม่มี TH100 เลย → ต้องรอ TH100 ก่อน
+                            missingNormalLots.Add($"{lotPo}-{mcPo}-{i:D3}");
+                        }
+                    }
                 }
                 else if (statusLower == "hold")
                 {
