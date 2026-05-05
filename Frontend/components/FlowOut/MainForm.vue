@@ -563,8 +563,6 @@
                 </div>
             </transition>
 
-            </transition>
-
             <!-- Edit Qty Modal -->
             <transition name="modal">
                 <div v-if="showEditQtyModal" class="modal-overlay" @click.self="closeEditQty">
