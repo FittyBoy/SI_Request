@@ -169,7 +169,7 @@
                                             <div class="qty-cell">
                                                 <span class="qty-text">{{ item.lotQty != null ? item.lotQty : '-' }}</span>
                                                 <button
-                                                    v-if="item.lotQty != null"
+                                                    v-if="item.lotQty != null && item.check === 'OK'"
                                                     class="btn-edit-qty"
                                                     title="แก้ไข Qty"
                                                     @click.stop="openEditQty(item)"
