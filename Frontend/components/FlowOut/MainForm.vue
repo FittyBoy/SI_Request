@@ -166,7 +166,15 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <span class="qty-text">{{ item.lotQty != null ? item.lotQty : '-' }}</span>
+                                            <div class="qty-cell">
+                                                <span class="qty-text">{{ item.lotQty != null ? item.lotQty : '-' }}</span>
+                                                <button
+                                                    v-if="item.lotQty != null"
+                                                    class="btn-edit-qty"
+                                                    title="แก้ไข Qty"
+                                                    @click.stop="openEditQty(item)"
+                                                >✏️</button>
+                                            </div>
                                         </td>
                                     </tr>
                                     <tr v-if="lotRecords.length === 0" class="empty-state-row">
@@ -555,7 +563,63 @@
                 </div>
             </transition>
 
-            <!-- Loading Overlay -->
+            </transition>
+
+            <!-- Edit Qty Modal -->
+            <transition name="modal">
+                <div v-if="showEditQtyModal" class="modal-overlay" @click.self="closeEditQty">
+                    <div class="modal-container" style="max-width:400px">
+                        <div class="modal-header" style="background:linear-gradient(135deg,#f59e0b,#d97706)">
+                            <div class="modal-icon">✏️</div>
+                            <h2 class="modal-title">แก้ไข Lot Qty</h2>
+                            <button class="modal-close" @click="closeEditQty">✕</button>
+                        </div>
+                        <div class="modal-body" style="padding:24px;display:flex;flex-direction:column;gap:16px">
+                            <div class="info-row">
+                                <span class="info-label">PO LOT</span>
+                                <span class="info-value" style="font-weight:700">{{ editQtyTarget?.poLot }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Qty ปัจจุบัน</span>
+                                <span class="info-value">{{ editQtyTarget?.lotQty }}</span>
+                            </div>
+                            <div>
+                                <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px">Qty ใหม่</label>
+                                <input
+                                    v-model="editQtyNewValue"
+                                    type="number"
+                                    min="0"
+                                    class="qty-input-single"
+                                    placeholder="ใส่จำนวนใหม่"
+                                    style="width:100%"
+                                />
+                            </div>
+                            <div>
+                                <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px">รหัสผ่าน</label>
+                                <input
+                                    v-model="editQtyPassword"
+                                    type="password"
+                                    class="qty-input-single"
+                                    placeholder="กรอกรหัสผ่าน"
+                                    style="width:100%"
+                                    @keyup.enter="submitEditQty"
+                                />
+                            </div>
+                            <p v-if="editQtyError" style="color:#ef4444;font-size:13px;margin:0">{{ editQtyError }}</p>
+                        </div>
+                        <div class="modal-footer" style="padding:16px 24px;display:flex;gap:12px;justify-content:flex-end">
+                            <button class="btn btn-cancel" @click="closeEditQty">ยกเลิก</button>
+                            <button
+                                class="btn btn-save"
+                                :disabled="editQtyNewValue === null || editQtyNewValue === '' || !editQtyPassword || editQtyLoading"
+                                @click="submitEditQty"
+                            >{{ editQtyLoading ? 'กำลังบันทึก...' : 'บันทึก' }}</button>
+                        </div>
+                    </div>
+                </div>
+            </transition>
+
+
             <transition name="fade">
                 <div v-if="isLoading" class="loading-overlay">
                     <div class="loading-spinner">
@@ -631,6 +695,58 @@ const errorData = ref({
     currentLot: '',
     requiredLot: ''
 })
+
+// Edit Qty Modal States
+const showEditQtyModal = ref(false)
+const editQtyTarget = ref<LotRecord | null>(null)
+const editQtyNewValue = ref<string | number>('')
+const editQtyPassword = ref('')
+const editQtyError = ref('')
+const editQtyLoading = ref(false)
+
+const openEditQty = (item: LotRecord) => {
+    editQtyTarget.value = item
+    editQtyNewValue.value = item.lotQty ?? ''
+    editQtyPassword.value = ''
+    editQtyError.value = ''
+    showEditQtyModal.value = true
+}
+
+const closeEditQty = () => {
+    showEditQtyModal.value = false
+    editQtyTarget.value = null
+    editQtyPassword.value = ''
+    editQtyError.value = ''
+}
+
+const submitEditQty = async () => {
+    if (!editQtyTarget.value || editQtyNewValue.value === '' || !editQtyPassword.value) return
+    editQtyLoading.value = true
+    editQtyError.value = ''
+    try {
+        const { data: res, error } = await useFetch('/api/SI25031/update-qty', {
+            baseURL: useRuntimeConfig().public.apiBase,
+            method: 'POST',
+            body: {
+                poLot: editQtyTarget.value.poLot,
+                mcNo: editQtyTarget.value.mcNo,
+                newQty: Number(editQtyNewValue.value),
+                password: editQtyPassword.value.trim()
+            }
+        })
+        if (error.value || !(res.value as any)?.success) {
+            editQtyError.value = (error.value?.data as any)?.message || (res.value as any)?.message || '❌ เกิดข้อผิดพลาด'
+        } else {
+            closeEditQty()
+            await fetchLotData()
+        }
+    } catch (e) {
+        editQtyError.value = '❌ เกิดข้อผิดพลาด'
+    } finally {
+        editQtyLoading.value = false
+    }
+}
+
 
 // Data from DB
 const allDisplayRecords = ref<LotRecord[]>([])
@@ -1723,7 +1839,33 @@ onUnmounted(() => {
     transition: color 0.3s;
 }
 
-.check-badge {
+.qty-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-edit-qty {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    padding: 2px 4px;
+    border-radius: 4px;
+    line-height: 1;
+}
+
+tr:hover .btn-edit-qty {
+    opacity: 1;
+}
+
+.btn-edit-qty:hover {
+    background: #fef3c7;
+}
+
+
     display: inline-flex;
     align-items: center;
     gap: 6px;

@@ -1619,6 +1619,54 @@ namespace SI24004.Controllers
         // Request Models
         // ─────────────────────────────────────────────
 
+        [HttpPost("update-qty")]
+        public async Task<IActionResult> UpdateQty([FromBody] UpdateQtyRequest request)
+        {
+            try
+            {
+                // Authorized passwords
+                var validPasswords = new HashSet<string>
+                {
+                    "2019207","1214035","1214034","2317138","2400992","2401256","2501491",
+                    "1214036","1314437","1294095","0710401","1213870","1214071","1214198",
+                    "1214342","1314441","1314496","1414677","1293989","0991474","0911508",
+                    "1112802","1193229","1293977","1214395","1213888","1414631","1715678",
+                    "1715713","1716261"
+                };
+
+                if (string.IsNullOrWhiteSpace(request.Password) || !validPasswords.Contains(request.Password.Trim()))
+                    return BadRequest(new { success = false, message = "❌ รหัสผ่านไม่ถูกต้อง" });
+
+                if (string.IsNullOrWhiteSpace(request.PoLot) || string.IsNullOrWhiteSpace(request.McNo))
+                    return BadRequest(new { success = false, message = "❌ ข้อมูลไม่ครบ" });
+
+                if (request.NewQty < 0)
+                    return BadRequest(new { success = false, message = "❌ จำนวนต้องไม่ติดลบ" });
+
+                var record = await _context.PoCheckFlows
+                    .FirstOrDefaultAsync(p => p.PoLot == request.PoLot && p.McNo == request.McNo);
+
+                if (record == null)
+                    return NotFound(new { success = false, message = "❌ ไม่พบ LOT นี้" });
+
+                int oldQty = record.LotQty ?? 0;
+                record.LotQty = request.NewQty;
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = $"✅ แก้ไข Qty สำเร็จ\n\nPO LOT: {request.PoLot}\n{oldQty} → {request.NewQty}",
+                    data = new { poLot = request.PoLot, oldQty, newQty = request.NewQty }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "เกิดข้อผิดพลาด", error = ex.Message });
+            }
+        }
+
+
         public class SearchLotRequest
         {
             public string? LotNumber { get; set; }
@@ -1628,7 +1676,15 @@ namespace SI24004.Controllers
         {
             public string? ImobileLot { get; set; }
             public int? LotQty { get; set; }
-            public string? PoLot { get; set; }   // ✅ เพิ่มสำหรับ REP Product
+            public string? PoLot { get; set; }
+        }
+
+        public class UpdateQtyRequest
+        {
+            public string? PoLot { get; set; }
+            public string? McNo { get; set; }
+            public int NewQty { get; set; }
+            public string? Password { get; set; }
         }
     }
 }
