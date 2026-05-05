@@ -1863,7 +1863,7 @@ tr:hover .btn-edit-qty {
     background: #fef3c7;
 }
 
-
+.check-badge {
     display: inline-flex;
     align-items: center;
     gap: 6px;
