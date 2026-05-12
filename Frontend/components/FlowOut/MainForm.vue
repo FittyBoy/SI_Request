@@ -454,6 +454,13 @@
                                 </svg>
                                 ไปหน้า Rescreen Check
                             </button>
+                            <!-- RESCREEN ยังไม่เสร็จ: Skip ได้ แต่ไม่ Save -->
+                            <button v-else-if="isRescreenPending()" class="btn btn-skip" @click="handleSkip">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/>
+                                </svg>
+                                Skip (ข้ามไปก่อน)
+                            </button>
                             <button v-else class="btn btn-sendback" @click="handleSendBack">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="15 18 9 12 15 6" />
@@ -890,10 +897,19 @@ const canSaveLot = () => {
     // ✅ CT Suffix: ถ้าต้องผ่าน Rescreen ก่อน → ห้ามบันทึก
     if (modalData.value.requiresCTRescreen) return false
     const status = modalData.value.statusTn?.toLowerCase()
-    // ✅ อนุญาตให้กรอก qty เฉพาะ status = OK เท่านั้น
-    // RESCREEN / HOLD / SCRAP และ status อื่นๆ ห้ามกรอก
+    // ✅ OK → บันทึกได้
     if (status === 'ok') return true
+    // ✅ RESCREEN ที่ผ่าน TH100 แล้ว (checkSt = true) → บันทึกได้
+    if (status === 'rescreen' && modalData.value.checkSt) return true
+    // ❌ RESCREEN ที่ยังไม่ผ่าน / HOLD / SCRAP → ห้ามบันทึก
     return false
+}
+
+// RESCREEN ที่ยังไม่เสร็จ → ไม่กรอก qty แต่ skip ได้
+const isRescreenPending = () => {
+    if (!modalData.value) return false
+    const status = modalData.value.statusTn?.toLowerCase()
+    return status === 'rescreen' && !modalData.value.checkSt
 }
 
 const showSubStatus = () => {
@@ -1020,6 +1036,12 @@ const handleSave = async () => {
 
 const handleSendBack = () => {
     successMessage.value = `LOT ${modalData.value?.poLot} ถูกส่งกลับแล้ว`
+    playErrorBeep()
+    setTimeout(() => { if (isMounted.value) { successMessage.value = ''; lotNo.value = ''; closeModal(); focusInput() } }, 2000)
+}
+
+const handleSkip = () => {
+    successMessage.value = `⏭ ข้าม LOT ${modalData.value?.poLot} (Rescreen ยังไม่เสร็จ)`
     playErrorBeep()
     setTimeout(() => { if (isMounted.value) { successMessage.value = ''; lotNo.value = ''; closeModal(); focusInput() } }, 2000)
 }
@@ -2408,6 +2430,17 @@ tr:hover .btn-edit-qty {
 .btn-sendback:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(220, 38, 38, 0.4);
+}
+
+/* ⏭ RESCREEN Pending: ข้ามได้แต่ไม่บันทึก */
+.btn-skip {
+    background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+    color: white;
+}
+
+.btn-skip:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(124, 58, 237, 0.4);
 }
 
 /* ✅ CT Suffix (-C/-T): ปุ่มไปหน้า Rescreen */
