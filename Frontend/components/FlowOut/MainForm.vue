@@ -890,9 +890,9 @@ const canSaveLot = () => {
     // ✅ CT Suffix: ถ้าต้องผ่าน Rescreen ก่อน → ห้ามบันทึก
     if (modalData.value.requiresCTRescreen) return false
     const status = modalData.value.statusTn?.toLowerCase()
+    // ✅ อนุญาตให้กรอก qty เฉพาะ status = OK เท่านั้น
+    // RESCREEN / HOLD / SCRAP และ status อื่นๆ ห้ามกรอก
     if (status === 'ok') return true
-    if (status?.includes('ok') && modalData.value.checkSt) return true
-    if (status === 'rescreen' && modalData.value.checkSt) return true
     return false
 }
 
