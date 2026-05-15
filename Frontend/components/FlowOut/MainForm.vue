@@ -897,8 +897,8 @@ const canSaveLot = () => {
     // ✅ CT Suffix: ถ้าต้องผ่าน Rescreen ก่อน → ห้ามบันทึก
     if (modalData.value.requiresCTRescreen) return false
     const status = modalData.value.statusTn?.toLowerCase()
-    // ✅ OK → บันทึกได้
-    if (status === 'ok') return true
+    // ✅ OK หรือ OK (Rescreen) → บันทึกได้
+    if (status === 'ok' || status?.includes('ok')) return true
     // ✅ RESCREEN ที่ผ่าน TH100 แล้ว (checkSt = true) → บันทึกได้
     if (status === 'rescreen' && modalData.value.checkSt) return true
     // ❌ RESCREEN ที่ยังไม่ผ่าน / HOLD / SCRAP → ห้ามบันทึก
