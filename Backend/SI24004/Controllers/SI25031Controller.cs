@@ -1381,8 +1381,11 @@ namespace SI24004.Controllers
             // 3. Collect imobileLots of rescreen lots in range → query RescreenCheck once
             var rescreenImobileLots = thByNoPo
                 .Where(kv => kv.Key < currentNoPo &&
-                             string.Equals(kv.Value.Status, "rescreen", StringComparison.OrdinalIgnoreCase) &&
-                             kv.Value.ImobileLot != null)
+                             kv.Value.ImobileLot != null &&
+                             (
+                                 string.Equals(kv.Value.Status, "rescreen", StringComparison.OrdinalIgnoreCase) ||
+                                 IsCTSuffix(kv.Value.NoPo)  // ✅ CT Suffix lots ต้องเช็ค Rescreen ด้วย
+                             ))
                 .Select(kv => kv.Value.ImobileLot!)
                 .ToList();
 
@@ -1468,7 +1471,20 @@ namespace SI24004.Controllers
                 }
                 else
                 {
-                    missingNormalLots.Add($"{lotPo}-{mcPo}-{i:D3}");
+                    // ✅ CT Suffix Rule: lot ก่อนหน้าที่ลงท้าย -C/-T/-N (status=OK)
+                    // → ต้องมีใน Rescreen Check ก่อน ถึงจะข้ามได้
+                    if (IsCTSuffix(th.NoPo))
+                    {
+                        bool inRescreen = ctx.RescreenApprovedImobileLots.Contains(th.ImobileLot ?? "");
+                        if (inRescreen)
+                            rescreenSkippedLots.Add($"{lotPo}-{mcPo}-{i:D3}");
+                        else
+                            missingNormalLots.Add($"{lotPo}-{mcPo}-{i:D3}");
+                    }
+                    else
+                    {
+                        missingNormalLots.Add($"{lotPo}-{mcPo}-{i:D3}");
+                    }
                 }
             }
 
