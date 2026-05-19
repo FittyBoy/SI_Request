@@ -125,7 +125,7 @@ builder.Services.Configure<SI24004.Models.DTOs.EmailRecipients>(options =>
     {
         "anupong.ohok@agc.com",
         "Supattra.Khonraeng@agc.com",
-        "Rathapong.Wongsettee@agc.com",
+        "Supawich Chitsawang@agc.com",
         "Bandith.Srimai@agc.com",
         "Kasiwat.Rattanamakhin@agc.com",
         "Ongart.Jaitamdee@agc.com",
